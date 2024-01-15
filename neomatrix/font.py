@@ -106,5 +106,5 @@ def draw_message(message):
         for x in range(len(font[0])):
             for y in range(8):
                 if ((font[ord(message[letter_pos])-32][x] >> y) & 0x01):
-                    ret[f"{x+offset:03d}{y:03d}"] = bytearray(b'\xff\x00\x00')
+                    ret[f"{x+offset:03d}{7-y:03d}"] = bytearray(b'\xff\x00\x00')
     return ret
