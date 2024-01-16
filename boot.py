@@ -2,6 +2,7 @@ import network
 import secrets
 
 def do_connect():
+    network.WLAN(network.AP_IF).active(False)
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     if not wlan.isconnected():

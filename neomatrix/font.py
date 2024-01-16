@@ -1,4 +1,5 @@
-font = [
+font = {
+"5x8" : [
     bytearray(b'\x00\x00\x00\x00\x00'), # 20
     bytearray(b'\x00\x00\x5f\x00\x00'), # 21 !
     bytearray(b'\x00\x07\x00\x07\x00'), # 22 "
@@ -95,7 +96,58 @@ font = [
     bytearray(b'\x00\x41\x36\x08\x00'), # 7d }
     bytearray(b'\x10\x08\x08\x10\x08'), # 7e ←
     bytearray(b'\x78\x46\x41\x46\x78'), # 7f →
+],
+"4x4" : [
+  bytearray(b'\x00\xB0\x00\x00'), # #32 & #33 - Symbol ' ' (space) & Symbol '!'.
+  bytearray(b'\xA1\x70\xE1\x50'), # #34 & #35 - Symbol '"' & Symbol '#'.
+  bytearray(b'\x96\x4F\x26\x90'), # #36 & #37 - Symbol '$' & Symbol '%'.
+  bytearray(b'\x0F\x1D\x07\x0C'), # #38 & #39 - Symbol '&' & Symbol '''.
+  bytearray(b'\x00\x96\x69\x00'), # #40 & #41 - Symbol '(' & Symbol ')'.
+  bytearray(b'\x4A\xE4\x4A\x00'), # #42 & #43 - Symbol '*' & Symbol '+'.
+  bytearray(b'\x48\x44\x40\x00'), # #44 & #45 - Symbol ',' & Symbol '-'.
+  bytearray(b'\x80\x68\x10\x00'), # #46 & #47 - Symbol '.' & Symbol '/'.
+  bytearray(b'\x0F\x99\xFB\x8F'), # #48 & #49 - Number '0' & Number '1'.
+  bytearray(b'\x9D\xBD\xBB\xFB'), # #50 & #51 - Number '2' & Number '3'.
+  bytearray(b'\x77\xD4\xD4\xDF'), # #52 & #53 - Number '4' & Number '5'.
+  bytearray(b'\x1F\x1A\x1A\xFE'), # #54 & #55 - Number '6' & Number '7'.
+  bytearray(b'\x7F\x5D\x5D\xFF'), # #56 & #57 - Number '8' & Number '9'.
+  bytearray(b'\x80\x5A\x00\x00'), # #58 & #59 - Symbol ':' & Symbol ';'.
+  bytearray(b'\xA0\xA4\xAA\x00'), # #60 & #61 - Symbol '<' & Symbol '='.
+  bytearray(b'\x10\xBA\x34\x00'), # #62 & #63 - Symbol '>' & Symbol '?'.
+  bytearray(b'\xFF\x59\x53\xF3'), # #64 & #65 - Symbol '@' & Letter 'A'.
+  bytearray(b'\xFF\x9B\x9B\x9E'), # #66 & #67 - Letter 'B' & Letter 'C'.
+  bytearray(b'\xFF\xB9\xB9\x96'), # #68 & #69 - Letter 'D' & Letter 'E'.
+  bytearray(b'\xFF\x95\x95\xD1'), # #70 & #71 - Letter 'F' & Letter 'G'.
+  bytearray(b'\x9F\xF4\x94\x0F'), # #72 & #73 - Letter 'H' & Letter 'I'.
+  bytearray(b'\xFC\x29\x5F\x91'), # #74 & #75 - Letter 'J' & Letter 'K'.
+  bytearray(b'\xFF\x18\x38\xF8'), # #76 & #77 - Letter 'L' & Letter 'M'.
+  bytearray(b'\xFF\x92\x94\xFF'), # #78 & #79 - Letter 'N' & Letter 'O'.
+  bytearray(b'\xFF\x95\xD5\xF7'), # #80 & #81 - Letter 'P' & Letter 'Q'.
+  bytearray(b'\xBF\xB5\xDD\xD7'), # #82 & #83 - Letter 'R' & Letter 'S'.
+  bytearray(b'\xF1\x8F\x81\xF1'), # #84 & #85 - Letter 'T' & Letter 'U'.
+  bytearray(b'\xF7\x88\xC8\xF7'), # #86 & #87 - Letter 'V' & Letter 'W'.
+  bytearray(b'\x79\xC6\x46\x79'), # #88 & #89 - Letter 'X' & Letter 'Y'.
+  bytearray(b'\x09\xFD\x9B\x09'), # #90 & #91 - Letter 'Z' & Symbol '['.
+  bytearray(b'\x01\x96\xF8\x00'), # #92 & #93 - Symbol '\' & Symbol ']'.
+  bytearray(b'\x82\x81\x82\x80'), # #94 & #95 - Symbol '^' & Symbol '_'.
+  bytearray(b'\x50\x71\x62\x00'), # #96 & #97 - Symbol '`' & Letter 'a'.
+  bytearray(b'\x77\x56\x56\x00'), # #98 & #99 - Letter 'b' & Letter 'c'.
+  bytearray(b'\x76\x76\x37\x00'), # #100 & #101 - Letter 'd' & Letter 'e'.
+  bytearray(b'\xA2\xB7\x73\x01'), # #102 & #103 - Letter 'f' & Letter 'g'.
+  bytearray(b'\x07\x72\x06\x00'), # #104 & #105 - Letter 'h' & Letter 'i'.
+  bytearray(b'\x78\x27\x50\x00'), # #106 & #107 - Letter 'j' & Letter 'k'.
+  bytearray(b'\x73\x34\x74\x00'), # #108 & #109 - Letter 'l' & Letter 'm'.
+  bytearray(b'\x77\x51\x76\x00'), # #110 & #111 - Letter 'n' & Letter 'o'.
+  bytearray(b'\x7F\x55\xF7\x00'), # #112 & #113 - Letter 'p' & Letter 'q'.
+  bytearray(b'\x47\x71\x10\x00'), # #114 & #115 - Letter 'r' & Letter 's'.
+  bytearray(b'\x32\x47\x72\x00'), # #116 & #117 - Letter 't' & Letter 'u'.
+  bytearray(b'\x73\x64\x73\x00'), # #118 & #119 - Letter 'v' & Letter 'w'.
+  bytearray(b'\x15\xA2\x75\x00'), # #120 & #121 - Letter 'x' & Letter 'y'.
+  bytearray(b'\x61\x67\x94\x00'), # #122 & #123 - Letter 'z' & Symbol '{'.
+  bytearray(b'\x00\x9F\x60\x60'), # #124 & #125 - Symbol '|' & Symbol '}'.
+  bytearray(b'\xF4\xF2\xF6\xF2'), # #126 & #127 - Symbol '~' & Symbol '■'.
 ]
+}
 
 def draw_message(message):
     message_len=len(message)
@@ -105,6 +157,25 @@ def draw_message(message):
         offset = 1 + (letter_pos * 6)
         for x in range(len(font[0])):
             for y in range(8):
-                if ((font[ord(message[letter_pos])-32][x] >> y) & 0x01):
+                if ((font["5x8"][message[letter_pos]-32][x] >> y) & 0x01):
                     ret[f"{x+offset:03d}{7-y:03d}"] = bytearray(b'\xff\x00\x00')
     return ret
+
+def draw_small(message):
+    message_len=len(message)
+    ret={}
+    for letter_pos in range(message_len):
+        offset = 1 + (letter_pos * 5)
+        slice = bool( ( message[letter_pos] - 32 ) % 2 )
+        font_index = int((message[letter_pos]-32)/2)
+        for x in range(4):
+            for y in range(4):
+                if ((split_byte(font["4x4"][font_index][x], slice) >> y) & 0x01):
+                    ret[f"{x+offset:03d}{7-y:03d}"] = bytearray(b'\xff\x00\x00')
+    return ret
+
+def split_byte(byte, slice):
+    if slice:
+        return byte >> 4
+    else:
+        return byte & bytearray(b'\x0F')[0] 

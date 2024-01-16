@@ -32,7 +32,7 @@ def test_np(r=128,b=0,g=0,clear=True):
     m.append(matrix(64,8,np[1]))
     m.append(matrix(64,8,np[2]))
     for i in range(3):
-        m[i].buffer.update(draw_message("HELLO WORLD"))
+        m[i].buffer.update(draw_message(bytearray("HELLO WORLD".encode('utf-8'))))
         m[i].send_np(r,g,b,False)
     for i in range(3):
         np[i].write()

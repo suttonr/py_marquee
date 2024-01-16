@@ -16,13 +16,13 @@ class matrix():
         else:
             return self.height * (self.width - x) - (y+1)
 
-    def send_np(self, r=128, g=0, b=0, write_np=True):
+    def send_np(self, fgcolor, bgcolor, write_np=True):
         for y in range(self.height):
             for x in range(self.width):
                 if f"{x:03d}{y:03d}" in self.buffer:
-                    self.np[self.xy2i(x,y)] = (r,g,b)
+                    self.np[self.xy2i(x,y)] = fgcolor
                 else:
-                    self.np[self.xy2i(x,y)] = (0,0,0)
+                    self.np[self.xy2i(x,y)] = bgcolor
 
         if write_np:
             self.np.write()
