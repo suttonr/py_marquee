@@ -171,7 +171,7 @@ def draw_small(message):
         for x in range(4):
             for y in range(4):
                 if ((split_byte(font["4x4"][font_index][x], slice) >> y) & 0x01):
-                    ret[f"{x+offset:03d}{7-y:03d}"] = bytearray(b'\xff\x00\x00')
+                    ret[f"{x+offset:03d}{y:03d}"] = bytearray(b'\xff\x00\x00')
     return ret
 
 def split_byte(byte, slice):
