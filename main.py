@@ -17,9 +17,11 @@ MESSAGE=[
 ]
 FGCOLOR=(32,0,0)
 BGCOLOR=(0,0,0)
+BRIGHT=0.5
 
 SETUP_RUN = False
 MAX_PIXELS=512
+NP_PINS = [14,0,2]
 PIXEL_TIME = 0.1
 
 matrices = []
@@ -30,7 +32,7 @@ def mqttLogger(message):
     m.pub(message, secrets.MQTT_LOGGING_TOPIC)
 
 def new_message(topic, message, t=None):
-    global MESSAGE, FGCOLOR, BGCOLOR
+    global MESSAGE, FGCOLOR, BGCOLOR, BRIGHT
     print("nm:",topic, message)
     if topic == b"esp32/test/1":
         MESSAGE[0] = message
@@ -48,6 +50,16 @@ def new_message(topic, message, t=None):
         BGCOLOR = (message[0],message[1],message[2])
     if topic == b"esp32/test/raw":
         process_raw(message)
+    if topic == b"esp32/test/clear":
+        clear()
+    if topic == b"esp32/test/bright":
+        process_bright(message[0])
+
+def process_bright(bright):
+    global NP_PINS, MAX_PIXELS, BRIGHT, matrices
+    for i in range(len(matrices)):
+        print("b",i,bright,bright/100)
+        matrices[i].brightness = bright / 100
 
 def process_raw(message):
     global matrices
@@ -69,6 +81,14 @@ def process_pixel(message):
         else:
             print("Invalid Matric Index:", i)
 
+def clear(index=None):
+    global matrices
+
+    if index == None:
+        for i in range(len(matrices)):
+            matrices[i].buffer={}
+    else:
+        matrices[index].buffer={}
 
 def update_message():
     global matrices
@@ -108,7 +128,7 @@ def setup():
 def main():
     global SETUP_RUN
     global matrices
-    global MESSAGE, FGCOLOR, BGCOLOR
+    global MESSAGE, FGCOLOR, BGCOLOR, BRIGHT
 
     if not SETUP_RUN:
         setup()
