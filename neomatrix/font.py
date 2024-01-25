@@ -149,33 +149,59 @@ font = {
 ]
 }
 
-def draw_message(message):
-    message_len=len(message)
-
-    ret={}
-    for letter_pos in range(message_len):
-        offset = 1 + (letter_pos * 6)
-        for x in range(len(font[0])):
-            for y in range(8):
-                if ((font["5x8"][message[letter_pos]-32][x] >> y) & 0x01):
-                    ret[f"{x+offset:03d}{7-y:03d}"] = bytearray(b'\xff\x00\x00')
-    return ret
-
-def draw_small(message):
-    message_len=len(message)
-    ret={}
-    for letter_pos in range(message_len):
-        offset = 1 + (letter_pos * 5)
-        slice = bool( ( message[letter_pos] - 32 ) % 2 )
-        font_index = int((message[letter_pos]-32)/2)
-        for x in range(4):
-            for y in range(4):
-                if ((split_byte(font["4x4"][font_index][x], slice) >> y) & 0x01):
-                    ret[f"{x+offset:03d}{y:03d}"] = bytearray(b'\xff\x00\x00')
-    return ret
-
 def split_byte(byte, slice):
     if slice:
         return byte >> 4
     else:
         return byte & bytearray(b'\x0F')[0] 
+    
+
+class font_4x4:
+    def __init__(self, message):
+        self.message = message
+    def __iter__(self):
+        self.x = 0
+        self.y = 0
+        self.letter_pos = 0
+        return self
+    def __next__(self):
+        while True:
+            if ( self.letter_pos == len(self.message)-1 and self.x == 3 and self.y == 4):
+                raise StopIteration
+            if ( self.x == 4 ):
+                self.x = 0
+                self.letter_pos += 1
+            if ( self.y == 4 ):
+                self.y = 0
+                self.x += 1
+            self.offset = 1 + (self.letter_pos * 5)
+            self.slice = bool((self.message[self.letter_pos] - 32) % 2)
+            self.font_index = int(( self.message[self.letter_pos] - 32) / 2)
+            #
+            self.y += 1
+            if ((split_byte(font["4x4"][self.font_index][self.x-1], self.slice) >> self.y-1) & 0x01):
+                return ( self.x-1+self.offset, self.y-1, bytearray(b'\xff\x00\x00') )
+
+class font_5x8:
+    def __init__(self, message):
+        self.message = message
+    def __iter__(self):
+        self.x = 0
+        self.y = 0
+        self.letter_pos = 0
+        return self
+    def __next__(self):
+        while True:
+            if ( self.letter_pos == len(self.message)-1 and self.x == 4 and self.y == 8):
+                raise StopIteration
+            if ( self.x == 5 ):
+                self.x = 0
+                self.letter_pos += 1
+            if ( self.y == 8 ):
+                self.y = 0
+                self.x += 1
+            self.offset = 1 + (self.letter_pos * 6)
+            #
+            self.y += 1
+            if ((font["5x8"][self.message[self.letter_pos]-32][self.x-1] >> self.y-1) & 0x01):
+                return (self.x-1+self.offset,self.y-1,bytearray(b'\xff\x00\x00'))
