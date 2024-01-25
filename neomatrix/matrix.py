@@ -23,13 +23,18 @@ class matrix():
             ret += bytearray([int(color[i] * scale)])
         return ret
     
-    def send_np(self, fgcolor, bgcolor, write_np=True):
-        for y in range(self.height):
-            for x in range(self.width):
-                if f"{x:03d}{y:03d}" in self.buffer:
-                    self.np[self.xy2i(x,y)] = self.scale_color(self.buffer[f"{x:03d}{y:03d}"], self.brightness)
-                else:
-                    self.np[self.xy2i(x,y)] = bgcolor
+    def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True):
+        if not fill_background:
+            for k in self.buffer:
+                if int(k[:3]) < self.width and int(k[3:]) < self.width:
+                    self.np[self.xy2i(int(k[:3]),int(k[3:]))] = self.scale_color(self.buffer[k], self.brightness)
+        else:
+            for y in range(self.height):
+                for x in range(self.width):
+                    if f"{x:03d}{y:03d}" in self.buffer:
+                        self.np[self.xy2i(x,y)] = self.scale_color(self.buffer[f"{x:03d}{y:03d}"], self.brightness)
+                    else:
+                        self.np[self.xy2i(x,y)] = bgcolor
 
         if write_np:
             self.np.write()
