@@ -5,19 +5,13 @@ try:
     from neopixel import NeoPixel
 except:
     pass
-
+import gc
 import mqtt
 import secrets
 import time
 
-MESSAGE=[
-    bytearray(b"\x41"),
-    bytearray(b"\x42"),
-    bytearray(b"\x43"),
-]
 FGCOLOR=(32,0,0)
 BGCOLOR=(0,0,0)
-BRIGHT=0.5
 
 SETUP_RUN = False
 MAX_PIXELS=512
@@ -27,27 +21,36 @@ PIXEL_TIME = 0.1
 matrices = []
 m = mqtt.mqtt_client()
 
+def free(full=False):
+  gc.collect()
+  F = gc.mem_free()
+  A = gc.mem_alloc()
+  T = F+A
+  P = '{0:.2f}%'.format(F/T*100)
+  if not full: return P
+  else : return ('Total:{0} Free:{1} ({2})'.format(T,F,P))
+
 def mqttLogger(message):
     global m
     m.pub(message, secrets.MQTT_LOGGING_TOPIC)
 
 def new_message(topic, message, t=None):
-    global MESSAGE, FGCOLOR, BGCOLOR, BRIGHT
+    global FGCOLOR, BGCOLOR
     print("nm:",topic, message)
+    if topic == b"esp32/test/message" and len(message) > 2:
+        update_message(message[2:], (message[0], message[1]))  
     if topic == b"esp32/test/1":
-        MESSAGE[0] = message
-        update_message()
+        update_message(message, (0,0))
     if topic == b"esp32/test/2":
-        MESSAGE[1] = message
-        update_message()
+        update_message(message, (0,8))
     if topic == b"esp32/test/3":
-        MESSAGE[2] = message
-        update_message()
+        update_message(message, (0,16))
     if topic == b"esp32/test/fgcolor" and len(message) == 3:
         FGCOLOR = (message[0],message[1],message[2])
         print("fgcolor", FGCOLOR)
     if topic == b"esp32/test/bgcolor" and len(message) == 3:
         BGCOLOR = (message[0],message[1],message[2])
+        send(fill_background=True)
     if topic == b"esp32/test/raw":
         process_raw(message)
     if topic == b"esp32/test/clear":
@@ -56,7 +59,7 @@ def new_message(topic, message, t=None):
         process_bright(message[0])
 
 def process_bright(bright):
-    global NP_PINS, MAX_PIXELS, BRIGHT, matrices
+    global NP_PINS, MAX_PIXELS, matrices
     for i in range(len(matrices)):
         print("b",i,bright,bright/100)
         matrices[i].brightness = bright / 100
@@ -83,27 +86,32 @@ def process_pixel(message):
 
 def clear(index=None):
     global matrices
-
+    print("clearing")
     if index == None:
         for i in range(len(matrices)):
             matrices[i].buffer={}
     else:
         matrices[index].buffer={}
+    send(fill_background=True)
 
-def update_message():
+def update_message(message, anchor=(0,0)):
     global matrices
-    global MESSAGE, FGCOLOR, BGCOLOR
+    global FGCOLOR, BGCOLOR
+
+    for x,y,b in font_4x4(message):
+        process_pixel( bytearray( [x+anchor[0], y+anchor[1]] ) + b  )
+
+def send(fill_background=False):
+    global matrices
+    global FGCOLOR, BGCOLOR
 
     for i in range(len(matrices)):
-        matrices[i].buffer={}
-        matrices[i].buffer.update(draw_small(MESSAGE[i]))
-        
-
+        matrices[i].send_np(FGCOLOR, BGCOLOR, fill_background, False)
 
 def write():
     global matrices
     for i in range(len(matrices)):
-        matrices.np.write()
+        matrices[i].np.write()
 
 
 def setup():
@@ -128,20 +136,20 @@ def setup():
 def main():
     global SETUP_RUN
     global matrices
-    global MESSAGE, FGCOLOR, BGCOLOR, BRIGHT
+    global FGCOLOR, BGCOLOR
 
     if not SETUP_RUN:
         setup()
-        update_message()
+        update_message(bytearray(b"A"), (0,0))
+        update_message(bytearray(b"B"), (0,8))
+        update_message(bytearray(b"C"), (0,16))
         SETUP_RUN=True
 
-    for i in range(len(matrices)):
-        matrices[i].send_np(FGCOLOR, BGCOLOR, False)
-    for i in range(len(matrices)):
-        print(matrices[i])
-        matrices[i].np.write()
+    send()
+    write()
 
 while True:
     main()
     m.get_msg()
+    print(free(True))
     time.sleep(PIXEL_TIME)
