@@ -1,7 +1,7 @@
 from  neomatrix.matrix import matrix
 from  neomatrix.font import *
 try:
-    from machine import Pin
+    from machine import SPI, Pin
     from neopixel import NeoPixel
 except:
     pass
@@ -10,8 +10,8 @@ import mqtt
 import secrets
 import time
 
-FGCOLOR=(32,0,0)
-BGCOLOR=(0,0,0)
+FGCOLOR=bytearray(b'\x32\x00\x00')
+BGCOLOR=bytearray(b'\x00\x00\x00')
 
 SETUP_RUN = False
 MAX_PIXELS=512
@@ -76,9 +76,9 @@ def process_raw(message):
 def process_pixel(message):
     global matrices
     if ( len(message) == 5 ):
-        print(f"{message[0]:03d}{message[1]:03d} : {message[2]} {message[3]} {message[4]}")
+        # print(f"{message[0]:03d}{message[1]:03d} : {message[2]} {message[3]} {message[4]}")
         i = int( message[1] >> 3 )
-        print("matrix:",i)
+        # print("matrix:",i)
         if ( i < len(matrices) ):
             matrices[i].buffer.update({f"{message[0]:03d}{(message[1]-(i*8)):03d}" : (message[2],message[3],message[4])})
         else:
@@ -107,12 +107,13 @@ def send(fill_background=False):
 
     for i in range(len(matrices)):
         matrices[i].send_np(FGCOLOR, BGCOLOR, fill_background, False)
-        print(matrices[i])
+        # print(matrices[i])
 
 def write():
     global matrices
     for i in range(len(matrices)):
-        matrices[i].np.write()
+        if matrices[i].mode == "NP":
+            matrices[i].np.write()
 
 
 def setup():
@@ -121,14 +122,16 @@ def setup():
     global MAX_PIXELS
 
     # Setup Matrix
+    hspi = SPI(1, 20_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
+    cs = Pin(11, mode=Pin.OUT, value=1)
     matrices.append(
-        matrix(64, 8, NeoPixel(Pin(45, Pin.OUT), MAX_PIXELS, timing=1))
+        matrix(64, 8, hspi, mode="SPI", cs=cs, yoffset=0)
         )
     matrices.append(
-        matrix(64, 8, NeoPixel(Pin(48, Pin.OUT), MAX_PIXELS, timing=1))
+        matrix(64, 8, hspi, mode="SPI", cs=cs, yoffset=1)
         )
     matrices.append(
-        matrix(64, 8, NeoPixel(Pin(47, Pin.OUT), MAX_PIXELS, timing=1))
+        matrix(64, 8, hspi, mode="SPI", cs=cs, yoffset=2)
         )
 
     m.set_callback(new_message)

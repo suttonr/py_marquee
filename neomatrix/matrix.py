@@ -1,15 +1,17 @@
 def foo():
     pass
 class matrix():
-    def __init__(self, width, height, np=None):
+    def __init__(self, width, height, np=None, mode="NP", cs=None, xoffset=0, yoffset=0):
         self.width = width
         self.height = height
         self.np = np
         self.brightness = 1
+        self.mode = mode
+        self.cs = cs
 
         self.buffer = {}
-        self.xoffset = 0
-        self.yoffset = 0
+        self.xoffset = xoffset
+        self.yoffset = yoffset
     
     def xy2i(self,x,y):
         if ( x & 0x01 ):
@@ -23,20 +25,35 @@ class matrix():
             ret += bytearray([int(color[i] * scale)])
         return ret
     
+    def write_pixel(self, address, color):
+        if self.mode == "NP":
+            self.np[address] = color
+        elif self.mode == "SPI":
+            data_to_send = ((self.yoffset << 9) + address).to_bytes(2,"big") + color
+            #print("to spi:",data_to_send)
+            self.np.write( data_to_send )
+
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True):
+        if self.mode == "SPI":
+            self.cs(0)
         if not fill_background:
             for k in self.buffer:
                 if int(k[:3]) < self.width and int(k[3:]) < self.width:
-                    self.np[self.xy2i(int(k[:3]),int(k[3:]))] = self.scale_color(self.buffer[k], self.brightness)
+                    self.write_pixel( self.xy2i(int(k[:3]),int(k[3:])), 
+                        self.scale_color(self.buffer[k], self.brightness)
+                    )
         else:
             for y in range(self.height):
                 for x in range(self.width):
                     if f"{x:03d}{y:03d}" in self.buffer:
-                        self.np[self.xy2i(x,y)] = self.scale_color(self.buffer[f"{x:03d}{y:03d}"], self.brightness)
+                        self.write_pixel(self.xy2i(x,y), 
+                            self.scale_color(self.buffer[f"{x:03d}{y:03d}"], self.brightness)
+                        )
                     else:
-                        self.np[self.xy2i(x,y)] = bgcolor
-
-        if write_np:
+                        self.write_pixel(self.xy2i(x,y), bgcolor)
+        if self.mode == "SPI":
+            self.cs(1)
+        if write_np and self.mode == "NP":
             self.np.write()
 
     def __repr__(self):
