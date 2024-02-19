@@ -107,6 +107,7 @@ def send(fill_background=False):
 
     for i in range(len(matrices)):
         matrices[i].send_np(FGCOLOR, BGCOLOR, fill_background, False)
+        print(matrices[i])
 
 def write():
     global matrices
@@ -121,13 +122,13 @@ def setup():
 
     # Setup Matrix
     matrices.append(
-        matrix(64, 8, NeoPixel(Pin(14, Pin.OUT), MAX_PIXELS))
+        matrix(64, 8, NeoPixel(Pin(45, Pin.OUT), MAX_PIXELS, timing=1))
         )
     matrices.append(
-        matrix(64, 8, NeoPixel(Pin(0, Pin.OUT), MAX_PIXELS))
+        matrix(64, 8, NeoPixel(Pin(48, Pin.OUT), MAX_PIXELS, timing=1))
         )
     matrices.append(
-        matrix(64, 8, NeoPixel(Pin(2, Pin.OUT), MAX_PIXELS))
+        matrix(64, 8, NeoPixel(Pin(47, Pin.OUT), MAX_PIXELS, timing=1))
         )
 
     m.set_callback(new_message)
@@ -151,5 +152,5 @@ def main():
 while True:
     main()
     m.get_msg()
-    print(free(True))
+    #print(free(True))
     time.sleep(PIXEL_TIME)

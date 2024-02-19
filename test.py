@@ -10,6 +10,30 @@ import time
 MAX_PIXELS=512
 PIXEL_TIME = 0.1
 
+def test_spi():
+    hspi = SPI(1, 10_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
+    cs = Pin(11, mode=Pin.OUT, value=1)  
+    cs(0)
+    hspi.write(b"\x00\x20\xff\x00\x00") 
+    hspi.write(b"\x00\x21\xff\x00\x00") 
+    hspi.write(b"\x00\x22\xff\x00\x00") 
+    hspi.write(b"\x01\x23\xff\x00\x00") 
+    hspi.write(b"\x01\x23\xff\x00\x00") 
+    hspi.write(b"\x01\x23\xff\x00\x00") 
+    hspi.write(b"\x02\x20\x00\xff\x00") 
+    hspi.write(b"\x02\x21\x00\xff\x00") 
+    hspi.write(b"\x02\x22\x00\xff\x00") 
+    hspi.write(b"\x03\x23\x00\xff\x00") 
+    hspi.write(b"\x03\x23\x00\xff\x00") 
+    hspi.write(b"\x03\x23\x00\xff\x00") 
+    hspi.write(b"\x04\x20\x00\x00\xff") 
+    hspi.write(b"\x04\x21\x00\x00\xff") 
+    hspi.write(b"\x04\x22\x00\x00\xff") 
+    hspi.write(b"\x05\x23\x00\x00\xff") 
+    hspi.write(b"\x05\x23\x00\x00\xff") 
+    hspi.write(b"\x05\x23\x00\x00\xff") 
+    cs(1)
+
 def test():
     m=matrix(64,8)
     m.buffer.update(draw_message("HELLO WORLD"))
