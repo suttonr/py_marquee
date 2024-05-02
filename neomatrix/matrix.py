@@ -1,3 +1,6 @@
+import time
+import math
+
 def foo():
     pass
 class matrix():
@@ -22,20 +25,22 @@ class matrix():
     def scale_color(self, color, scale):
         ret = bytearray()
         for i in range(len(color)):
-            ret += bytearray([int(color[i] * scale)])
+            ret += bytearray([int(math.sqrt(color[i] * color[i] * scale))])
         return ret
     
     def write_pixel(self, address, color):
         if self.mode == "NP":
             self.np[address] = color
         elif self.mode == "SPI":
-            data_to_send = ((self.yoffset << 9) + address).to_bytes(2,"big") + color
-            #print("to spi:",data_to_send)
+            port = self.yoffset + ( self.xoffset * 3 )
+            data_to_send = int(15).to_bytes(1,"big") + ((port << 9) | address).to_bytes(2,"big") + color[1:2] + color[0:1] + color[2:3]
+            if self.mode == "SPI":
+                self.cs(0)
             self.np.write( data_to_send )
+            if self.mode == "SPI":
+                self.cs(1)
 
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True):
-        if self.mode == "SPI":
-            self.cs(0)
         if not fill_background:
             for k in self.buffer:
                 if int(k[:3]) < self.width and int(k[3:]) < self.width:
@@ -51,8 +56,6 @@ class matrix():
                         )
                     else:
                         self.write_pixel(self.xy2i(x,y), bgcolor)
-        if self.mode == "SPI":
-            self.cs(1)
         if write_np and self.mode == "NP":
             self.np.write()
 

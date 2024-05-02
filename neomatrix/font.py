@@ -183,8 +183,9 @@ class font_4x4:
                 return ( self.x-1+self.offset, self.y-1, bytearray(b'\xff\x00\x00') )
 
 class font_5x8:
-    def __init__(self, message):
+    def __init__(self, message, fgcolor=bytearray(b'\xff\x00\x00')):
         self.message = message
+        self.fgcolor = fgcolor
     def __iter__(self):
         self.x = 0
         self.y = 0
@@ -192,16 +193,21 @@ class font_5x8:
         return self
     def __next__(self):
         while True:
-            if ( self.letter_pos == len(self.message)-1 and self.x == 4 and self.y == 8):
+            self.offset = 1 + (self.letter_pos * 6)
+            if ( self.letter_pos == len(self.message)-1 and self.x == 4 and self.y == 7):
                 raise StopIteration
-            if ( self.x == 5 ):
-                self.x = 0
-                self.letter_pos += 1
+            if ((font["5x8"][self.message[self.letter_pos]-32][self.x] >> self.y) & 0x01):
+                retval = (self.x+self.offset, self.y, self.fgcolor)
+            else:  
+                retval = None
+                
+            self.y += 1
             if ( self.y == 8 ):
                 self.y = 0
                 self.x += 1
-            self.offset = 1 + (self.letter_pos * 6)
-            #
-            self.y += 1
-            if ((font["5x8"][self.message[self.letter_pos]-32][self.x-1] >> self.y-1) & 0x01):
-                return (self.x-1+self.offset,self.y-1,bytearray(b'\xff\x00\x00'))
+            if ( self.x == 5 ):
+                self.x = 0
+                self.letter_pos += 1
+
+            if retval:
+                return retval
