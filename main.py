@@ -9,6 +9,7 @@ import gc
 import mqtt
 import secrets
 import time
+import _thread
 
 FGCOLOR=bytearray(b'\x32\x00\x00')
 BGCOLOR=bytearray(b'\x00\x00\x00')
@@ -20,16 +21,17 @@ PIXEL_TIME = 0.1
 
 matrices = []
 m = mqtt.mqtt_client()
-p10 = Pin(10, mode=Pin.OUT, value=0)
+p10 = Pin(3, mode=Pin.OUT, value=0)
 
 def free(full=False):
   gc.collect()
   F = gc.mem_free()
   A = gc.mem_alloc()
+  t = gc.threshold()
   T = F+A
   P = '{0:.2f}%'.format(F/T*100)
   if not full: return P
-  else : return ('Total:{0} Free:{1} ({2})'.format(T,F,P))
+  else : return ('Total:{0} Free:{1} ({2}) Thresh: {3}'.format(T,F,P,t))
 
 def mqttLogger(message):
     global m
@@ -54,7 +56,7 @@ def new_message(topic, message, t=None):
         print("fgcolor", FGCOLOR)
     if topic == b"esp32/test/bgcolor" and len(message) == 3:
         BGCOLOR = bytearray(message[0:3])
-        send(fill_background=True)
+        #send(fill_background=True)
     if topic == b"esp32/test/raw":
         process_raw(message)
     if topic == b"esp32/test/clear":
@@ -104,10 +106,12 @@ def clear(index=None):
     print("clearing")
     if index == None:
         for i in range(len(matrices)):
+            print("clearing",i)
             matrices[i].buffer={}
     else:
         matrices[index].buffer={}
-    send(fill_background=True)
+    print("done",len(matrices))
+    #send(fill_background=True)
 
 def update_message(message, anchor=(0,0)):
     global matrices
@@ -139,9 +143,10 @@ def setup():
     time.sleep(5)
     p10(0)
     # Setup Matrix
-    hspi = SPI(1, 18_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
+    #hspi = SPI(1, 18_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
+    hspi = SPI(1, 18_000_000, bits=48, sck=Pin(11), mosi=Pin(10), miso=Pin(9))
     #hspi = SoftSPI( baudrate=20_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
-    cs = Pin(11, mode=Pin.OUT, value=1)
+    cs = Pin(46, mode=Pin.OUT, value=1)
     p15 = Pin(15, mode=Pin.OUT, value=0)
     p16 = Pin(16, mode=Pin.OUT, value=0)
     p17 = Pin(17, mode=Pin.OUT, value=0)
@@ -154,8 +159,11 @@ def setup():
     m.set_callback(new_message)
     m.sub("esp32/test/#")
     process_bright(5)
-    tim1 = Timer(1)
-    tim1.init(period=200, mode=Timer.PERIODIC, callback=lambda t:m.get_msg())
+    #tim1 = Timer(1)
+    #tim1.init(period=2000, mode=Timer.PERIODIC, callback=lambda t:m.get_msg())
+    #time.sleep(1)
+    #tim2 = Timer(2)
+    #tim2.init(period=20000, mode=Timer.PERIODIC, callback=lambda t:send(True))
 
 def main():
     global SETUP_RUN
@@ -167,16 +175,25 @@ def main():
         update_message(bytearray(b"A"), (0,0))
         update_message(bytearray(b"B"), (0,8))
         update_message(bytearray(b"C"), (0,16))
-        #update_message(bytearray(b"AA"), (96,0))
-        #update_message(bytearray(b"AB"), (96,8))
-        #update_message(bytearray(b"AC"), (96,16))
         SETUP_RUN=True
 
-    send()
+    #send()
     #write()
 
-while True:
-    main()
-    #m.get_msg()
-    #print(free(True))
-    time.sleep(PIXEL_TIME)
+
+
+def writer_thread():
+    while True:
+        send(True)
+        time.sleep(PIXEL_TIME)
+
+def mqtt_thread():
+    while True:
+        m.get_msg()
+        #print(free(True))
+        time.sleep(.1)
+
+_thread.start_new_thread(mqtt_thread, ())
+main()
+gc.threshold(5_000_000)
+writer_thread()
