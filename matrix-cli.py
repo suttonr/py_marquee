@@ -7,22 +7,22 @@ from base64 import b64encode
 from PIL import Image
 import paho.mqtt.client as mqtt
 
-import mlb
+import mlb, nhl
 
 class ctx_obj(object):
-    def on_connect(self, client, userdata, flags, rc):
+    def on_connect(self, client, userdata, flags, reason_code, properties):
         if self.debug:
             print("on_connect", client, userdata, flags)
-        if rc == 0:
+        if reason_code == 0:
             self.mqtt_connected = True
         else:
             self.mqtt_connected = False
-    def on_publish(self, client, userdata, mid):
+    def on_publish(self, client, userdata, mid, reason_codes, properties):
         if self.debug:
             print("Data sent:", mid)
 
     def __init__(self, mqtt_topic='', debug=False):
-        self.mqttc = mqtt.Client()
+        self.mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.mqttc.on_connect = self.on_connect
         self.mqttc.on_publish = self.on_publish
         self.mqtt_connected = False
@@ -65,8 +65,9 @@ def send(appctx, clear=False, file_name="", x_offset=0, y_offset=0, x_start=0, y
     """Sends a file to mqtt topic"""
     raw_topic = appctx.mqtt_topic + "/raw"
 
-    click.echo(f"File: {file_name}")
-    click.echo(f"Topic: {raw_topic}")
+    if appctx.debug:
+        click.echo(f"File: {file_name}")
+        click.echo(f"Topic: {raw_topic}")
 
     im = Image.open(file_name)
     range_x_end = x_end if x_end else im.size[0]
@@ -151,17 +152,62 @@ def text_line(appctx, message, line):
 @click.option('-y', default=0, type=int, help='y-cord')
 @click.option('-b', default=None, type=int, help='box')
 @click.option('-r', default=0, type=int, help='row')
+@click.option('-o', '--offset', default=0, type=int, help='offset')
 @click.argument('message')
 @pass_appctx
 def text(appctx, message="", x=0, y=0, b=None, r=0, offset=0, clear_box=False):
     """Sends a text message to the display"""
-    if b:
-        (x,y) = lookup_box(b,r)
+    if b is not None:
+        (x,y) = lookup_box(b,r, offset=offset)
     payload = x.to_bytes(2,"big") + y.to_bytes(1,"big")
     payload += bytearray(message.encode("utf-8"))
     appctx.mqttc.publish(
             f"{appctx.mqtt_topic}/message", payload=payload
         ).wait_for_publish()
+
+#####
+# Hockey Commands
+#####
+@cli.command()
+@click.option('-g','--game-pk', default=None, help='game pk')
+@click.option('--dry-run', default=False, is_flag=True, help='dry run')
+@click.pass_context
+def display_nhl_game(ctx, game_pk, dry_run):
+    """Sends a nhl game to display"""
+    g = nhl.game(game_pk, secrets.NHL_GAME_URL)
+
+    cur_period = min(g.get_current_inning(),3)
+    for period in range(1,cur_period+1):
+        period_data = g.get_inning_score(period)
+        box = period + 100
+        for row,team in enumerate(("away", "home")):
+            ctx.invoke(update_box, b=box, r=row, num=period_data[team] )
+    cur_score = g.get_score()
+    for row,team in enumerate(("away", "home")):
+        box = 104
+        ctx.invoke(update_box, b=box, r=row, num=cur_score[team]["score"] )
+        box = 105
+        ctx.invoke(update_box, b=box, r=row, num=cur_score[team]["shots"] )
+        
+
+@cli.command()
+@click.option('-b', default=None, type=int, help='box')
+@click.option('-r', default=0, type=int, help='row')
+@click.argument('num')
+@click.pass_context
+def update_box(ctx, b, r, num):
+    offset = 4
+    if int(num) < 10:
+        offset = 8
+    (x,y) = lookup_box(b, r, offset=offset)
+    if r == 0:
+        y -= 1
+
+    ctx.invoke(send, file_name=f"/Users/ryan/Downloads/b_shadow.bmp", x_offset=(x-offset), y_offset=y)
+    for digit in str(num):
+        ctx.invoke(send, file_name=f"/Users/ryan/Downloads/gold_{digit}.bmp", x_offset=x, y_offset=y)
+        x += 8 
+
 #####
 # Baseball Commands
 #####
@@ -171,10 +217,39 @@ def text(appctx, message="", x=0, y=0, b=None, r=0, offset=0, clear_box=False):
 @click.pass_context
 def display_mlb_game(ctx, game_pk, dry_run):
     """Sends a mlb game to display"""
-    g = mlb.game(game_pk)
+    g = mlb.game(game_pk, secrets.MLB_GAME_URL)
     appctx = ctx.obj
-    (cur_inning, is_top_inning) = g.get_current_inning()
+
+    game_status = g.get_game_status()
     ctx.invoke(fgcolor, red=255, green=255, blue=255)
+    if game_status == "P" or game_status == "S":
+        # Pregame
+        dt = g.get_game_date()
+        t = dt.strftime("%b %e")
+        y = dt.strftime("%Y")
+        padding = int((11-len(t))/2) if len(t) <= 10 else 1
+        for inning in range(padding, min(len(t)+padding,10)):
+            print(t[inning-padding], inning, 0)
+            ctx.invoke(text, message=str(t[inning-padding]), b=inning, r=0)
+            if inning >= 4 and inning <= 7:
+                print(str(y[inning-4]), inning, 1)
+                ctx.invoke(text, message=str(y[inning-4]), b=inning, r=1)
+        return
+
+    # Write Teams Playing
+    teams = g.get_teams(short=True)
+    for row,team in enumerate(("away", "home")):
+        ctx.invoke(text, message=teams.get(team,""), x=19, y=4+(row*10))
+
+    # Write Pitchers
+    pitchers = g.get_pitchers()
+    for row,team in enumerate(("away", "home")):
+        player = mlb.player(pitchers[team].get("id", None), secrets.MLB_PLAYER_URL)
+        clear_box(ctx, b=0, r=1)
+        ctx.invoke(text, message=player.get_player_number(), b=0, r=row)
+
+    # Write score by inning
+    (cur_inning, is_top_inning) = g.get_current_inning()
     for inning in range(1,cur_inning+1):
         inning_data = g.get_inning_score(inning)
         for row,team in enumerate(("away", "home")):
@@ -190,6 +265,7 @@ def display_mlb_game(ctx, game_pk, dry_run):
                 ctx.invoke(text, message=str(s), b=inning, r=row, offset=offset)
             print(inning, team, s)
     
+    # Write current score
     score = g.get_score()
     ctx.invoke(fgcolor, red=255, green=255, blue=255)
     for row,team in enumerate(("away", "home")):
@@ -202,9 +278,24 @@ def display_mlb_game(ctx, game_pk, dry_run):
                 clear_box(ctx, (11+index), row)
                 ctx.invoke(text, message=str(s), b=(11+index), r=row, offset=offset)   
             print(team,stat,s)
-    clear_count(ctx)
+    
+    # Write batter
+    ctx.invoke(fgcolor, red=255, green=255)
+    ctx.invoke(send, file_name="/Users/ryan/Downloads/batter_shadow.bmp", x_offset=200, y_offset=10)  
+    batter = g.get_batter()
+    batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
+    if len(batter_num) == 2:
+        ctx.invoke(text, message=batter_num[0], x=201, y=12)
+        ctx.invoke(text, message=batter_num[1], x=211, y=12)  
+    elif len(batter_num) == 1:
+        ctx.invoke(text, message=batter_num[0], x=211, y=12)  
+    ctx.invoke(fgcolor, red=255, green=255, blue=255)
+
+    # Write pitch count
+    clear_count(ctx, all=True)
     for k,v in g.get_count().items():
         color = "green" if k=="balls" else "red"
+        print(k, v)
         for i in range(v):
             light(ctx, k, i, color)
 
@@ -242,11 +333,16 @@ def lookup_box(b,r,offset=0):
     x = 0
     y = 0
     if b == 0:
-        x =  7
+        x =  4
     elif b >= 1 and b <= 10:
         x = 42 + 10 * (b - 1)
     elif b >= 11 and b <= 13:
         x = 146 + 15 * (b - 11)
+    elif b >=101 and b <=104:
+        x = 112 + 37 * (b - 101)
+    elif b == 105:
+        x = 310
+
     if r == 0:
         y = 4
     elif r == 1:
