@@ -25,7 +25,7 @@ class matrix():
     def scale_color(self, color, scale):
         ret = bytearray()
         for i in range(len(color)):
-            ret += bytearray([int(math.sqrt(color[i] * color[i] * scale))])
+            ret += bytearray([int(math.sqrt(color[i] * color[i] * (scale/2)))])
         return ret
     
     def write_pixel(self, address, color):
@@ -38,7 +38,9 @@ class matrix():
                 self.cs(0)
             self.np.write( data_to_send )
             if self.mode == "SPI":
-                self.cs(1)
+                #self.cs(1)
+                pass
+        
 
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True):
         if not fill_background:
