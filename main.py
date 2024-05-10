@@ -29,8 +29,11 @@ PIXEL_TIME = 0.1
 matrices = []
 #m = mqtt.mqtt_client()
 m = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+m.username_pw_set(secrets.MQTT_USERNAME, secrets.MQTT_PASSWORD)
+m.connect(secrets.MQTT_BROKER, secrets.MQTT_PORT, 60)
 #p10 = Pin(3, mode=Pin.OUT, value=0)
 RESET_PIN = 18
+GPIO.setmode(GPIO.BOARD)
 GPIO.setup(RESET_PIN, GPIO.OUT)
 
 #def free(full=False):
@@ -183,6 +186,7 @@ def setup():
     m.subscribe("esp32/test/#")
     
     process_bright(5)
+    m.loop_start()
     #tim1 = Timer(1)
     #tim1.init(period=2000, mode=Timer.PERIODIC, callback=lambda t:m.get_msg())
     #time.sleep(1)
@@ -201,7 +205,6 @@ def main():
         update_message(bytearray(b"C"), (0,16))
         SETUP_RUN=True
 
-    m.loop_read()
     send(True)
     #write()
 
