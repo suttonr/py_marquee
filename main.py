@@ -3,11 +3,17 @@ from  neomatrix.font import *
 try:
     from machine import SPI, Pin, SoftSPI, Timer
     from neopixel import NeoPixel
+    import mqtt
     import _thread
 except:
     pass
+try:
+    import spidev as SPI
+    import paho.mqtt.client as mqtt
+    import RPi.GPIO as GPIO
+except:
+    pass
 import gc
-import mqtt
 import secrets
 import time
 
@@ -21,25 +27,32 @@ NP_PINS = [14,0,2]
 PIXEL_TIME = 0.1
 
 matrices = []
-m = mqtt.mqtt_client()
-p10 = Pin(3, mode=Pin.OUT, value=0)
+#m = mqtt.mqtt_client()
+m = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+#p10 = Pin(3, mode=Pin.OUT, value=0)
+RESET_PIN = 18
+GPIO.setup(RESET_PIN, GPIO.OUT)
 
-def free(full=False):
-  gc.collect()
-  F = gc.mem_free()
-  A = gc.mem_alloc()
-  t = gc.threshold()
-  T = F+A
-  P = '{0:.2f}%'.format(F/T*100)
-  if not full: return P
-  else : return ('Total:{0} Free:{1} ({2}) Thresh: {3}'.format(T,F,P,t))
+#def free(full=False):
+#  gc.collect()
+#  F = gc.mem_free()
+#  A = gc.mem_alloc()
+#  t = gc.threshold()
+#  T = F+A
+#  P = '{0:.2f}%'.format(F/T*100)
+#  if not full: return P
+#  else : return ('Total:{0} Free:{1} ({2}) Thresh: {3}'.format(T,F,P,t))
 
 def mqttLogger(message):
     global m
-    m.pub(message, secrets.MQTT_LOGGING_TOPIC)
+    #m.pub(message, secrets.MQTT_LOGGING_TOPIC)
+    m.publish(secrets.MQTT_LOGGING_TOPIC, payload=message).wait_for_publish()
 
-def new_message(topic, message, t=None):
+#def new_message(topic, message, t=None):
+def new_message(client, userdata, msg):
     global FGCOLOR, BGCOLOR, p10
+    topic = msg.topic
+    message = msg.payload
     if topic != b"esp32/test/raw":
         print("nm:",topic, message)
     if topic == b"esp32/test/message" and len(message) > 2:
@@ -66,9 +79,9 @@ def new_message(topic, message, t=None):
         process_bright(message[0])
     if topic == b"esp32/test/reset":
         print("resetting...")
-        p10(1)
+        GPIO.output(RESET_PIN, GPIO.HIGH)
         time.sleep(5)
-        p10(0)
+        GPIO.output(RESET_PIN, GPIO.LOW)
         print("reset complete")
 
 def process_bright(bright):
@@ -139,26 +152,36 @@ def setup():
     global matrices
     global m
     global MAX_PIXELS
-    global p10
-    p10(1)
+    #global p10
+    #p10(1)
+    #time.sleep(5)
+    #p10(0)
+    GPIO.output(RESET_PIN, GPIO.HIGH)
     time.sleep(5)
-    p10(0)
+    GPIO.output(RESET_PIN, GPIO.LOW)
     # Setup Matrix
     #hspi = SPI(1, 18_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
-    hspi = SPI(1, 18_000_000, bits=48, sck=Pin(11), mosi=Pin(10), miso=Pin(9))
+    #hspi = SPI(1, 18_000_000, bits=48, sck=Pin(11), mosi=Pin(10), miso=Pin(9))
     #hspi = SoftSPI( baudrate=20_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
-    cs = Pin(46, mode=Pin.OUT, value=1)
-    p15 = Pin(15, mode=Pin.OUT, value=0)
-    p16 = Pin(16, mode=Pin.OUT, value=0)
-    p17 = Pin(17, mode=Pin.OUT, value=0)
+    hspi = SPI.SpiDev()
+    hspi.open(0, 0)
+    hspi.max_speed_hz = 12_000_000
+    hspi.mode = 0
+    #cs = Pin(46, mode=Pin.OUT, value=1)
+    #p15 = Pin(15, mode=Pin.OUT, value=0)
+    #p16 = Pin(16, mode=Pin.OUT, value=0)
+    #p17 = Pin(17, mode=Pin.OUT, value=0)
     for x in range(7):
         for y in range(3):
             print("setup matrix ",len(matrices)," loc ", x,y)
             matrices.append(
-                matrix(64, 8, hspi, mode="SPI", cs=cs, xoffset=x, yoffset=y)
+                matrix(64, 8, hspi, mode="PYSPI", xoffset=x, yoffset=y)
             )
-    m.set_callback(new_message)
-    m.sub("esp32/test/#")
+    #m.set_callback(new_message)
+    #m.sub("esp32/test/#")
+    m.on_message = new_message
+    m.subscribe("esp32/test/#")
+    
     process_bright(5)
     #tim1 = Timer(1)
     #tim1.init(period=2000, mode=Timer.PERIODIC, callback=lambda t:m.get_msg())
@@ -169,7 +192,7 @@ def setup():
 def main():
     global SETUP_RUN
     global matrices
-    global FGCOLOR, BGCOLOR
+    global FGCOLOR, BGCOLOR, m
 
     if not SETUP_RUN:
         setup()
@@ -178,7 +201,8 @@ def main():
         update_message(bytearray(b"C"), (0,16))
         SETUP_RUN=True
 
-    #send()
+    m.loop_read()
+    send(True)
     #write()
 
 
@@ -190,11 +214,12 @@ def writer_thread():
 
 def mqtt_thread():
     while True:
-        m.get_msg()
+        #m.get_msg()
+        m.loop_read()
         #print(free(True))
         time.sleep(.1)
 
-_thread.start_new_thread(mqtt_thread, ())
+#_thread.start_new_thread(mqtt_thread, ())
 main()
-gc.threshold(5_000_000)
-writer_thread()
+#gc.threshold(5_000_000)
+#writer_thread()

@@ -31,15 +31,14 @@ class matrix():
     def write_pixel(self, address, color):
         if self.mode == "NP":
             self.np[address] = color
-        elif self.mode == "SPI":
+        elif self.mode == "SPI" or self.mode == "PYSPI":
             port = self.yoffset + ( self.xoffset * 3 )
             data_to_send = int(15).to_bytes(1,"big") + ((port << 9) | address).to_bytes(2,"big") + color[1:2] + color[0:1] + color[2:3]
             if self.mode == "SPI":
                 self.cs(0)
-            self.np.write( data_to_send )
-            if self.mode == "SPI":
-                #self.cs(1)
-                pass
+                self.np.write( data_to_send )
+            if self.mode == "PYSPI":
+                self.np.xfer3( data_to_send, bits_per_word=8 )
         
 
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True):
