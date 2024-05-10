@@ -3,13 +3,14 @@ from  neomatrix.font import *
 try:
     from machine import SPI, Pin, SoftSPI, Timer
     from neopixel import NeoPixel
+    import _thread
 except:
     pass
 import gc
 import mqtt
 import secrets
 import time
-import _thread
+
 
 FGCOLOR=bytearray(b'\x32\x00\x00')
 BGCOLOR=bytearray(b'\x00\x00\x00')
