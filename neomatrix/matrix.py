@@ -38,7 +38,7 @@ class matrix():
                 self.cs(0)
                 self.np.write( data_to_send )
             if self.mode == "PYSPI":
-                self.np.xfer3( data_to_send, 12_000_000, 10, 8)
+                self.np.xfer3( data_to_send, 24_000_000, 10, 8)
         
 
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True):

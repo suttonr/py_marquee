@@ -24,7 +24,7 @@ BGCOLOR=bytearray(b'\x00\x00\x00')
 SETUP_RUN = False
 MAX_PIXELS=512
 NP_PINS = [14,0,2]
-PIXEL_TIME = 0.1
+PIXEL_TIME = 0.01
 
 matrices = []
 #m = mqtt.mqtt_client()
@@ -56,31 +56,31 @@ def new_message(client, userdata, msg):
     global FGCOLOR, BGCOLOR, p10
     topic = msg.topic
     message = msg.payload
-    if topic != b"esp32/test/raw":
+    if topic != "esp32/test/raw":
         print("nm:",topic, message)
-    if topic == b"esp32/test/message" and len(message) > 2:
+    if topic == "esp32/test/message" and len(message) > 2:
         x = int.from_bytes(bytearray(message[0:2]), "big")
         print("x",x, "y", message[2], "rawx",message[0:1])
         update_message(message[3:], (x, message[2]))  
-    if topic == b"esp32/test/1":
+    if topic == "esp32/test/1":
         update_message(message, (0,0))
-    if topic == b"esp32/test/2":
+    if topic == "esp32/test/2":
         update_message(message, (0,8))
-    if topic == b"esp32/test/3":
+    if topic == "esp32/test/3":
         update_message(message, (0,16))
-    if topic == b"esp32/test/fgcolor" and len(message) == 3:
+    if topic == "esp32/test/fgcolor" and len(message) == 3:
         FGCOLOR = bytearray(message[0:3])
         print("fgcolor", FGCOLOR)
-    if topic == b"esp32/test/bgcolor" and len(message) == 3:
+    if topic == "esp32/test/bgcolor" and len(message) == 3:
         BGCOLOR = bytearray(message[0:3])
         #send(fill_background=True)
-    if topic == b"esp32/test/raw":
+    if topic == "esp32/test/raw":
         process_raw(message)
-    if topic == b"esp32/test/clear":
+    if topic == "esp32/test/clear":
         clear()
-    if topic == b"esp32/test/bright":
+    if topic == "esp32/test/bright":
         process_bright(message[0])
-    if topic == b"esp32/test/reset":
+    if topic == "esp32/test/reset":
         print("resetting...")
         GPIO.output(RESET_PIN, GPIO.HIGH)
         time.sleep(5)
@@ -168,7 +168,7 @@ def setup():
     #hspi = SoftSPI( baudrate=20_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
     hspi = SPI.SpiDev()
     hspi.open(0, 0)
-    hspi.max_speed_hz = 12_000_000
+    hspi.max_speed_hz = 1_000_000
     hspi.mode = 0
     #cs = Pin(46, mode=Pin.OUT, value=1)
     #p15 = Pin(15, mode=Pin.OUT, value=0)
@@ -204,8 +204,8 @@ def main():
         update_message(bytearray(b"B"), (0,8))
         update_message(bytearray(b"C"), (0,16))
         SETUP_RUN=True
-
-    send(True)
+    writer_thread()
+    #send(True)
     #write()
 
 
