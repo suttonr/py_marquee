@@ -203,9 +203,9 @@ def update_box(ctx, b, r, num):
     if r == 0:
         y -= 1
 
-    ctx.invoke(send, file_name=f"/Users/ryan/Downloads/b_shadow.bmp", x_offset=(x-offset), y_offset=y)
+    ctx.invoke(send, file_name=f"img/b_shadow.bmp", x_offset=(x-offset), y_offset=y)
     for digit in str(num):
-        ctx.invoke(send, file_name=f"/Users/ryan/Downloads/gold_{digit}.bmp", x_offset=x, y_offset=y)
+        ctx.invoke(send, file_name=f"img/gold_{digit}.bmp", x_offset=x, y_offset=y)
         x += 8 
 
 #####
@@ -281,7 +281,7 @@ def display_mlb_game(ctx, game_pk, dry_run):
     
     # Write batter
     ctx.invoke(fgcolor, red=255, green=255)
-    ctx.invoke(send, file_name="/Users/ryan/Downloads/batter_shadow.bmp", x_offset=200, y_offset=10)  
+    ctx.invoke(send, file_name="img/batter_shadow.bmp", x_offset=200, y_offset=10)  
     batter = g.get_batter()
     batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
     if len(batter_num) == 2:
@@ -305,7 +305,7 @@ def display_mlb_game(ctx, game_pk, dry_run):
 #####
 def clear_box(ctx, b, r):
     (x,y) = lookup_box(b,r, offset=-1)
-    ctx.invoke(send, file_name="/Users/ryan/Downloads/shadow_box.bmp", x_offset=x, y_offset=(y-1))   
+    ctx.invoke(send, file_name="img/shadow_box.bmp", x_offset=x, y_offset=(y-1))   
 
 def clear_count(ctx, all=False ):
     sections = ("balls", "strikes")
@@ -319,7 +319,7 @@ def clear_count(ctx, all=False ):
 def light(ctx, section, index, color):
     x = lookup_light(section,index)
     y = 14
-    ctx.invoke(send, file_name=f"/Users/ryan/Downloads/{color}_light.bmp", x_offset=x, y_offset=y)    
+    ctx.invoke(send, file_name=f"img/{color}_light.bmp", x_offset=x, y_offset=y)    
 
 def lookup_light(section, index):
     lights = {
