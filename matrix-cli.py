@@ -246,6 +246,7 @@ def display_mlb_game(ctx, game_pk, dry_run):
     for row,team in enumerate(("away", "home")):
         player = mlb.player(pitchers[team], secrets.MLB_PLAYER_URL)
         clear_box(ctx, b=0, r=row)
+        clear_box(ctx, b=99, r=row)
         ctx.invoke(text, message=player.get_player_number(), b=0, r=row)
 
     # Write score by inning
@@ -334,6 +335,8 @@ def lookup_box(b,r,offset=0):
     y = 0
     if b == 0:
         x =  4
+    elif b == 99:
+        x = 10
     elif b >= 1 and b <= 10:
         x = 42 + 10 * (b - 1)
     elif b >= 11 and b <= 13:
