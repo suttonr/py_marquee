@@ -244,8 +244,8 @@ def display_mlb_game(ctx, game_pk, dry_run):
     # Write Pitchers
     pitchers = g.get_pitchers()
     for row,team in enumerate(("away", "home")):
-        player = mlb.player(pitchers[team].get("id", None), secrets.MLB_PLAYER_URL)
-        clear_box(ctx, b=0, r=1)
+        player = mlb.player(pitchers[team], secrets.MLB_PLAYER_URL)
+        clear_box(ctx, b=0, r=row)
         ctx.invoke(text, message=player.get_player_number(), b=0, r=row)
 
     # Write score by inning

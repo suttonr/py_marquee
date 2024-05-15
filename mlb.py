@@ -46,11 +46,18 @@ class game:
         iso_ts = self.data["scoreboard"]["datetime"]["dateTime"][:-1]
         return datetime.fromisoformat(iso_ts)
     
-    def get_pitchers(self):
-        return self.data["scoreboard"]["probablePitchers"]
+    #def get_pitchers(self):
+    #    return self.data["scoreboard"]["probablePitchers"]
     
     def get_batter(self):
         return self.data["scoreboard"]["currentPlay"]["matchup"]["batter"]
+    
+    def get_pitchers(self):
+        return {
+            "home" : self.data.get("home_pitcher_lineup",[None])[-1] ,
+            "away" : self.data.get("away_pitcher_lineup",[None])[-1]
+        }
+
 
 
 class player:
