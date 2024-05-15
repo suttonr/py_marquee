@@ -57,6 +57,16 @@ class game:
             "home" : self.data.get("home_pitcher_lineup",[None])[-1] ,
             "away" : self.data.get("away_pitcher_lineup",[None])[-1]
         }
+    
+    def get_player_boxscore(self, id):
+        print("id",id)
+        return ( self.data["boxscore"]["teams"]["away"]["players"].get(f"ID{ id }",{}).get("stats",{}) or 
+                 self.data["boxscore"]["teams"]["home"]["players"].get(f"ID{ id }",{}).get("stats",{}) )
+
+    def get_player_season(self, id):
+        print("id",id)
+        return ( self.data["boxscore"]["teams"]["away"]["players"].get(f"ID{ id }",{}).get("seasonStats",{}) or 
+                 self.data["boxscore"]["teams"]["home"]["players"].get(f"ID{ id }",{}).get("seasonStats",{}) )
 
 
 

@@ -299,6 +299,23 @@ def display_mlb_game(ctx, game_pk, dry_run):
         print(k, v)
         for i in range(v):
             light(ctx, k, i, color)
+    
+    # Write Stats
+    p_row = 4
+    b_row = 14
+    if is_top_inning:
+        pitcher_stats = g.get_player_boxscore(pitchers["home"]).get("pitching", {})
+        p_row = 14
+        b_row = 4
+    else:
+        pitcher_stats = g.get_player_boxscore(pitchers["away"]).get("pitching", {})
+    batter_stats = g.get_player_boxscore(batter.get("id", None)).get("batting", {})
+    batter_stats_season = g.get_player_season(batter.get("id", None)).get("batting", {})
+    p_msg = f'PITCHES:{ pitcher_stats.get("pitchesThrown", "") } S:{ pitcher_stats.get("strikes", "") } { pitcher_stats.get("strikePercentage", "")[1:3] }%'
+    b_msg = f'BAVG: {batter_stats_season.get("avg")} | {batter_stats.get("summary", "-")}'
+    ctx.invoke(send, file_name="img/green_monster_marquee_mask.bmp", x_start=325)   
+    ctx.invoke(text, message=p_msg, x=325, y=p_row)     
+    ctx.invoke(text, message=b_msg, x=325, y=b_row)     
 
 
 #####
