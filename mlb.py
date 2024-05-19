@@ -33,6 +33,9 @@ class game:
         return ( self.data["scoreboard"]["linescore"]["currentInning"], 
                  self.data["scoreboard"]["linescore"]["isTopInning"] )
 
+    def get_inning_state(self):
+        return len(self.data["scoreboard"]["linescore"]["inningState"])
+
     def get_num_innings(self):
         return len(self.data["scoreboard"]["linescore"]["innings"])
     
@@ -46,8 +49,8 @@ class game:
         iso_ts = self.data["scoreboard"]["datetime"]["dateTime"][:-1]
         return datetime.fromisoformat(iso_ts)
     
-    #def get_pitchers(self):
-    #    return self.data["scoreboard"]["probablePitchers"]
+    def get_pregame_pitchers(self):
+        return self.data["scoreboard"]["probablePitchers"]
     
     def get_batter(self):
         return self.data["scoreboard"]["currentPlay"]["matchup"]["batter"]

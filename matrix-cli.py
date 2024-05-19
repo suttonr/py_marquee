@@ -257,8 +257,9 @@ def display_mlb_game(ctx, game_pk, dry_run):
         for row,team in enumerate(("away", "home")):
             s = inning_data.get(team,{}).get("runs",0)
             offset = 0
-            if ((inning == cur_inning and is_top_inning and team == "away" ) or 
-                (inning == cur_inning and not is_top_inning and team == "home" )):
+            if ( g.get_inning_state() != "End" and g.get_inning_state() != "Middle" and
+                ((inning == cur_inning and is_top_inning and team == "away" ) or 
+                (inning == cur_inning and not is_top_inning and team == "home" )) ):
                 ctx.invoke(fgcolor, red=255, green=255)
             if len(str(s)) > 1:
                 offset = -2
