@@ -54,6 +54,9 @@ class game:
     
     def get_batter(self):
         return self.data["scoreboard"]["currentPlay"]["matchup"]["batter"]
+
+    def is_play_complete(self):
+        return self.data["scoreboard"]["currentPlay"]["about"]["isComplete"]
     
     def get_pitchers(self):
         return {

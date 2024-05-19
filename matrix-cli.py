@@ -257,7 +257,8 @@ def display_mlb_game(ctx, game_pk, dry_run):
         for row,team in enumerate(("away", "home")):
             s = inning_data.get(team,{}).get("runs",0)
             offset = 0
-            if ( g.get_inning_state() != "End" and g.get_inning_state() != "Middle" and
+            if ( game_status != "F" and 
+                g.get_inning_state() != "End" and g.get_inning_state() != "Middle" and
                 ((inning == cur_inning and is_top_inning and team == "away" ) or 
                 (inning == cur_inning and not is_top_inning and team == "home" )) ):
                 ctx.invoke(fgcolor, red=255, green=255)
@@ -284,23 +285,26 @@ def display_mlb_game(ctx, game_pk, dry_run):
     
     # Write batter
     ctx.invoke(fgcolor, red=255, green=255)
-    ctx.invoke(send, file_name="img/batter_shadow.bmp", x_offset=200, y_offset=10)  
+    ctx.invoke(send, file_name="img/batter_shadow.bmp", x_offset=200, y_offset=10)
     batter = g.get_batter()
-    batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
-    if len(batter_num) == 2:
-        ctx.invoke(text, message=batter_num[0], x=201, y=12)
-        ctx.invoke(text, message=batter_num[1], x=211, y=12)  
-    elif len(batter_num) == 1:
-        ctx.invoke(text, message=batter_num[0], x=211, y=12)  
+    if not g.is_play_complete:
+        batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
+        if len(batter_num) == 2:
+            ctx.invoke(text, message=batter_num[0], x=201, y=12)
+            ctx.invoke(text, message=batter_num[1], x=211, y=12)  
+        elif len(batter_num) == 1:
+            ctx.invoke(text, message=batter_num[0], x=211, y=12)  
+    
     ctx.invoke(fgcolor, red=255, green=255, blue=255)
 
     # Write pitch count
     clear_count(ctx, all=True)
-    for k,v in g.get_count().items():
-        color = "green" if k=="balls" else "red"
-        print(k, v)
-        for i in range(v):
-            light(ctx, k, i, color)
+    if not g.is_play_complete:
+        for k,v in g.get_count().items():
+            color = "green" if k=="balls" else "red"
+            print(k, v)
+            for i in range(v):
+                light(ctx, k, i, color)
     
     # Write Stats
     p_row = 4
@@ -318,8 +322,9 @@ def display_mlb_game(ctx, game_pk, dry_run):
     p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
     b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A:{batter_stats_season.get("avg")} P:{batter_stats_season.get("ops")}'
     ctx.invoke(send, file_name="img/green_monster_marquee_mask.bmp", x_start=325)   
-    ctx.invoke(text, message=p_msg[:20], x=325, y=p_row)     
-    ctx.invoke(text, message=b_msg[:20], x=325, y=b_row)     
+    ctx.invoke(text, message=p_msg[:20], x=325, y=p_row)
+    if not g.is_play_complete: 
+        ctx.invoke(text, message=b_msg[:20], x=325, y=b_row)     
 
 
 #####
