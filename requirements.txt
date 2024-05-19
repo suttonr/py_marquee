@@ -1,0 +1,6 @@
+click
+paho-mqtt
+pillow
+requests
+RPi.GPIO
+spidev
