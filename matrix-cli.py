@@ -222,11 +222,19 @@ def display_mlb_game(ctx, game_pk, dry_run):
 
     game_status = g.get_game_status()
     ctx.invoke(fgcolor, red=255, green=255, blue=255)
-    
+
     # Write Teams Playing
     teams = g.get_teams(short=True)
     for row,team in enumerate(("away", "home")):
         ctx.invoke(text, message=teams.get(team,""), x=19, y=4+(row*10))
+    
+    # Write Pitchers
+    pitchers = g.get_pitchers()
+    for row,team in enumerate(("away", "home")):
+        player = mlb.player(pitchers[team], secrets.MLB_PLAYER_URL)
+        clear_box(ctx, b=0, r=row)
+        clear_box(ctx, b=99, r=row)
+        ctx.invoke(text, message=player.get_player_number(), b=0, r=row)
     
     if game_status == "P" or game_status == "S":
         # Pregame
@@ -241,14 +249,6 @@ def display_mlb_game(ctx, game_pk, dry_run):
                 print(str(y[inning-4]), inning, 1)
                 ctx.invoke(text, message=str(y[inning-4]), b=inning, r=1)
         return
-
-    # Write Pitchers
-    pitchers = g.get_pitchers()
-    for row,team in enumerate(("away", "home")):
-        player = mlb.player(pitchers[team], secrets.MLB_PLAYER_URL)
-        clear_box(ctx, b=0, r=row)
-        clear_box(ctx, b=99, r=row)
-        ctx.invoke(text, message=player.get_player_number(), b=0, r=row)
 
     # Write score by inning
     (cur_inning, is_top_inning) = g.get_current_inning()
