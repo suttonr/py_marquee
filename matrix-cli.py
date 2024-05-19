@@ -222,6 +222,12 @@ def display_mlb_game(ctx, game_pk, dry_run):
 
     game_status = g.get_game_status()
     ctx.invoke(fgcolor, red=255, green=255, blue=255)
+    
+    # Write Teams Playing
+    teams = g.get_teams(short=True)
+    for row,team in enumerate(("away", "home")):
+        ctx.invoke(text, message=teams.get(team,""), x=19, y=4+(row*10))
+    
     if game_status == "P" or game_status == "S":
         # Pregame
         dt = g.get_game_date()
@@ -235,11 +241,6 @@ def display_mlb_game(ctx, game_pk, dry_run):
                 print(str(y[inning-4]), inning, 1)
                 ctx.invoke(text, message=str(y[inning-4]), b=inning, r=1)
         return
-
-    # Write Teams Playing
-    teams = g.get_teams(short=True)
-    for row,team in enumerate(("away", "home")):
-        ctx.invoke(text, message=teams.get(team,""), x=19, y=4+(row*10))
 
     # Write Pitchers
     pitchers = g.get_pitchers()
@@ -314,10 +315,10 @@ def display_mlb_game(ctx, game_pk, dry_run):
     p_msg =  f'P T:{ pitcher_stats.get("pitchesThrown", "") } '
     p_msg += f'K:{ pitcher_stats.get("strikeOuts", "0") } S:{ pitcher_stats.get("strikes", "") } '
     p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
-    b_msg = f'B AVG: {batter_stats_season.get("avg")} | {batter_stats.get("summary", "-")}'
+    b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A:{batter_stats_season.get("avg")} P:{batter_stats_season.get("ops")}'
     ctx.invoke(send, file_name="img/green_monster_marquee_mask.bmp", x_start=325)   
-    ctx.invoke(text, message=p_msg, x=325, y=p_row)     
-    ctx.invoke(text, message=b_msg, x=325, y=b_row)     
+    ctx.invoke(text, message=p_msg[:20], x=325, y=p_row)     
+    ctx.invoke(text, message=b_msg[:20], x=325, y=b_row)     
 
 
 #####
