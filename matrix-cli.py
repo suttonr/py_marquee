@@ -299,9 +299,9 @@ def display_mlb_game(ctx, game_pk, dry_run):
 
     # Write pitch count
     clear_count(ctx, all=True)
-    if not g.is_play_complete:
-        for k,v in g.get_count().items():
-            color = "green" if k=="balls" else "red"
+    for k,v in g.get_count().items():
+        color = "green" if k=="balls" else "red"
+        if k == "outs" or not g.is_play_complete():
             print(k, v)
             for i in range(v):
                 light(ctx, k, i, color)
