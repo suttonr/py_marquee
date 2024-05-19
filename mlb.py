@@ -34,7 +34,7 @@ class game:
                  self.data["scoreboard"]["linescore"]["isTopInning"] )
 
     def get_inning_state(self):
-        return len(self.data["scoreboard"]["linescore"]["inningState"])
+        return self.data["scoreboard"]["linescore"]["inningState"]
 
     def get_num_innings(self):
         return len(self.data["scoreboard"]["linescore"]["innings"])
