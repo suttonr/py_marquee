@@ -287,7 +287,7 @@ def display_mlb_game(ctx, game_pk, dry_run):
     ctx.invoke(fgcolor, red=255, green=255)
     ctx.invoke(send, file_name="img/batter_shadow.bmp", x_offset=200, y_offset=10)
     batter = g.get_batter()
-    if not g.is_play_complete:
+    if not g.is_play_complete():
         batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
         if len(batter_num) == 2:
             ctx.invoke(text, message=batter_num[0], x=201, y=12)
