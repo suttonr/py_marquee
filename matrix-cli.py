@@ -106,6 +106,31 @@ def brightness(appctx, brightness):
         ).wait_for_publish()
 
 @cli.command()
+@click.argument('template')
+@pass_appctx
+def set_template(appctx, template):
+    """Sets the active template of the display"""
+    appctx.mqttc.publish(
+            "marquee/template", payload=template
+        ).wait_for_publish()
+
+@cli.command()
+@click.option('-b', '--box')
+@click.option('-s', '--side')
+@click.option('-i', '--inning', default=None)
+@click.argument('message')
+@pass_appctx
+def send_box(appctx, message, box, side, inning):
+    """Sets the active template of the display"""
+    topic = f"marquee/template/box/{box}/{side}"
+    if box == "inning":
+        topic += f"/{inning}" if inning else "/10"
+    print(f"{topic} {message}")
+    appctx.mqttc.publish(
+            topic, payload=message
+        ).wait_for_publish()
+
+@cli.command()
 @click.option('-r', '--red', type=int, default=0)
 @click.option('-g', '--green', type=int, default=0)
 @click.option('-b', '--blue', type=int, default=0)
