@@ -6,6 +6,10 @@ try:
 except:
     pass
 import time
+from PIL import ImageDraw
+from PIL import ImageFont
+from PIL import Image
+
 
 MAX_PIXELS=512
 PIXEL_TIME = 0.1
@@ -70,5 +74,27 @@ def test_np(r=128,b=0,g=0,clear=True):
         print("Empty Test")
         print(m[0])
 
+def test_font():
+    
+    img = Image.new("RGB", (100, 24))
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype("/Users/ryan/Downloads/BitPotion Full Extended/BitPotion.ttf",16)
+    draw.text((0,-4), str("Aa!*?-:"), font=font, fill="#0000FF")
+    font = ImageFont.truetype("/Users/ryan/Downloads/BitPotion Full Extended/BitPotion.ttf",16)
+    draw.text((0,0), str("A!*?-:"), font=font, fill="#0000FF")
+    img.save("out.png")
+    i=font.getmask("AaBbCc")
+    k=0
+    for y in range(i.size[1]):
+        print(f"\n{y}: ",end="")
+        for x in range(i.size[0]):
+            if i[k] > 0 :
+                print("x",end="")
+            else:
+                print(" ",end="")
+            k += 1
+
+
+
 if __name__ == "__main__":
-     test()
+     test_font()

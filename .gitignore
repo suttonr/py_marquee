@@ -1,5 +1,6 @@
 .DS_Store
 *__pycache__**
 secrets.py
-cache/*
+cache/*.json
 *.json
+venv/*

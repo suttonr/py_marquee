@@ -1,5 +1,7 @@
-from  neomatrix.matrix import matrix
-from  neomatrix.font import *
+from neomatrix.matrix import matrix
+from neomatrix.font import *
+from marquee.marquee import marquee
+from templates.gmonster import gmonster
 try:
     from machine import SPI, Pin, SoftSPI, Timer
     from neopixel import NeoPixel
@@ -16,7 +18,9 @@ except:
 import gc
 import secrets
 import time
-
+from PIL import ImageDraw
+from PIL import ImageFont
+from PIL import Image
 
 FGCOLOR=bytearray(b'\x32\x00\x00')
 BGCOLOR=bytearray(b'\x00\x00\x00')
@@ -27,6 +31,9 @@ NP_PINS = [14,0,2]
 PIXEL_TIME = 0.01
 
 matrices = []
+board = marquee()
+template = None
+
 #m = mqtt.mqtt_client()
 m = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 m.username_pw_set(secrets.MQTT_USERNAME, secrets.MQTT_PASSWORD)
@@ -54,6 +61,7 @@ def mqttLogger(message):
 #def new_message(topic, message, t=None):
 def new_message(client, userdata, msg):
     global FGCOLOR, BGCOLOR, p10
+    global board, template
     topic = msg.topic
     message = msg.payload
     if topic != "esp32/test/raw":
@@ -77,15 +85,29 @@ def new_message(client, userdata, msg):
     if topic == "esp32/test/raw":
         process_raw(message)
     if topic == "esp32/test/clear":
-        clear()
+        board.clear()
     if topic == "esp32/test/bright":
-        process_bright(message[0])
+        board.set_brightness(message[0])
     if topic == "esp32/test/reset":
         print("resetting...")
         GPIO.output(RESET_PIN, GPIO.HIGH)
         time.sleep(5)
         GPIO.output(RESET_PIN, GPIO.LOW)
         print("reset complete")
+    
+    if topic == "marquee/template":
+        print("template:",topic, message)
+        if message == bytearray(b"gmonster"):
+            template = gmonster(board)
+            print("template set")
+    if "marquee/template/box/" in topic:
+        print(f"box {template}")
+        topic_split = topic.split("/")
+        if len(topic_split) == 6 and topic_split[3] == "inning":
+            template.update_box(topic_split[3], topic_split[4], message.decode(), 
+                index=int(topic_split[5])-1)
+        if len(topic_split) == 5:
+            template.update_box(topic_split[3], topic_split[4], message.decode())
 
 def process_bright(bright):
     global NP_PINS, MAX_PIXELS, matrices
@@ -94,11 +116,11 @@ def process_bright(bright):
         matrices[i].brightness = bright / 100
 
 def process_raw(message):
-    global matrices
+    global matrices, board
     #print("m",message)
     if ( (len(message) % 6) == 0 ):
         for m in range(0,len(message),6):
-            process_pixel(message[m:m+6])
+            board.set_pixel(message[m:m+6])
     else:
         print("Message error:", message)
     print("Raw message processed")
@@ -131,11 +153,11 @@ def clear(index=None):
     #send(fill_background=True)
 
 def update_message(message, anchor=(0,0)):
-    global matrices
+    global matrices, board
     global FGCOLOR, BGCOLOR
 
     for x,y,b in font_5x8(message, fgcolor=FGCOLOR):
-        process_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
+        board.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
 
 def send(fill_background=False):
     global matrices
@@ -153,37 +175,29 @@ def write():
 
 def setup():
     global matrices
+    global board
     global m
     global MAX_PIXELS
-    #global p10
-    #p10(1)
-    #time.sleep(5)
-    #p10(0)
     GPIO.output(RESET_PIN, GPIO.HIGH)
     time.sleep(5)
     GPIO.output(RESET_PIN, GPIO.LOW)
     # Setup Matrix
-    #hspi = SPI(1, 18_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
-    #hspi = SPI(1, 18_000_000, bits=48, sck=Pin(11), mosi=Pin(10), miso=Pin(9))
-    #hspi = SoftSPI( baudrate=20_000_000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
     hspi = SPI.SpiDev()
     hspi.open(0, 0)
     hspi.max_speed_hz = 1_000_000
     hspi.mode = 0
-    #cs = Pin(46, mode=Pin.OUT, value=1)
-    #p15 = Pin(15, mode=Pin.OUT, value=0)
-    #p16 = Pin(16, mode=Pin.OUT, value=0)
-    #p17 = Pin(17, mode=Pin.OUT, value=0)
     for x in range(7):
         for y in range(3):
             print("setup matrix ",len(matrices)," loc ", x,y)
             matrices.append(
                 matrix(64, 8, hspi, mode="PYSPI", xoffset=x, yoffset=y)
             )
+    board.matrices = matrices
     #m.set_callback(new_message)
     #m.sub("esp32/test/#")
     m.on_message = new_message
     m.subscribe("esp32/test/#")
+    m.subscribe("marquee/#")
     
     process_bright(5)
     m.loop_start()
@@ -211,8 +225,9 @@ def main():
 
 
 def writer_thread():
+    global board
     while True:
-        send(True)
+        board.send(True)
         time.sleep(PIXEL_TIME)
 
 def mqtt_thread():
