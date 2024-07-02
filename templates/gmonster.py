@@ -115,19 +115,22 @@ class gmonster(base):
             )
 
     def update_batter(self, at_bat):
-        for i,v in enumerate(str(at_bat)):
-            self.draw_7seg_digit(v, x_offset=i*10)
+        index = 0
+        if len(str(at_bat)) > 1:
+            self.draw_7seg_digit(at_bat[i])
+            i += 1
+        self.draw_7seg_digit(at_bat[i], x_offset=10)
 
 
     def draw_7seg_digit(self, number, x_offset=0, y_offset=0, color=bytearray(b'\xba\x99\x10')):
         seven_seg = {
-            "a" : { "cord" : (201+x_offset, 11+y_offset), "h" : 1, "w" : 5, "color": color },
-            "b" : { "cord" : (206+x_offset, 11+y_offset), "h" : 6, "w" : 1, "color": color },
-            "c" : { "cord" : (206+x_offset, 17+y_offset), "h" : 6, "w" : 1, "color": color },
-            "d" : { "cord" : (201+x_offset, 23+y_offset), "h" : 1, "w" : 5, "color": color },
-            "e" : { "cord" : (206+x_offset, 17+y_offset), "h" : 6, "w" : 1, "color": color },
-            "f" : { "cord" : (206+x_offset, 11+y_offset), "h" : 6, "w" : 1, "color": color },
-            "g" : { "cord" : (201+x_offset, 17+y_offset), "h" : 1, "w" : 5, "color": color },
+            "a" : { "cord" : (201+x_offset, 11+y_offset), "h" : 1, "w" : 5 },
+            "b" : { "cord" : (206+x_offset, 11+y_offset), "h" : 6, "w" : 1 },
+            "c" : { "cord" : (206+x_offset, 17+y_offset), "h" : 6, "w" : 1 },
+            "d" : { "cord" : (201+x_offset, 23+y_offset), "h" : 1, "w" : 5 },
+            "e" : { "cord" : (201+x_offset, 17+y_offset), "h" : 6, "w" : 1 },
+            "f" : { "cord" : (201+x_offset, 11+y_offset), "h" : 6, "w" : 1 },
+            "g" : { "cord" : (201+x_offset, 17+y_offset), "h" : 1, "w" : 5 },
         }
         digit = {
             "1" : ["b", "c"],
@@ -141,6 +144,9 @@ class gmonster(base):
             "9" : ["a", "b", "c", "d", "f", "g"],
             "9" : ["a", "b", "c", "d", "e", "f"],
         }
-
-        for seg in digit[str(number)[0]]:
-            self.draw_box(**seven_seg[seg])
+        for seg,params in seven_seg.items():
+            if seg in digit[str(number)[0]]:
+                c = color
+            else:
+                c = bytearray(b'\x00\x00\x00')
+            self.draw_box(**seven_seg[seg], color=c)
