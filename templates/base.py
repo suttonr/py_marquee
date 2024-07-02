@@ -1,6 +1,7 @@
 from .fonts.font import font_5x8
 #from ..marquee.marquee import marquee
 from PIL import ImageFont
+from PIL import Image
 
 class base:
     marquee = None
@@ -34,3 +35,16 @@ class base:
         for x in range(cord[0], cord[0] + w):
             for y in range(cord[1], cord[1] + h):
                 self.marquee.set_pixel( x.to_bytes(2,"big") +  y.to_bytes(1,"big") + color )
+
+    def draw_bmp(self, file_name="", x_offset=0, y_offset=0, x_start=0, y_start=0, x_end=0, y_end=0):
+        im = Image.open(file_name)
+        range_x_end = x_end if x_end else im.size[0]
+        range_y_end = y_end if y_end else im.size[1]
+
+        for y in range(y_start, range_y_end):
+            for x in range(x_start, range_x_end):
+                if sum(im.getpixel((x,y))) > 0:
+                    data = bytearray()
+                    data += (x+x_offset).to_bytes(2,"big") + (y+y_offset).to_bytes(1,"big") 
+                    data += bytearray(list(im.getpixel((x,y))))
+                    self.process_raw(data)

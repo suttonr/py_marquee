@@ -70,7 +70,7 @@ class gmonster(base):
                 "away" : box(lookup_box(i,0)),
                 "home" : box(lookup_box(i,1))
             }) 
-        pass
+        self.draw_bmp("templates/img/green_monster_marquee_mask.bmp")
 
     #def __setattr__(self, name, value):
     #    self.__dict__[name] = value
