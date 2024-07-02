@@ -62,12 +62,12 @@ class gmonster(base):
         "home" : box(lookup_box(13,1), w=10)
     }
     team = { 
-        "away" : box((19,4), w=20),
-        "home" : box((19,14), w=20)
+        "away" : box((19,3), w=20),
+        "home" : box((19,13), w=20)
     }
     message = { 
-        "away" : box((325,4), w=122),
-        "home" : box((325,14), w=122)
+        "away" : box((325,3), w=122),
+        "home" : box((325,13), w=122)
     }
 
     inning = []
@@ -117,9 +117,9 @@ class gmonster(base):
     def update_batter(self, at_bat):
         index = 0
         if len(str(at_bat)) > 1:
-            self.draw_7seg_digit(at_bat[i])
-            i += 1
-        self.draw_7seg_digit(at_bat[i], x_offset=10)
+            self.draw_7seg_digit(at_bat[index])
+            index += 1
+        self.draw_7seg_digit(at_bat[index], x_offset=10)
 
 
     def draw_7seg_digit(self, number, x_offset=0, y_offset=0, color=bytearray(b'\xba\x99\x10')):
