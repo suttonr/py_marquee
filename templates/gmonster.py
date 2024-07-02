@@ -61,6 +61,15 @@ class gmonster(base):
         "away" : box(lookup_box(13,0), w=10),
         "home" : box(lookup_box(13,1), w=10)
     }
+    team = { 
+        "away" : box((19,4), w=20),
+        "home" : box((19,14), w=20)
+    }
+    message = { 
+        "away" : box((325,4), w=122),
+        "home" : box((325,14), w=122)
+    }
+
     inning = []
 
     def __init__(self, marquee):
@@ -105,3 +114,33 @@ class gmonster(base):
                 fgcolor=cur_val[side].fgcolor, bgcolor=cur_val[side].bgcolor
             )
 
+    def update_batter(self, at_bat):
+        for i,v in enumerate(str(at_bat)):
+            self.draw_7seg_digit(v, x_offset=i*10)
+
+
+    def draw_7seg_digit(self, number, x_offset=0, y_offset=0, color=bytearray(b'\xba\x99\x10')):
+        seven_seg = {
+            "a" : { "cord" : (201+x_offset, 11+y_offset), "h" : 1, "w" : 5, "color": color },
+            "b" : { "cord" : (206+x_offset, 11+y_offset), "h" : 6, "w" : 1, "color": color },
+            "c" : { "cord" : (206+x_offset, 17+y_offset), "h" : 6, "w" : 1, "color": color },
+            "d" : { "cord" : (201+x_offset, 23+y_offset), "h" : 1, "w" : 5, "color": color },
+            "e" : { "cord" : (206+x_offset, 17+y_offset), "h" : 6, "w" : 1, "color": color },
+            "f" : { "cord" : (206+x_offset, 11+y_offset), "h" : 6, "w" : 1, "color": color },
+            "g" : { "cord" : (201+x_offset, 17+y_offset), "h" : 1, "w" : 5, "color": color },
+        }
+        digit = {
+            "1" : ["b", "c"],
+            "2" : ["a", "b", "g", "e", "d"],
+            "3" : ["a", "b", "c", "d", "g"],
+            "4" : ["b", "c", "f", "g"],
+            "5" : ["a", "c", "d", "f", "g"],
+            "6" : ["a", "c", "d", "e", "f", "g"],
+            "7" : ["a", "b", "c"],
+            "8" : ["a", "b", "c", "d", "e", "f", "g"],
+            "9" : ["a", "b", "c", "d", "f", "g"],
+            "9" : ["a", "b", "c", "d", "e", "f"],
+        }
+
+        for seg in digit[str(number)[0]]:
+            self.draw_box(**seven_seg[seg])

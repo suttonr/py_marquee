@@ -112,6 +112,12 @@ def new_message(client, userdata, msg):
         if len(topic_split) == 5:
             template.update_box(topic_split[3], topic_split[4], message.decode())
 
+    if "marquee/template/batter" in topic:
+        print(f"batter {message}")
+        topic_split = topic.split("/")
+        if len(message.decode()) in range(1,3):
+            template.update_batter(message.decode())
+
 def process_bright(bright):
     global NP_PINS, MAX_PIXELS, matrices
     for i in range(len(matrices)):
