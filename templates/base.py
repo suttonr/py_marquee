@@ -12,7 +12,6 @@ class base:
                 self.marquee.set_pixel(message[m:m+6])
         else:
             print("Message error:", message)
-        print("Raw message processed")
 
     def update_message(self, message, anchor=(0,0)):
         for x,y,b in font_5x8(message, fgcolor=FGCOLOR):
