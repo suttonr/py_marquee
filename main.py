@@ -33,6 +33,7 @@ PIXEL_TIME = 0.01
 matrices = []
 board = marquee()
 template = None
+refresh = True
 
 #m = mqtt.mqtt_client()
 m = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
@@ -61,7 +62,7 @@ def mqttLogger(message):
 #def new_message(topic, message, t=None):
 def new_message(client, userdata, msg):
     global FGCOLOR, BGCOLOR, p10
-    global board, template
+    global board, template, refresh
     topic = msg.topic
     message = msg.payload
     if topic != "esp32/test/raw":
@@ -98,7 +99,9 @@ def new_message(client, userdata, msg):
     if topic == "marquee/template":
         print("template:",topic, message)
         if message == bytearray(b"gmonster"):
+            refresh = False
             template = gmonster(board)
+            refresh = True
             print("template set")
     if "marquee/template/box/" in topic:
         print(f"box {template}")
@@ -227,7 +230,8 @@ def main():
 def writer_thread():
     global board
     while True:
-        board.send(True)
+        if refresh:
+            board.send(True)
         time.sleep(PIXEL_TIME)
 
 def mqtt_thread():
