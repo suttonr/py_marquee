@@ -104,6 +104,9 @@ class gmonster(base):
     def display_mask(self):
         self.draw_bmp("templates/img/green_monster_marquee_mask.bmp")
 
+    def display_rs_win(self):
+        self.draw_bmp("templates/img/redsoxwin.bmp")
+
     #def __setattr__(self, name, value):
     #    self.__dict__[name] = value
     #    if name != "marquee":
@@ -172,6 +175,14 @@ class gmonster(base):
 
     def update_game_status(self, game_status):
         self.game_status = game_status
+        for row,team in enumerate(("away", "home")):
+            if ( game_status == "O" and 
+                ( self.team[team].value == "BOS" and 
+                    self.runs[team] >= self.runs["home"] and 
+                    self.runs[team] >= self.runs["away"] )
+                ):
+                self.display_rs_win()
+
 
     def draw_light(self, cord, color=bytearray(b'\xff\xff\xff')):
         self.draw_box((cord[0],cord[1]+1), 4, 6, color)
