@@ -133,7 +133,7 @@ class gmonster(base):
             cur_val[side].value = value
             cur_val[side].fgcolor = fgcolor
             self.update_message_2(
-                str(cur_val[side].value), anchor=cur_val[side].get_cord(xoffset = xoffset, yoffset = yoffset), 
+                str(cur_val[side].value).replace("0","O"), anchor=cur_val[side].get_cord(xoffset = xoffset, yoffset = yoffset), 
                 fgcolor=cur_val[side].fgcolor, bgcolor=cur_val[side].bgcolor
             )
 
