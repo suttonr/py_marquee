@@ -112,6 +112,18 @@ def new_message(client, userdata, msg):
         if len(topic_split) == 5:
             template.update_box(topic_split[3], topic_split[4], message.decode())
 
+    if "marquee/template/count/" in topic:
+        topic_split = topic.split("/")
+        template.update_count(topic_split[3], message.decode())
+
+    if "marquee/template/inning/" in topic:
+        topic_split = topic.split("/")
+        template.update_current_inning(topic_split[3], message.decode())
+
+    if "marquee/template/game/" in topic:
+        topic_split = topic.split("/")
+        template.update_game_status(message.decode())
+
     if "marquee/template/batter" in topic:
         print(f"batter {message}")
         topic_split = topic.split("/")

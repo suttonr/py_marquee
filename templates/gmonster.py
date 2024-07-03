@@ -44,7 +44,12 @@ class box:
     def get_cord(self, xoffset=0, yoffset=0):
         return (self.x + xoffset, self.y + yoffset) 
 
+
 class gmonster(base):
+    game_status = ""
+    inning_status = ""
+    current_inning = 0
+
     pitcher = { 
         "away" : box(lookup_box(0,0), w=11),
         "home" : box(lookup_box(0,1), w=11)
@@ -62,12 +67,27 @@ class gmonster(base):
         "home" : box(lookup_box(13,1), w=10)
     }
     team = { 
-        "away" : box((19,3), w=20),
-        "home" : box((19,13), w=20)
+        "away" : box((21,3), w=18),
+        "home" : box((21,13), w=18)
     }
     message = { 
-        "away" : box((325,3), w=122),
-        "home" : box((325,13), w=122)
+        "away" : box((325,3), w=122, bgcolor=bytearray(b'\x00\x64\x00')),
+        "home" : box((325,13), w=122, bgcolor=bytearray(b'\x00\x64\x00'))
+    }
+    light = {
+        "balls" : [ 
+            box((232,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')),
+            box((240,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')), 
+            box((248,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')), 
+        ],
+        "strikes" : [ 
+            box((272,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')),
+            box((280,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')), 
+        ],
+        "outs" : [ 
+            box((305,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')),
+            box((313,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')), 
+        ]
     }
 
     inning = []
@@ -79,6 +99,9 @@ class gmonster(base):
                 "away" : box(lookup_box(i,0)),
                 "home" : box(lookup_box(i,1))
             }) 
+        self.display_mask()
+
+    def display_mask(self):
         self.draw_bmp("templates/img/green_monster_marquee_mask.bmp")
 
     #def __setattr__(self, name, value):
@@ -99,9 +122,9 @@ class gmonster(base):
             cur_val = cur_val[index]
         
         xoffset = 0
-        yoffset = 1
+        yoffset = 0
         if len(str(value)) ==1:
-            xoffset = 3
+            xoffset = 1
 
         if len(cur_val[side].value) > len(value):
             self.draw_box(cur_val[side].get_cord(), cur_val[side].h, cur_val[side].w, cur_val[side].bgcolor )
@@ -121,8 +144,31 @@ class gmonster(base):
             index += 1
         self.draw_7seg_digit(at_bat[index], x_offset=10)
 
+    def update_count(self, name, value):
+        num_lights = len(self.light[name])
+        for index in range(num_lights):
+            self.update_light(name, index, index < int(value))
 
-    def draw_7seg_digit(self, number, x_offset=0, y_offset=0, color=bytearray(b'\xba\x99\x10')):
+    def update_light(self, name, index=0, value=False):
+        cur_val = self.light[name][index]
+        if cur_val.value != value:
+            color = cur_val.fgcolor if value else cur_val.bgcolor
+            self.draw_light(cur_val.get_cord(), color )
+
+    def update_current_inning(self, inning, inning_status=None):
+        self.current_inning = inning
+        if inning_status:
+            self.inning_status = inning_status
+
+    def update_game_status(self, game_status):
+        self.game_status = game_status
+
+    def draw_light(self, cord, color=bytearray(b'\xff\xff\xff')):
+        self.draw_box((cord[0],cord[1]+1), 4, 6, color)
+        self.draw_box((cord[0]+1,cord[1]), 6, 4, color)
+
+    def draw_7seg_digit(self, number, x_offset=0, y_offset=0, 
+            fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00')):
         seven_seg = {
             "a" : { "cord" : (201+x_offset, 11+y_offset), "h" : 1, "w" : 5 },
             "b" : { "cord" : (206+x_offset, 11+y_offset), "h" : 6, "w" : 1 },
@@ -142,11 +188,10 @@ class gmonster(base):
             "7" : ["a", "b", "c"],
             "8" : ["a", "b", "c", "d", "e", "f", "g"],
             "9" : ["a", "b", "c", "d", "f", "g"],
-            "9" : ["a", "b", "c", "d", "e", "f"],
+            "0" : ["a", "b", "c", "d", "e", "f"],
         }
         for seg,params in seven_seg.items():
+            c = bgcolor
             if seg in digit[str(number)[0]]:
-                c = color
-            else:
-                c = bytearray(b'\x00\x00\x00')
+                c = fgcolor
             self.draw_box(**seven_seg[seg], color=c)
