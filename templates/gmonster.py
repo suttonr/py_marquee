@@ -114,24 +114,25 @@ class gmonster(base):
     #    if type(val) is box:
     #        self.update_message_2(str(val.value), anchor=val.get_cord(), 
     #            fgcolor=val.fgcolor, bgcolor=val.bgcolor)
-      
-    def update_box(self, name, side, value="", fgcolor=bytearray(b'\xff\xff\xff'), 
-                   bgcolor=bytearray(b'\x00\x00\x00'), index = 0):
+    # 
+    def update_box(self, name, side, value=None, fgcolor=None, 
+                   bgcolor=None, index = 0):
         cur_val = getattr(self, name, None)
         if isinstance(cur_val, list):
             cur_val = cur_val[index]
         
         xoffset = 0
         yoffset = 0
-        if len(str(value)) ==1:
+        if value is not None and len(str(value)) ==1:
             xoffset = 1
 
-        if len(cur_val[side].value) > len(value):
+        if value is not None and len(cur_val[side].value) > len(value):
             self.draw_box(cur_val[side].get_cord(), cur_val[side].h, cur_val[side].w, cur_val[side].bgcolor )
 
-        if (cur_val[side].value != value or cur_val[side].fgcolor != fgcolor):
-            cur_val[side].value = value
-            cur_val[side].fgcolor = fgcolor
+        if ((value is not None and cur_val[side].value != value) or 
+            (fgcolor is not None and cur_val[side].fgcolor != fgcolor)):
+            cur_val[side].value = value if value is not None else cur_val[side].value
+            cur_val[side].fgcolor = fgcolor if fgcolor is not None else cur_val[side].fgcolor
             self.update_message_2(
                 str(cur_val[side].value).replace("0","O"), anchor=cur_val[side].get_cord(xoffset = xoffset, yoffset = yoffset), 
                 fgcolor=cur_val[side].fgcolor, bgcolor=cur_val[side].bgcolor
@@ -159,6 +160,15 @@ class gmonster(base):
         self.current_inning = inning
         if inning_status:
             self.inning_status = inning_status
+        
+        for index, inning in enumerate(self.inning):
+            for row,team in enumerate(("away", "home")):
+                if ( index == (int(self.current_inning) - 1) and 
+                    (( self.inning_status == "Top" and team == "away") or
+                    ( self.inning_status == "Bottom" and team == "home")) ):
+                    self.update_box("inning", team, index=index, fgcolor=bytearray(b'\xff\xff\x00'))
+                else:
+                    self.update_box("inning", team, index=index, fgcolor=bytearray(b'\xff\xff\xff'))
 
     def update_game_status(self, game_status):
         self.game_status = game_status

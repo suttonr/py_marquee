@@ -457,10 +457,9 @@ def display_mlb_game(ctx, game_pk, dry_run):
     p_msg += f'K:{ pitcher_stats.get("strikeOuts", "0") } S:{ pitcher_stats.get("strikes", "") } '
     p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
     b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A:{batter_stats_season.get("avg")} P:{batter_stats_season.get("ops")}'
-    ctx.invoke(send, file_name="img/green_monster_marquee_mask.bmp", x_start=325)   
-    ctx.invoke(text, message=p_msg[:20], x=325, y=p_row)
+    ctx.invoke(text, message=p_msg[:25], x=325, y=p_row)
     if not g.is_play_complete(): 
-        ctx.invoke(text, message=b_msg[:20], x=325, y=b_row)     
+        ctx.invoke(text, message=b_msg[:25], x=325, y=b_row)     
 
 
 #####
