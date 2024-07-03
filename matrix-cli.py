@@ -233,9 +233,120 @@ def update_box(ctx, b, r, num):
         ctx.invoke(send, file_name=f"img/gold_{digit}.bmp", x_offset=x, y_offset=y)
         x += 8 
 
+@cli.command()
+@click.argument('num')
+@pass_appctx
+def update_batter(appctx, num):
+
+    appctx.mqttc.publish(
+            f"marquee/template/batter", payload=str(num)
+        ).wait_for_publish()
+
+@cli.command()
+@click.argument('status')
+@pass_appctx
+def update_game(appctx, status):
+
+    appctx.mqttc.publish(
+            f"marquee/template/game", payload=str(status)
+        ).wait_for_publish()
+
+@cli.command()
+@click.argument('num')
+@click.option('-n', '--name', default="outs", help='count to update')
+@pass_appctx
+def update_count(appctx, name, num):
+
+    appctx.mqttc.publish(
+            f"marquee/template/count/{name}", payload=str(num)
+        ).wait_for_publish()
+
+@cli.command()
+@click.argument('status')
+@click.option('-i', '--inning', default="0", help='inning')
+@pass_appctx
+def update_inning(appctx, inning, status):
+
+    appctx.mqttc.publish(
+            f"marquee/template/inning/{inning}", payload=str(status)
+        ).wait_for_publish()
+
 #####
 # Baseball Commands
 #####
+@cli.command()
+@click.option('-g','--game-pk', default=None, help='game pk')
+@click.option('--backfill', default=False, is_flag=True, help='backfill game data')
+@click.option('--dry-run', default=False, is_flag=True, help='dry run')
+@click.pass_context
+def send_mlb_game(ctx, game_pk, backfill, dry_run):
+    g = mlb.game(game_pk, secrets.MLB_GAME_URL)
+    appctx = ctx.obj
+
+    game_status = g.get_game_status()
+    ctx.invoke(update_game, status=game_status)
+
+    # Write Teams Playing
+    teams = g.get_teams(short=True)
+    for row,team in enumerate(("away", "home")):
+        ctx.invoke(send_box, message=teams.get(team,""), box="team", side=team)
+
+    # Write Pitchers
+    pitchers = g.get_pitchers()
+    for row,team in enumerate(("away", "home")):
+        player = mlb.player(pitchers[team], secrets.MLB_PLAYER_URL)
+        ctx.invoke(send_box, message=player.get_player_number(), box="pitcher", side=team)
+    
+    # Inning, backfill if requested
+    (cur_inning, is_top_inning) = g.get_current_inning()
+    ctx.invoke(update_inning, inning=cur_inning, status=g.get_inning_state())
+    inning_start = 1 if backfill else cur_inning
+    for inning in range(inning_start,cur_inning+1):
+        inning_data = g.get_inning_score(inning)
+        for row,team in enumerate(("away", "home")):
+            s = inning_data.get(team,{}).get("runs",0)
+            if not (inning == cur_inning and is_top_inning and team == "home" ):
+                ctx.invoke(send_box, message=str(s), box="inning", side=team, inning=inning )
+    
+    # Write current score
+    score = g.get_score()
+    for row,team in enumerate(("away", "home")):
+        for index,stat in enumerate(("runs", "hits", "errors")):
+            s = score.get(team, {}).get(stat, 0)
+            ctx.invoke(send_box, message=str(s), box=stat, side=team) 
+    
+    # Write batter
+    batter = g.get_batter()
+    if not g.is_play_complete():
+        batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
+        ctx.invoke(update_batter, num=batter_num)
+
+    # Write pitch count
+    for k,v in g.get_count().items():
+        color = "green" if k=="balls" else "red"
+        if k == "outs" or not g.is_play_complete():
+            ctx.invoke(update_count, name=k, num=v) 
+
+    # Write Stats
+    b_team = "away"
+    p_team = "home"
+    if is_top_inning:
+        pitcher_stats = g.get_player_boxscore(pitchers["home"]).get("pitching", {})
+        b_team = "home"
+        b_team = "away"
+    else:
+        pitcher_stats = g.get_player_boxscore(pitchers["away"]).get("pitching", {})
+    batter_stats = g.get_player_boxscore(batter.get("id", None)).get("batting", {})
+    batter_stats_season = g.get_player_season(batter.get("id", None)).get("batting", {})
+    p_msg =  f'P T: { pitcher_stats.get("pitchesThrown", "") } '
+    p_msg += f'K: { pitcher_stats.get("strikeOuts", "0") } S: { pitcher_stats.get("strikes", "") } '
+    p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
+    b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A: {batter_stats_season.get("avg")} P: {batter_stats_season.get("ops")}' 
+    ctx.invoke(send_box, message=p_msg[:20], box="message", side=p_team)
+    if not g.is_play_complete(): 
+        ctx.invoke(send_box, message=b_msg[:20], box="message", side=b_team)   
+
+
 @cli.command()
 @click.option('-g','--game-pk', default=None, help='game pk')
 @click.option('--dry-run', default=False, is_flag=True, help='dry run')
