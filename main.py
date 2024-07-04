@@ -81,7 +81,7 @@ def new_message(client, userdata, msg):
                 text_size = int(topic_split[3])
             x = int.from_bytes(bytearray(message[0:2]), "big")
             print("x",x, "y", message[2], "rawx",message[0:1])
-            template.update_message_2( message[3:], fgcolor=FGCOLOR, bgcolor=BGCOLOR, anchor=(x, message[2]))
+            template.update_message_2( message[3:].decode(), fgcolor=FGCOLOR, bgcolor=BGCOLOR, anchor=(x, message[2]))
             #update_message(message[3:], (x, message[2]))  
         if topic == "esp32/test/1":
             update_message(message, (0,0))
