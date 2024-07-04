@@ -159,10 +159,10 @@ def new_message(client, userdata, msg):
         print(traceback.format_exc())
 
 def check_template(in_template):
-    global template
+    global board, template
     print(f"check: {template} --==-- {in_template}")
     if not isinstance(template, in_template):
-        template = in_template()
+        template = in_template(board)
         print(f"created instance {template}")
 
 def process_bright(bright):
