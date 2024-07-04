@@ -5,6 +5,9 @@ from PIL import Image
 
 class base:
     marquee = None
+    
+    def __init__(self, marquee):
+        self.marquee = marquee
 
     def process_raw(self, message):
         if ( (len(message) % 6) == 0 ):
