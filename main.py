@@ -121,7 +121,7 @@ def new_message(client, userdata, msg):
             if len(topic_split) == 6 and topic_split[3] == "inning":
                 template.update_box(topic_split[3], topic_split[4], message.decode(), 
                     index=int(topic_split[5])-1)
-            if len(topic_split) == 5:
+            if len(topic_split) >= 5:
                 template.update_box(topic_split[3], topic_split[4], message.decode())
 
         if "marquee/template/count/" in topic:
