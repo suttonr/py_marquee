@@ -2,6 +2,7 @@ from neomatrix.matrix import matrix
 from neomatrix.font import *
 from marquee.marquee import marquee
 from templates.gmonster import gmonster
+from templates.base import base
 try:
     from machine import SPI, Pin, SoftSPI, Timer
     from neopixel import NeoPixel
@@ -72,6 +73,15 @@ def new_message(client, userdata, msg):
             x = int.from_bytes(bytearray(message[0:2]), "big")
             print("x",x, "y", message[2], "rawx",message[0:1])
             update_message(message[3:], (x, message[2]))  
+        if topic == "esp32/test/text" and len(message) > 2:
+            topic_split = topic.split("/")
+            text_size = 16
+            if len(topic_split) > 3:
+                text_size = int(topic_split[3])
+            x = int.from_bytes(bytearray(message[0:2]), "big")
+            print("x",x, "y", message[2], "rawx",message[0:1])
+            template.update_message_2( message[3:], fgcolor=FGCOLOR, bgcolor=BGCOLOR, anchor=(x, message[2]))
+            #update_message(message[3:], (x, message[2]))  
         if topic == "esp32/test/1":
             update_message(message, (0,0))
         if topic == "esp32/test/2":
@@ -205,7 +215,7 @@ def write():
 
 def setup():
     global matrices
-    global board
+    global board, template
     global m
     global MAX_PIXELS
     GPIO.output(RESET_PIN, GPIO.HIGH)
@@ -231,6 +241,7 @@ def setup():
     
     process_bright(5)
     m.loop_start()
+    template = base
     #tim1 = Timer(1)
     #tim1.init(period=2000, mode=Timer.PERIODIC, callback=lambda t:m.get_msg())
     #time.sleep(1)
