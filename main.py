@@ -116,7 +116,8 @@ def new_message(client, userdata, msg):
                 template = gmonster(board)
                 refresh = True
                 print("template set")
-        if "marquee/template/box/" in topic:
+        if "marquee/template/gmonster/box/" in topic:
+            check_template(gmonster)
             topic_split = topic.split("/")
             if len(topic_split) >= 6 and topic_split[3] == "inning":
                 template.update_box(topic_split[3], topic_split[4], message.decode(), 
@@ -124,26 +125,31 @@ def new_message(client, userdata, msg):
             if len(topic_split) >= 5:
                 template.update_box(topic_split[3], topic_split[4], message.decode())
 
-        if "marquee/template/count/" in topic:
+        if "marquee/template/gmonster/count/" in topic:
+            check_template(gmonster)
             topic_split = topic.split("/")
             template.update_count(topic_split[3], message.decode())
 
-        if "marquee/template/inning/" in topic:
+        if "marquee/template/gmonster/inning/" in topic:
+            check_template(gmonster)
             topic_split = topic.split("/")
             template.update_current_inning(topic_split[3], message.decode())
 
-        if "marquee/template/game" in topic:
+        if "marquee/template/gmonster/game" in topic:
+            check_template(gmonster)
             topic_split = topic.split("/")
             template.update_game_status(message.decode())
 
-        if "marquee/template/disable-win" in topic:
+        if "marquee/template/gmonster/disable-win" in topic:
+            check_template(gmonster)
             topic_split = topic.split("/")
             if message.decode().lower() == "true":
                 template.disable_win = True
             else:
                 template.disable_win = False
 
-        if "marquee/template/batter" in topic:
+        if "marquee/template/gmonster/batter" in topic:
+            check_template(gmonster)
             print(f"batter {message}")
             topic_split = topic.split("/")
             if len(message.decode()) in range(1,3):
@@ -151,6 +157,11 @@ def new_message(client, userdata, msg):
     except Exception as exp:
         print(f"message exception: {exp}")
         print(traceback.format_exc())
+
+def check_template(in_template):
+    global template
+    if not isinstance(template, in_template):
+        template = in_template()
 
 def process_bright(bright):
     global NP_PINS, MAX_PIXELS, matrices
