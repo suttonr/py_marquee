@@ -19,6 +19,7 @@ except:
 import gc
 import secrets
 import time
+import traceback
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
@@ -148,6 +149,7 @@ def new_message(client, userdata, msg):
                 template.update_batter(message.decode())
     except Exception as exp:
         print(f"message exception: {exp}")
+        print(traceback.format_exc())
 
 def process_bright(bright):
     global NP_PINS, MAX_PIXELS, matrices
