@@ -119,21 +119,21 @@ def new_message(client, userdata, msg):
         if "marquee/template/gmonster/box/" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
-            if len(topic_split) >= 7 and topic_split[3] == "inning":
-                template.update_box(topic_split[3], topic_split[4], message.decode(), 
+            if len(topic_split) >= 7 and topic_split[4] == "inning":
+                template.update_box(topic_split[4], topic_split[5], message.decode(), 
                     index=int(topic_split[5])-1)
             if len(topic_split) >= 6:
-                template.update_box(topic_split[3], topic_split[4], message.decode())
+                template.update_box(topic_split[4], topic_split[5], message.decode())
 
         if "marquee/template/gmonster/count/" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
-            template.update_count(topic_split[3], message.decode())
+            template.update_count(topic_split[4], message.decode())
 
         if "marquee/template/gmonster/inning/" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
-            template.update_current_inning(topic_split[3], message.decode())
+            template.update_current_inning(topic_split[4], message.decode())
 
         if "marquee/template/gmonster/game" in topic:
             check_template(gmonster)
