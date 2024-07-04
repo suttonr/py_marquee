@@ -46,55 +46,54 @@ class box:
 
 
 class gmonster(base):
-    game_status = ""
-    inning_status = ""
-    current_inning = 0
-    disable_win = False
-
-    pitcher = { 
-        "away" : box(lookup_box(0,0), w=11),
-        "home" : box(lookup_box(0,1), w=11)
-    }
-    runs = { 
-        "away" : box(lookup_box(11,0), w=10),
-        "home" : box(lookup_box(11,1), w=10)
-    }
-    hits = { 
-        "away" : box(lookup_box(12,0), w=10),
-        "home" : box(lookup_box(12,1), w=10)
-    }
-    errors = { 
-        "away" : box(lookup_box(13,0), w=10),
-        "home" : box(lookup_box(13,1), w=10)
-    }
-    team = { 
-        "away" : box((21,3), w=18),
-        "home" : box((21,13), w=18)
-    }
-    message = { 
-        "away" : box((325,3), w=122, bgcolor=bytearray(b'\x00\x64\x00')),
-        "home" : box((325,13), w=122, bgcolor=bytearray(b'\x00\x64\x00'))
-    }
-    light = {
-        "balls" : [ 
-            box((232,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')),
-            box((240,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')), 
-            box((248,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')), 
-        ],
-        "strikes" : [ 
-            box((272,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')),
-            box((280,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')), 
-        ],
-        "outs" : [ 
-            box((305,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')),
-            box((313,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')), 
-        ]
-    }
-
-    inning = []
-
     def __init__(self, marquee):
         self.marquee = marquee
+        self.game_status = ""
+        self.inning_status = ""
+        self.current_inning = 0
+        self.disable_win = False
+
+        self.pitcher = { 
+            "away" : box(lookup_box(0,0), w=11),
+            "home" : box(lookup_box(0,1), w=11)
+        }
+        self.runs = { 
+            "away" : box(lookup_box(11,0), w=10),
+            "home" : box(lookup_box(11,1), w=10)
+        }
+        self.hits = { 
+            "away" : box(lookup_box(12,0), w=10),
+            "home" : box(lookup_box(12,1), w=10)
+        }
+        self.errors = { 
+            "away" : box(lookup_box(13,0), w=10),
+            "home" : box(lookup_box(13,1), w=10)
+        }
+        self.team = { 
+            "away" : box((21,3), w=18),
+            "home" : box((21,13), w=18)
+        }
+        self.message = { 
+            "away" : box((325,3), w=122, bgcolor=bytearray(b'\x00\x64\x00')),
+            "home" : box((325,13), w=122, bgcolor=bytearray(b'\x00\x64\x00'))
+        }
+        self.light = {
+            "balls" : [ 
+                box((232,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')),
+                box((240,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')), 
+                box((248,15), fgcolor=bytearray(b'\x3f\xed\x7f'), bgcolor=bytearray(b'\x00\x00\x00')), 
+            ],
+            "strikes" : [ 
+                box((272,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')),
+                box((280,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')), 
+            ],
+            "outs" : [ 
+                box((305,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')),
+                box((313,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')), 
+            ]
+        }
+
+        self.inning = []
         for i in range(1,11):
             self.inning.append({
                 "away" : box(lookup_box(i,0)),
@@ -103,7 +102,7 @@ class gmonster(base):
         self.display_mask()
     
     def __del__(self):
-        print("template destroyed")
+        print("gmonster template destroyed")
 
     def display_mask(self):
         self.draw_bmp("templates/img/green_monster_marquee_mask.bmp")
