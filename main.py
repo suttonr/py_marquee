@@ -72,16 +72,17 @@ def new_message(client, userdata, msg):
             print("nm:",topic, message)
         if topic == "esp32/test/message" and len(message) > 2:
             x = int.from_bytes(bytearray(message[0:2]), "big")
-            print("x",x, "y", message[2], "rawx",message[0:1])
+            print("x", x, "y", message[2], "rawx", message[0:1])
             update_message(message[3:], (x, message[2]))  
-        if topic == "esp32/test/text" and len(message) > 2:
+        if "esp32/test/text" in topic and len(message) > 2:
             topic_split = topic.split("/")
             text_size = 16
             if len(topic_split) > 3:
                 text_size = int(topic_split[3])
             x = int.from_bytes(bytearray(message[0:2]), "big")
-            print("x",x, "y", message[2], "rawx",message[0:1])
-            template.update_message_2( message[3:].decode(), fgcolor=FGCOLOR, bgcolor=BGCOLOR, anchor=(x, message[2]))
+            print("x", x, "y", message[2], "rawx", message[0:1])
+            template.update_message_2( message[3:].decode(), font_size=text_size,
+                fgcolor=FGCOLOR, bgcolor=BGCOLOR, anchor=(x, message[2]))
             #update_message(message[3:], (x, message[2]))  
         if topic == "esp32/test/1":
             update_message(message, (0,0))
