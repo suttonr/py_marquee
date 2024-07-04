@@ -160,8 +160,10 @@ def new_message(client, userdata, msg):
 
 def check_template(in_template):
     global template
+    print(f"check: {template} --==-- {in_template}")
     if not isinstance(template, in_template):
         template = in_template()
+        print(f"created instance {template}")
 
 def process_bright(bright):
     global NP_PINS, MAX_PIXELS, matrices
