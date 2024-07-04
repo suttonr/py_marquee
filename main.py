@@ -243,7 +243,7 @@ def setup():
     
     process_bright(5)
     m.loop_start()
-    template = base
+    template = base(board)
     #tim1 = Timer(1)
     #tim1.init(period=2000, mode=Timer.PERIODIC, callback=lambda t:m.get_msg())
     #time.sleep(1)
