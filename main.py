@@ -118,7 +118,7 @@ def new_message(client, userdata, msg):
                 print("template set")
         if "marquee/template/box/" in topic:
             topic_split = topic.split("/")
-            if len(topic_split) == 6 and topic_split[3] == "inning":
+            if len(topic_split) >= 6 and topic_split[3] == "inning":
                 template.update_box(topic_split[3], topic_split[4], message.decode(), 
                     index=int(topic_split[5])-1)
             if len(topic_split) >= 5:
