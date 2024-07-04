@@ -49,6 +49,7 @@ class gmonster(base):
     game_status = ""
     inning_status = ""
     current_inning = 0
+    disable_win = False
 
     pitcher = { 
         "away" : box(lookup_box(0,0), w=11),
@@ -176,10 +177,10 @@ class gmonster(base):
     def update_game_status(self, game_status):
         self.game_status = game_status
         for row,team in enumerate(("away", "home")):
-            if ( game_status == "O" and 
+            if ( not self.disable_win and ( self.game_status == "O" or self.game_status == "F" ) and 
                  self.team[team].value == "BOS" and 
-                 self.runs[team] >= self.runs["home"] and 
-                 self.runs[team] >= self.runs["away"] 
+                 int(self.runs[team].value) >= int(self.runs["home"].value) and 
+                 int(self.runs[team].value) >= int(self.runs["away"].value)
                 ):
                 self.display_rs_win()
 

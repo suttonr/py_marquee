@@ -237,7 +237,6 @@ def update_box(ctx, b, r, num):
 @click.argument('num')
 @pass_appctx
 def update_batter(appctx, num):
-
     appctx.mqttc.publish(
             f"marquee/template/batter", payload=str(num)
         ).wait_for_publish()
@@ -246,7 +245,6 @@ def update_batter(appctx, num):
 @click.argument('status')
 @pass_appctx
 def update_game(appctx, status):
-
     appctx.mqttc.publish(
             f"marquee/template/game", payload=str(status)
         ).wait_for_publish()
@@ -256,7 +254,6 @@ def update_game(appctx, status):
 @click.option('-n', '--name', default="outs", help='count to update')
 @pass_appctx
 def update_count(appctx, name, num):
-
     appctx.mqttc.publish(
             f"marquee/template/count/{name}", payload=str(num)
         ).wait_for_publish()
@@ -266,9 +263,16 @@ def update_count(appctx, name, num):
 @click.option('-i', '--inning', default="0", help='inning')
 @pass_appctx
 def update_inning(appctx, inning, status):
-
     appctx.mqttc.publish(
             f"marquee/template/inning/{inning}", payload=str(status)
+        ).wait_for_publish()
+
+@cli.command()
+@click.argument('status')
+@pass_appctx
+def disable_win(appctx, status):
+    appctx.mqttc.publish(
+            f"marquee/template/disable-win", payload=str(status)
         ).wait_for_publish()
 
 #####
@@ -284,7 +288,6 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     appctx = ctx.obj
 
     game_status = g.get_game_status()
-    ctx.invoke(update_game, status=game_status)
 
     # Write Teams Playing
     teams = g.get_teams(short=True)
@@ -346,7 +349,8 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     if not g.is_play_complete(): 
         ctx.invoke(send_box, message=b_msg[:25], box="message", side=b_team)  
     else:
-        ctx.invoke(send_box, message="", box="message", side=b_team)  
+        ctx.invoke(send_box, message="", box="message", side=b_team)
+    ctx.invoke(update_game, status=game_status)
 
 
 @cli.command()

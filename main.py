@@ -65,69 +65,79 @@ def new_message(client, userdata, msg):
     global board, template, refresh
     topic = msg.topic
     message = msg.payload
-    if topic != "esp32/test/raw":
-        print("nm:",topic, message)
-    if topic == "esp32/test/message" and len(message) > 2:
-        x = int.from_bytes(bytearray(message[0:2]), "big")
-        print("x",x, "y", message[2], "rawx",message[0:1])
-        update_message(message[3:], (x, message[2]))  
-    if topic == "esp32/test/1":
-        update_message(message, (0,0))
-    if topic == "esp32/test/2":
-        update_message(message, (0,8))
-    if topic == "esp32/test/3":
-        update_message(message, (0,16))
-    if topic == "esp32/test/fgcolor" and len(message) == 3:
-        FGCOLOR = bytearray(message[0:3])
-        print("fgcolor", FGCOLOR)
-    if topic == "esp32/test/bgcolor" and len(message) == 3:
-        BGCOLOR = bytearray(message[0:3])
-        #send(fill_background=True)
-    if topic == "esp32/test/raw":
-        process_raw(message)
-    if topic == "esp32/test/clear":
-        board.clear()
-    if topic == "esp32/test/bright":
-        board.set_brightness(message[0])
-    if topic == "esp32/test/reset":
-        print("resetting...")
-        GPIO.output(RESET_PIN, GPIO.HIGH)
-        time.sleep(5)
-        GPIO.output(RESET_PIN, GPIO.LOW)
-        print("reset complete")
-    
-    if topic == "marquee/template":
-        print("template:",topic, message)
-        if message == bytearray(b"gmonster"):
-            refresh = False
-            template = gmonster(board)
-            refresh = True
-            print("template set")
-    if "marquee/template/box/" in topic:
-        topic_split = topic.split("/")
-        if len(topic_split) == 6 and topic_split[3] == "inning":
-            template.update_box(topic_split[3], topic_split[4], message.decode(), 
-                index=int(topic_split[5])-1)
-        if len(topic_split) == 5:
-            template.update_box(topic_split[3], topic_split[4], message.decode())
+    try:
+        if topic != "esp32/test/raw":
+            print("nm:",topic, message)
+        if topic == "esp32/test/message" and len(message) > 2:
+            x = int.from_bytes(bytearray(message[0:2]), "big")
+            print("x",x, "y", message[2], "rawx",message[0:1])
+            update_message(message[3:], (x, message[2]))  
+        if topic == "esp32/test/1":
+            update_message(message, (0,0))
+        if topic == "esp32/test/2":
+            update_message(message, (0,8))
+        if topic == "esp32/test/3":
+            update_message(message, (0,16))
+        if topic == "esp32/test/fgcolor" and len(message) == 3:
+            FGCOLOR = bytearray(message[0:3])
+            print("fgcolor", FGCOLOR)
+        if topic == "esp32/test/bgcolor" and len(message) == 3:
+            BGCOLOR = bytearray(message[0:3])
+            #send(fill_background=True)
+        if topic == "esp32/test/raw":
+            process_raw(message)
+        if topic == "esp32/test/clear":
+            board.clear()
+        if topic == "esp32/test/bright":
+            board.set_brightness(message[0])
+        if topic == "esp32/test/reset":
+            print("resetting...")
+            GPIO.output(RESET_PIN, GPIO.HIGH)
+            time.sleep(5)
+            GPIO.output(RESET_PIN, GPIO.LOW)
+            print("reset complete")
 
-    if "marquee/template/count/" in topic:
-        topic_split = topic.split("/")
-        template.update_count(topic_split[3], message.decode())
+        if topic == "marquee/template":
+            print("template:",topic, message)
+            if message == bytearray(b"gmonster"):
+                refresh = False
+                template = gmonster(board)
+                refresh = True
+                print("template set")
+        if "marquee/template/box/" in topic:
+            topic_split = topic.split("/")
+            if len(topic_split) == 6 and topic_split[3] == "inning":
+                template.update_box(topic_split[3], topic_split[4], message.decode(), 
+                    index=int(topic_split[5])-1)
+            if len(topic_split) == 5:
+                template.update_box(topic_split[3], topic_split[4], message.decode())
 
-    if "marquee/template/inning/" in topic:
-        topic_split = topic.split("/")
-        template.update_current_inning(topic_split[3], message.decode())
+        if "marquee/template/count/" in topic:
+            topic_split = topic.split("/")
+            template.update_count(topic_split[3], message.decode())
 
-    if "marquee/template/game/" in topic:
-        topic_split = topic.split("/")
-        template.update_game_status(message.decode())
+        if "marquee/template/inning/" in topic:
+            topic_split = topic.split("/")
+            template.update_current_inning(topic_split[3], message.decode())
 
-    if "marquee/template/batter" in topic:
-        print(f"batter {message}")
-        topic_split = topic.split("/")
-        if len(message.decode()) in range(1,3):
-            template.update_batter(message.decode())
+        if "marquee/template/game" in topic:
+            topic_split = topic.split("/")
+            template.update_game_status(message.decode())
+
+        if "marquee/template/disable-win" in topic:
+            topic_split = topic.split("/")
+            if message.decode().lower() == "true":
+                template.disable_win = True
+            else:
+                template.disable_win = False
+
+        if "marquee/template/batter" in topic:
+            print(f"batter {message}")
+            topic_split = topic.split("/")
+            if len(message.decode()) in range(1,3):
+                template.update_batter(message.decode())
+    except Exception as exp:
+        print(f"message exception: {exp}")
 
 def process_bright(bright):
     global NP_PINS, MAX_PIXELS, matrices
