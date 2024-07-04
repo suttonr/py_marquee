@@ -113,6 +113,7 @@ def new_message(client, userdata, msg):
             print("template:",topic, message)
             if message == bytearray(b"gmonster"):
                 refresh = False
+                del template
                 template = gmonster(board)
                 refresh = True
                 print("template set")
