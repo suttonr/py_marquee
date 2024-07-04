@@ -118,13 +118,19 @@ def set_template(appctx, template):
 @click.option('-b', '--box')
 @click.option('-s', '--side')
 @click.option('-i', '--inning', default=None)
+@click.option('-t', '--team', default=None)
+@click.option('-g', '--game', default=None)
 @click.argument('message')
 @pass_appctx
-def send_box(appctx, message, box, side, inning):
+def send_box(appctx, message, box, side, inning, team=None, game=None):
     """Sets the active template of the display"""
-    topic = f"marquee/template/box/{box}/{side}"
+    topic = f"marquee/template/gmonster/box/{box}/{side}"
     if box == "inning":
         topic += f"/{inning}" if inning else "/10"
+    if team is not None:
+        topic += f"/{team}"
+        if game is not None:
+            topic += f"/{game}"
     print(f"{topic} {message}")
     appctx.mqttc.publish(
             topic, payload=message
@@ -177,17 +183,18 @@ def text_line(appctx, message, line):
 @click.option('-y', default=0, type=int, help='y-cord')
 @click.option('-b', default=None, type=int, help='box')
 @click.option('-r', default=0, type=int, help='row')
+@click.option('-s', default=0, type=int, help='size')
 @click.option('-o', '--offset', default=0, type=int, help='offset')
 @click.argument('message')
 @pass_appctx
-def text(appctx, message="", x=0, y=0, b=None, r=0, offset=0, clear_box=False):
+def text(appctx, message="", x=0, y=0, b=None, r=0, s=16,  offset=0, clear_box=False):
     """Sends a text message to the display"""
     if b is not None:
         (x,y) = lookup_box(b,r, offset=offset)
     payload = x.to_bytes(2,"big") + y.to_bytes(1,"big")
     payload += bytearray(message.encode("utf-8"))
     appctx.mqttc.publish(
-            f"{appctx.mqtt_topic}/message", payload=payload
+            f"{appctx.mqtt_topic}/text/{s}", payload=payload
         ).wait_for_publish()
 
 #####
@@ -238,7 +245,7 @@ def update_box(ctx, b, r, num):
 @pass_appctx
 def update_batter(appctx, num):
     appctx.mqttc.publish(
-            f"marquee/template/batter", payload=str(num)
+            f"marquee/template/gmonster/batter", payload=str(num)
         ).wait_for_publish()
 
 @cli.command()
@@ -246,7 +253,7 @@ def update_batter(appctx, num):
 @pass_appctx
 def update_game(appctx, status):
     appctx.mqttc.publish(
-            f"marquee/template/game", payload=str(status)
+            f"marquee/template/gmonster/game", payload=str(status)
         ).wait_for_publish()
 
 @cli.command()
@@ -255,7 +262,7 @@ def update_game(appctx, status):
 @pass_appctx
 def update_count(appctx, name, num):
     appctx.mqttc.publish(
-            f"marquee/template/count/{name}", payload=str(num)
+            f"marquee/template/gmonster/count/{name}", payload=str(num)
         ).wait_for_publish()
 
 @cli.command()
@@ -264,7 +271,7 @@ def update_count(appctx, name, num):
 @pass_appctx
 def update_inning(appctx, inning, status):
     appctx.mqttc.publish(
-            f"marquee/template/inning/{inning}", payload=str(status)
+            f"marquee/template/gmonster/inning/{inning}", payload=str(status)
         ).wait_for_publish()
 
 @cli.command()
@@ -272,7 +279,7 @@ def update_inning(appctx, inning, status):
 @pass_appctx
 def disable_win(appctx, status):
     appctx.mqttc.publish(
-            f"marquee/template/disable-win", payload=str(status)
+            f"marquee/template/gmonster/disable-win", payload=str(status)
         ).wait_for_publish()
 
 #####
@@ -309,14 +316,14 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         for row,team in enumerate(("away", "home")):
             s = inning_data.get(team,{}).get("runs",0)
             if not (inning == cur_inning and is_top_inning and team == "home" ):
-                ctx.invoke(send_box, message=str(s), box="inning", side=team, inning=inning )
+                ctx.invoke(send_box, message=str(s), box="inning", side=team, inning=inning, team=teams.get(team, None), game=game_pk )
     
     # Write current score
     score = g.get_score()
     for row,team in enumerate(("away", "home")):
         for index,stat in enumerate(("runs", "hits", "errors")):
             s = score.get(team, {}).get(stat, 0)
-            ctx.invoke(send_box, message=str(s), box=stat, side=team) 
+            ctx.invoke(send_box, message=str(s), box=stat, side=team, team=teams.get(team, None), game=game_pk ) 
     
     # Write batter
     batter = g.get_batter()
