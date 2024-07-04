@@ -101,6 +101,9 @@ class gmonster(base):
                 "home" : box(lookup_box(i,1))
             }) 
         self.display_mask()
+    
+    def __del__(self):
+        print("template destroyed")
 
     def display_mask(self):
         self.draw_bmp("templates/img/green_monster_marquee_mask.bmp")
