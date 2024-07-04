@@ -121,7 +121,7 @@ def new_message(client, userdata, msg):
             topic_split = topic.split("/")
             if len(topic_split) >= 7 and topic_split[4] == "inning":
                 template.update_box(topic_split[4], topic_split[5], message.decode(), 
-                    index=int(topic_split[5])-1)
+                    index=int(topic_split[6])-1)
             if len(topic_split) >= 6:
                 template.update_box(topic_split[4], topic_split[5], message.decode())
 
