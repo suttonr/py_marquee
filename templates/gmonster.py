@@ -129,7 +129,7 @@ class gmonster(base):
         if value is not None and len(str(value)) ==1:
             xoffset = 1
 
-        if value is not None and len(cur_val[side].value) > len(value):
+        if (value is not None and len(cur_val[side].value) > len(value)) or name =="message":
             self.draw_box(cur_val[side].get_cord(), cur_val[side].h, cur_val[side].w, cur_val[side].bgcolor )
 
         if ((value is not None and cur_val[side].value != value) or 
@@ -177,9 +177,9 @@ class gmonster(base):
         self.game_status = game_status
         for row,team in enumerate(("away", "home")):
             if ( game_status == "O" and 
-                ( self.team[team].value == "BOS" and 
-                    self.runs[team] >= self.runs["home"] and 
-                    self.runs[team] >= self.runs["away"] )
+                 self.team[team].value == "BOS" and 
+                 self.runs[team] >= self.runs["home"] and 
+                 self.runs[team] >= self.runs["away"] 
                 ):
                 self.display_rs_win()
 
