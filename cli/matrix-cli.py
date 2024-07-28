@@ -120,14 +120,17 @@ def set_template(appctx, template):
 @click.option('-i', '--inning', default=None)
 @click.option('-t', '--team', default=None)
 @click.option('-g', '--game', default=None)
+@click.option('--backfill', default=False, is_flag=True, 
+    help='backfill game data, supresses influxdb update')
 @click.argument('message')
 @pass_appctx
-def send_box(appctx, message, box, side, inning, team=None, game=None):
+def send_box(appctx, message, box, side, inning, team=None, game=None, backfill=None):
     """Sets the active template of the display"""
     topic = f"marquee/template/gmonster/box/{box}/{side}"
     if box == "inning":
         topic += f"/{inning}" if inning else "/10"
-    if team is not None:
+    # If this is a backfill supress the team and game to avoid updating influx
+    if (team is not None) and not backfill:
         topic += f"/{team}"
         if game is not None:
             topic += f"/{game}"
@@ -299,13 +302,13 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     # Write Teams Playing
     teams = g.get_teams(short=True)
     for row,team in enumerate(("away", "home")):
-        ctx.invoke(send_box, message=teams.get(team,""), box="team", side=team)
+        ctx.invoke(send_box, message=teams.get(team,""), box="team", side=team, backfill=backfill)
 
     # Write Pitchers
     pitchers = g.get_pitchers()
     for row,team in enumerate(("away", "home")):
         player = mlb.player(pitchers[team], secrets.MLB_PLAYER_URL)
-        ctx.invoke(send_box, message=player.get_player_number(), box="pitcher", side=team)
+        ctx.invoke(send_box, message=player.get_player_number(), box="pitcher", side=team, backfill=backfill)
     
     # Inning, backfill if requested
     (cur_inning, is_top_inning) = g.get_current_inning()
@@ -316,14 +319,14 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         for row,team in enumerate(("away", "home")):
             s = inning_data.get(team,{}).get("runs",0)
             if not (inning == cur_inning and is_top_inning and team == "home" ):
-                ctx.invoke(send_box, message=str(s), box="inning", side=team, inning=inning, team=teams.get(team, None), game=game_pk )
+                ctx.invoke(send_box, message=str(s), box="inning", side=team, inning=inning, team=teams.get(team, None), game=game_pk, backfill=backfill)
     
     # Write current score
     score = g.get_score()
     for row,team in enumerate(("away", "home")):
         for index,stat in enumerate(("runs", "hits", "errors")):
             s = score.get(team, {}).get(stat, 0)
-            ctx.invoke(send_box, message=str(s), box=stat, side=team, team=teams.get(team, None), game=game_pk ) 
+            ctx.invoke(send_box, message=str(s), box=stat, side=team, team=teams.get(team, None), game=game_pk, backfill=backfill ) 
     
     # Write batter
     batter = g.get_batter()
@@ -358,6 +361,11 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     else:
         ctx.invoke(send_box, message="", box="message", side=b_team)
     ctx.invoke(update_game, status=game_status)
+    print(f"game_status: {game_status}")
+    # exitcode 99 if game is over
+    if game_status == "F":
+        print("Game is final")
+        exit(99)
 
 
 @cli.command()

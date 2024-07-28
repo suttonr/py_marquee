@@ -101,3 +101,40 @@ class player:
         except ( IndexError, KeyError ):
             num = "00"
         return num
+
+class schedule:
+    def __init__(self, date, base_url=""):
+        self.date = date
+        self.base_url = base_url
+        if date:
+            try:
+                with open(f'./cache/schedule_{self.date}.json') as json_data:
+                    self.data = json.load(json_data)
+            except FileNotFoundError:
+                self.refresh()
+
+    def refresh(self):
+        print(f"fetching schedule for {self.date} from api")
+        res = requests.get(f"{self.base_url}{self.date}")
+        res.raise_for_status()
+        self.data = res.json()
+        with open(f'./cache/schedule_{self.date}.json', 'w') as f:
+            json.dump(self.data, f)
+    
+    def get_games(self, team_filter=None):
+        ret=[]
+        for date in self.data.get("schedule",{}).get("dates",[]):
+            for game in date.get("games", []):
+                g = { 
+                    "gameDate" : game.get("gameDate", ""),
+                    "gamePk" : game.get("gamePk", ""),
+                    "awayTeam" : game.get("teams", {}).get("away", {}).get("team", {}).get("name", ""),
+                    "homeTeam" : game.get("teams", {}).get("home", {}).get("team", {}).get("name", ""),
+                }
+                if team_filter:
+                    if team_filter in g["awayTeam"] or team_filter in g["homeTeam"]:
+                       ret.append(g)
+                else: 
+                    ret.append(g)
+
+        return ret
