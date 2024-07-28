@@ -45,7 +45,7 @@ def watch_mlb_game(ctx, game_pk, interval):
     print("gp", game_pk)
     retcode = 0
     while retcode == 0 or retcode == 98:
-        result = subprocess.run(["python3", "matrix-cli.py", "send-mlb-game", "-g", str(game_pk), "--backfill"], capture_output=True, text=True)
+        result = subprocess.run(["python3", "matrix-cli.py", "send-mlb-game", "-g", str(game_pk)], capture_output=True, text=True)
         retcode = int(result.returncode)
         print("result:", retcode)
         for line in result.stdout.split('\n'):
