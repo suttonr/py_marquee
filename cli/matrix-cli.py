@@ -366,6 +366,9 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     if game_status == "F":
         print("Game is final")
         exit(99)
+    elif game_status == "PW":
+        print("Pregame Warmup")
+        exit(98)
 
 
 @cli.command()
