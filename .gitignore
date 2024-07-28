@@ -4,3 +4,4 @@ local/*
 secrets.py
 cli/cache/*.json
 venv/*
+*.log
