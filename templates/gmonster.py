@@ -132,7 +132,8 @@ class gmonster(base):
         if value is not None and len(str(value)) ==1:
             xoffset = 1
 
-        if (value is not None and len(cur_val[side].value) > len(value)) or name =="message":
+        if ((value is not None and len(cur_val[side].value) > len(value)) or 
+            (name =="message" and cur_val[side].value != value)):
             self.draw_box(cur_val[side].get_cord(), cur_val[side].h, cur_val[side].w, cur_val[side].bgcolor )
 
         if ((value is not None and cur_val[side].value != value) or 
