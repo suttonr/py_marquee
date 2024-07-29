@@ -19,13 +19,24 @@ def cli(ctx, debug):
 
 
 @cli.command()
-@click.option('-d', default=None, type=str, help='date')
+@click.option('-f', default=None, type=str, help='team filter')
+@click.option('-s', '--sleep', default=30, type=int, help='sleep time betwen checks')
+@click.option('-l', '--launch', default=False, is_flag=True, help='launch game when found')
+@click.pass_context
+def find_games(ctx, f, sleep, launch):
+    while True:
+        ctx.invoke(get_schedule, f=f, launch=launch)
+        time.sleep(sleep * 60)
+
+@cli.command()
+@click.option('-d', default=None, type=str, help='date, default=today')
 @click.option('-f', default=None, type=str, help='team filter')
 @click.option('-l', '--launch', default=False, is_flag=True, help='launch watch if game starts this hour')
 @click.pass_context
 def get_schedule(ctx, f, d, launch):
-    sch = mlb.schedule(d, secrets.MLB_SCHEDULE_URL)
     now = datetime.now(ZoneInfo("America/New_York"))
+    date_str = d if d is not None else now.strftime("%Y-%m-%d")
+    sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
 
     for game in sch.get_games(f):
         game_dt = datetime.fromisoformat(game.get("gameDate"))
@@ -40,7 +51,7 @@ def get_schedule(ctx, f, d, launch):
 @click.option('-i','--interval', default=30, type=int, help='interval to update')
 @click.pass_context
 def watch_mlb_game(ctx, game_pk, interval):
-    print("gp", game_pk)
+    logger.info(f"Started watching gp={game_pk}")
     retcode = 0
     while retcode == 0 or retcode == 98:
         result = subprocess.run(["python3", "matrix-cli.py", "send-mlb-game", "-g", str(game_pk)], capture_output=True, text=True)
