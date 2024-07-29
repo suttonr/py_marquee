@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import sys,os
-import jmespath
-import json
 import click
 import time
 import secrets
