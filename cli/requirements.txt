@@ -2,6 +2,5 @@ click
 paho-mqtt
 pillow
 requests
-zoneinfo
 #RPi.GPIO
 #spidev
