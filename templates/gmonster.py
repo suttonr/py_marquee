@@ -153,6 +153,7 @@ class gmonster(base):
 
         if ((value is not None and cur_val[side].value != value) or 
             (fgcolor is not None and cur_val[side].fgcolor != fgcolor)):
+            print(f"updating {name} {index} [{value}]")
             cur_val[side].value = value if value is not None else cur_val[side].value
             cur_val[side].fgcolor = fgcolor if fgcolor is not None else cur_val[side].fgcolor
             self.update_message_2(
@@ -204,7 +205,7 @@ class gmonster(base):
         if prev_status in ("S", "P", "PW") and game_status not in ("S", "P", "PW"):
             for index, inning in enumerate(self.inning):
                 for row,team in enumerate(("away", "home")):
-                        print(f"clearing {index}")
+                        print(f"clearing {team} {index}")
                         self.update_box("inning", team, index=index, value=" ")
 
         for row,team in enumerate(("away", "home")):
