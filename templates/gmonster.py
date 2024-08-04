@@ -21,7 +21,7 @@ def lookup_box(b, r, offset=0):
     return ((x+offset) , y)
 
 class box:
-    def __init__(self, cord=(0,0), value="", h=9, w=8, fgcolor=bytearray(b'\xff\xff\xff'), bgcolor=bytearray(b'\x00\x20\x00')):
+    def __init__(self, cord=(0,0), value="", h=8, w=8, fgcolor=bytearray(b'\xff\xff\xff'), bgcolor=bytearray(b'\x00\x20\x00')):
         self.x = cord[0]
         self.y = cord[1]
         self.h = h
