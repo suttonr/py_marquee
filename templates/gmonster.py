@@ -1,3 +1,6 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from .base import base
 
 def lookup_box(b, r, offset=0):
@@ -109,6 +112,18 @@ class gmonster(base):
 
     def display_rs_win(self):
         self.draw_bmp("templates/img/redsoxwin.bmp")
+    
+    def display_pregram(self):
+        dt = datetime.now(ZoneInfo("America/New_York"))
+        t = dt.strftime("%b %e")
+        y = dt.strftime("%Y")
+        padding = int((11-len(t))/2) if len(t) <= 10 else 1
+        for inning in range(padding, min(len(t)+padding,10)):
+            ctx.invoke(text, message=str(t[inning-padding]), b=inning, r=0)
+            self.update_box("inning", "away", value=str(t[inning-padding]), index=inning)
+            if inning >= 4 and inning <= 7:
+                self.update_box("inning", "home", value=str(y[inning-4]), index=inning)
+        return
 
     #def __setattr__(self, name, value):
     #    self.__dict__[name] = value
@@ -178,7 +193,18 @@ class gmonster(base):
                     self.update_box("inning", team, index=index, fgcolor=bytearray(b'\xff\xff\xff'))
 
     def update_game_status(self, game_status):
+        prev_status = self.game_status
         self.game_status = game_status
+        
+        if game_status in ("P", "PW"):
+            self.display_pregram()
+            return
+
+        if prev_status == "PW" and game_status != "PW":
+            for index, inning in enumerate(self.inning):
+                for row,team in enumerate(("away", "home")):
+                        self.update_box("inning", team, index=index, value="", fgcolor=bytearray(b'\xff\xff\xff'))
+
         for row,team in enumerate(("away", "home")):
             if ( not self.disable_win and ( self.game_status == "O" or self.game_status == "F" ) and 
                  self.team[team].value == "BOS" and 
