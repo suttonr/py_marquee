@@ -117,7 +117,6 @@ class gmonster(base):
         dt = datetime.now(ZoneInfo("America/New_York"))
         t = dt.strftime("%b %e").upper()
         y = dt.strftime("%Y")
-        print(f"pregame {t} {y}")
         self.update_box("inning", "away", value="", index=0)
         padding = int((11-len(t))/2) if len(t) <= 10 else 1
         for inning in range(padding, min(len(t)+padding,10)):
@@ -197,14 +196,12 @@ class gmonster(base):
         self.game_status = game_status
 
         if game_status in ("S", "P", "PW"):
-            print("pregame set")
             self.display_pregram()
             return
 
         if prev_status in ("S", "P", "PW") and game_status not in ("S", "P", "PW"):
             for index, inning in enumerate(self.inning):
                 for row,team in enumerate(("away", "home")):
-                        print(f"clearing {team} {index}")
                         self.update_box("inning", team, index=index, value="")
 
         for row,team in enumerate(("away", "home")):
