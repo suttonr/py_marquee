@@ -217,8 +217,8 @@ class gmonster(base):
 
 
     def draw_light(self, cord, color=bytearray(b'\xff\xff\xff')):
-        self.draw_box((cord[0],cord[1]+1), 4, 6, color)
-        self.draw_box((cord[0]+1,cord[1]), 6, 4, color)
+        self.draw_box((cord[0],cord[1]+1), 5, 7, color)
+        self.draw_box((cord[0]+1,cord[1]), 7, 5, color)
 
     def draw_7seg_digit(self, number, x_offset=0, y_offset=0, 
             fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00')):
