@@ -204,8 +204,8 @@ class gmonster(base):
         if prev_status in ("S", "P", "PW") and game_status not in ("S", "P", "PW"):
             for index, inning in enumerate(self.inning):
                 for row,team in enumerate(("away", "home")):
-                        print(f"clearing {inning}")
-                        self.update_box("inning", team, index=index, value=" ", fgcolor=bytearray(b'\xff\xff\xff'))
+                        print(f"clearing {index}")
+                        self.update_box("inning", team, index=index, value=" ")
 
         for row,team in enumerate(("away", "home")):
             if ( not self.disable_win and ( self.game_status == "O" or self.game_status == "F" ) and 
