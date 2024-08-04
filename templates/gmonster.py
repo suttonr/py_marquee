@@ -61,24 +61,24 @@ class gmonster(base):
             "home" : box(lookup_box(0,1), w=11)
         }
         self.runs = { 
-            "away" : box(lookup_box(11,0), w=10),
-            "home" : box(lookup_box(11,1), w=10)
+            "away" : box(lookup_box(11,0), w=11),
+            "home" : box(lookup_box(11,1), w=11)
         }
         self.hits = { 
-            "away" : box(lookup_box(12,0), w=10),
-            "home" : box(lookup_box(12,1), w=10)
+            "away" : box(lookup_box(12,0), w=11),
+            "home" : box(lookup_box(12,1), w=11)
         }
         self.errors = { 
-            "away" : box(lookup_box(13,0), w=10),
-            "home" : box(lookup_box(13,1), w=10)
+            "away" : box(lookup_box(13,0), w=11),
+            "home" : box(lookup_box(13,1), w=11)
         }
         self.team = { 
-            "away" : box((21,3), w=18),
-            "home" : box((21,13), w=18)
+            "away" : box((21,3), w=19),
+            "home" : box((21,13), w=19)
         }
         self.message = { 
-            "away" : box((325,3), w=122, bgcolor=bytearray(b'\x00\x64\x00')),
-            "home" : box((325,13), w=122, bgcolor=bytearray(b'\x00\x64\x00'))
+            "away" : box((325,3), w=123, bgcolor=bytearray(b'\x00\x64\x00')),
+            "home" : box((325,13), w=123, bgcolor=bytearray(b'\x00\x64\x00'))
         }
         self.light = {
             "balls" : [ 
