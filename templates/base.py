@@ -26,6 +26,7 @@ class base:
         i=0
         if bgcolor == None:
             bgcolor = marquee.bgcolor
+        print(f"size {message_bit.size[1]} {message_bit.size[0]}")
         for y in range(message_bit.size[1]):
             for x in range(message_bit.size[0]):
                 bit_color = fgcolor if message_bit[i] else bgcolor
