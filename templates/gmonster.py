@@ -123,7 +123,7 @@ class gmonster(base):
         for inning in range(padding, min(len(t)+padding,10)):
             self.update_box("inning", "away", value=str(t[inning-padding]), index=inning)
             if inning >= 3 and inning <= 6:
-                self.update_box("inning", "home", value=str(y[inning-4]), index=inning)
+                self.update_box("inning", "home", value=str(y[inning-3]), index=inning)
 
     #def __setattr__(self, name, value):
     #    self.__dict__[name] = value
