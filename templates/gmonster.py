@@ -196,12 +196,12 @@ class gmonster(base):
         prev_status = self.game_status
         self.game_status = game_status
 
-        if game_status in ("P", "PW"):
+        if game_status in ("S", "P", "PW"):
             print("pregame set")
             self.display_pregram()
             return
 
-        if prev_status == "PW" and game_status != "PW":
+        if prev_status in ("S", "P", "PW") and game_status not in ("S", "P", "PW"):
             for index, inning in enumerate(self.inning):
                 for row,team in enumerate(("away", "home")):
                         self.update_box("inning", team, index=index, value=" ", fgcolor=bytearray(b'\xff\xff\xff'))

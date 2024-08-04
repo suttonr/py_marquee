@@ -298,6 +298,10 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     appctx = ctx.obj
 
     game_status = g.get_game_status()
+    if game_status in ("S"):
+        ctx.invoke(update_game, status=game_status)
+        print(f"Pregame {game_status}")
+        exit(98)
 
     # Write Teams Playing
     teams = g.get_teams(short=True)
