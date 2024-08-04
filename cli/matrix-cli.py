@@ -341,11 +341,11 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
             ctx.invoke(update_count, name=k, num=v) 
 
     # Write Stats
-    b_team = "away"
-    p_team = "home"
+    p_team = "away"
+    b_team = "home"
     if is_top_inning:
         pitcher_stats = g.get_player_boxscore(pitchers["home"]).get("pitching", {})
-        b_team = "home"
+        p_team = "home"
         b_team = "away"
     else:
         pitcher_stats = g.get_player_boxscore(pitchers["away"]).get("pitching", {})
