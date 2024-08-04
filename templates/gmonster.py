@@ -115,13 +115,14 @@ class gmonster(base):
     
     def display_pregram(self):
         dt = datetime.now(ZoneInfo("America/New_York"))
-        t = dt.strftime("%b %e")
+        t = dt.strftime("%b %e").upper()
         y = dt.strftime("%Y")
         print(f"pregame {t} {y}")
+        self.update_box("inning", "away", value="", index=0)
         padding = int((11-len(t))/2) if len(t) <= 10 else 1
         for inning in range(padding, min(len(t)+padding,10)):
             self.update_box("inning", "away", value=str(t[inning-padding]), index=inning)
-            if inning >= 4 and inning <= 7:
+            if inning >= 3 and inning <= 6:
                 self.update_box("inning", "home", value=str(y[inning-4]), index=inning)
 
     #def __setattr__(self, name, value):
