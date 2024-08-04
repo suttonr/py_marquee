@@ -120,7 +120,6 @@ class gmonster(base):
         print(f"pregame {t} {y}")
         padding = int((11-len(t))/2) if len(t) <= 10 else 1
         for inning in range(padding, min(len(t)+padding,10)):
-            ctx.invoke(text, message=str(t[inning-padding]), b=inning, r=0)
             self.update_box("inning", "away", value=str(t[inning-padding]), index=inning)
             if inning >= 4 and inning <= 7:
                 self.update_box("inning", "home", value=str(y[inning-4]), index=inning)
