@@ -21,7 +21,7 @@ def lookup_box(b, r, offset=0):
     return ((x+offset) , y)
 
 class box:
-    def __init__(self, cord=(0,0), value="", h=9, w=9, fgcolor=bytearray(b'\xff\xff\xff'), bgcolor=bytearray(b'\x00\x20\x00')):
+    def __init__(self, cord=(0,0), value="", h=9, w=8, fgcolor=bytearray(b'\xff\xff\xff'), bgcolor=bytearray(b'\x00\x20\x00')):
         self.x = cord[0]
         self.y = cord[1]
         self.h = h
@@ -57,28 +57,28 @@ class gmonster(base):
         self.disable_win = False
 
         self.pitcher = { 
-            "away" : box(lookup_box(0,0), w=11),
-            "home" : box(lookup_box(0,1), w=11)
+            "away" : box(lookup_box(0,0), w=10),
+            "home" : box(lookup_box(0,1), w=10)
         }
         self.runs = { 
-            "away" : box(lookup_box(11,0), w=11),
-            "home" : box(lookup_box(11,1), w=11)
+            "away" : box(lookup_box(11,0), w=10),
+            "home" : box(lookup_box(11,1), w=10)
         }
         self.hits = { 
-            "away" : box(lookup_box(12,0), w=11),
-            "home" : box(lookup_box(12,1), w=11)
+            "away" : box(lookup_box(12,0), w=10),
+            "home" : box(lookup_box(12,1), w=10)
         }
         self.errors = { 
-            "away" : box(lookup_box(13,0), w=11),
-            "home" : box(lookup_box(13,1), w=11)
+            "away" : box(lookup_box(13,0), w=10),
+            "home" : box(lookup_box(13,1), w=10)
         }
         self.team = { 
-            "away" : box((21,3), w=19),
-            "home" : box((21,13), w=19)
+            "away" : box((21,3), w=18),
+            "home" : box((21,13), w=18)
         }
         self.message = { 
-            "away" : box((325,3), w=123, bgcolor=bytearray(b'\x00\x64\x00')),
-            "home" : box((325,13), w=123, bgcolor=bytearray(b'\x00\x64\x00'))
+            "away" : box((325,3), w=122, bgcolor=bytearray(b'\x00\x64\x00')),
+            "home" : box((325,13), w=122, bgcolor=bytearray(b'\x00\x64\x00'))
         }
         self.light = {
             "balls" : [ 
@@ -214,8 +214,8 @@ class gmonster(base):
 
 
     def draw_light(self, cord, color=bytearray(b'\xff\xff\xff')):
-        self.draw_box((cord[0],cord[1]+1), 5, 7, color)
-        self.draw_box((cord[0]+1,cord[1]), 7, 5, color)
+        self.draw_box((cord[0],cord[1]+1), 4, 6, color)
+        self.draw_box((cord[0]+1,cord[1]), 6, 4, color)
 
     def draw_7seg_digit(self, number, x_offset=0, y_offset=0, 
             fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00')):
