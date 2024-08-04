@@ -118,7 +118,7 @@ class gmonster(base):
         t = dt.strftime("%b %e").upper()
         y = dt.strftime("%Y")
         print(f"pregame {t} {y}")
-        self.update_box("inning", "away", value="", index=0)
+        self.update_box("inning", "away", value=" ", index=0)
         padding = int((11-len(t))/2) if len(t) <= 10 else 1
         for inning in range(padding, min(len(t)+padding,10)):
             self.update_box("inning", "away", value=str(t[inning-padding]), index=inning)
@@ -204,7 +204,7 @@ class gmonster(base):
         if prev_status == "PW" and game_status != "PW":
             for index, inning in enumerate(self.inning):
                 for row,team in enumerate(("away", "home")):
-                        self.update_box("inning", team, index=index, value="", fgcolor=bytearray(b'\xff\xff\xff'))
+                        self.update_box("inning", team, index=index, value=" ", fgcolor=bytearray(b'\xff\xff\xff'))
 
         for row,team in enumerate(("away", "home")):
             if ( not self.disable_win and ( self.game_status == "O" or self.game_status == "F" ) and 
