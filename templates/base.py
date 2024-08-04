@@ -34,8 +34,8 @@ class base:
                 i += 1
 
     def draw_box(self, cord, h, w, color):
-        for x in range(cord[0], cord[0] + w - 1):
-            for y in range(cord[1], cord[1] + h - 1):
+        for x in range(cord[0], cord[0] + w):
+            for y in range(cord[1], cord[1] + h):
                 self.marquee.set_pixel( x.to_bytes(2,"big") +  y.to_bytes(1,"big") + color )
 
     def draw_bmp(self, file_name="", x_offset=0, y_offset=0, x_start=0, y_start=0, x_end=0, y_end=0):
