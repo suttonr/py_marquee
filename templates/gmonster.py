@@ -50,7 +50,8 @@ class box:
 
 class gmonster(base):
     def __init__(self, marquee):
-        self.marquee = marquee
+        #self.marquee = marquee
+        super()
         self.game_status = ""
         self.inning_status = ""
         self.current_inning = 0
