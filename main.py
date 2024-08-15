@@ -30,7 +30,7 @@ BGCOLOR=bytearray(b'\x00\x00\x00')
 SETUP_RUN = False
 MAX_PIXELS=512
 NP_PINS = [14,0,2]
-PIXEL_TIME = 0.01
+PIXEL_TIME = 0.1
 
 matrices = []
 board = marquee()
@@ -239,7 +239,7 @@ def setup():
     # Setup Matrix
     hspi = SPI.SpiDev()
     hspi.open(0, 0)
-    hspi.max_speed_hz = 1_000_000
+    hspi.max_speed_hz = 48_000_000
     hspi.mode = 0
     for x in range(7):
         for y in range(3):
