@@ -286,7 +286,7 @@ def writer_thread():
     full_refresh = 10
     while True:
         if refresh and full_refresh < 0:
-            board.send(True, True)
+            board.send(True, False)
             full_refresh = 10
         elif refresh:
             board.send(True)
