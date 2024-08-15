@@ -24,8 +24,9 @@ class matrix():
             return self.height * (self.width - x) - (self.height-1-y+1)
 
     def update(self, address, value):
-        self.buffer.update({address : value})
-        self.dirty_pixels.append(address)
+        if self.buffer[address] != value:
+            self.buffer.update({address : value})
+            self.dirty_pixels.append(address)
 
     def scale_color(self, color, scale):
         ret = bytearray()

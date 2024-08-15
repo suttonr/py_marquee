@@ -30,7 +30,7 @@ BGCOLOR=bytearray(b'\x00\x00\x00')
 SETUP_RUN = False
 MAX_PIXELS=512
 NP_PINS = [14,0,2]
-PIXEL_TIME = 0.1
+PIXEL_TIME = 1
 
 matrices = []
 board = marquee()
