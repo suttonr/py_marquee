@@ -24,7 +24,7 @@ class matrix():
             return self.height * (self.width - x) - (self.height-1-y+1)
 
     def update(self, address, value):
-        if self.buffer[address] != value:
+        if address not in self.buffer or self.buffer[address] != value:
             self.buffer.update({address : value})
             self.dirty_pixels.append(address)
 
