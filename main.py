@@ -99,7 +99,8 @@ def new_message(client, userdata, msg):
         if topic == "esp32/test/raw":
             process_raw(message)
         if topic == "esp32/test/clear":
-            board.clear()
+            #board.clear()
+            template = base(board)
         if topic == "esp32/test/bright":
             board.set_brightness(message[0])
         if topic == "esp32/test/reset":

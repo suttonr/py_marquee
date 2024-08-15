@@ -8,6 +8,7 @@ class base:
     
     def __init__(self, marquee):
         self.marquee = marquee
+        self.marquee.clear()
 
     def process_raw(self, message):
         if ( (len(message) % 6) == 0 ):
