@@ -37,9 +37,9 @@ class marquee:
             self.matrices[index].buffer={}
         print("done",len(self.matrices))
 
-    def send(self, fill_background=False):
+    def send(self, fill_background=False, dirty_only=True):
         for i in range(len(self.matrices)):
-            self.matrices[i].send_np(self.fgcolor, self.bgcolor, fill_background, False)
+            self.matrices[i].send_np(self.fgcolor, self.bgcolor, fill_background, False, dirty_only)
 
     def write(self):
         for i in range(len(self.matrices)):

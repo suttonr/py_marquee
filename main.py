@@ -282,9 +282,15 @@ def main():
 
 def writer_thread():
     global board
+    board.send(True, True)
+    full_refresh = 10
     while True:
-        if refresh:
+        if refresh and full_refresh < 0:
+            board.send(True, True)
+            full_refresh = 10
+        elif refresh:
             board.send(True)
+        full_refresh =- 1
         time.sleep(PIXEL_TIME)
 
 def mqtt_thread():
