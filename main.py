@@ -283,7 +283,7 @@ def main():
 
 def writer_thread():
     global board
-    board.send(True, True)
+    board.send(True, False)
     full_refresh = 10
     while True:
         if refresh and full_refresh < 0:
