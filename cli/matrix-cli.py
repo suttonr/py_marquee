@@ -294,6 +294,7 @@ def disable_win(appctx, status):
 @click.option('--dry-run', default=False, is_flag=True, help='dry run')
 @click.pass_context
 def send_mlb_game(ctx, game_pk, backfill, dry_run):
+    pregame_statuses = ("S", "P", "PW", "PI")
     g = mlb.game(game_pk, secrets.MLB_GAME_URL)
     appctx = ctx.obj
 
@@ -370,7 +371,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     if game_status == "F":
         print("Game is final")
         exit(99)
-    elif game_status in ("S", "P", "PW"):
+    elif game_status in pregame_statuses:
         print(f"Pregame {game_status}")
         exit(98)
 
