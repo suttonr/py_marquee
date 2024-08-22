@@ -1,6 +1,7 @@
 from neomatrix.matrix import matrix
 from neomatrix.font import *
 from marquee.marquee import marquee
+from templates.clock import clock
 from templates.gmonster import gmonster
 from templates.base import base
 try:
@@ -116,7 +117,12 @@ def new_message(client, userdata, msg):
                 refresh = False
                 template = gmonster(board)
                 refresh = True
-                print("template set")
+                print("gmonster template set")
+            elif message == bytearray(b"clock"):
+                refresh = False
+                template = clock(board)
+                refresh = True
+                print("clock template set")
         if "marquee/template/gmonster/box/" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
