@@ -14,10 +14,13 @@ class clock(base):
             "America/Chicago",
             "America/Los_Angeles",
         ]
+        self.label = " KOLKATA     UTC      BOSTON     AUSTIN     SEATTLE   "
         self.clock_xoffset = 0
         self.clock_yoffset = 0
         self.fgcolor = bytearray(b'\xba\x99\x10')
+        self.label_color = bytearray(b'\xff\x00\x00')
 
+        self.update_message_2(self.label, self.label_color, anchor=(1,15))
         self.clock_tick()
 
 
