@@ -30,8 +30,9 @@ class clock(base):
                 if c.isdigit():
                     self.draw_7seg_digit(c, x)
                 else:
-                    self.draw_box((x+4, self.clock_yoffset+3), 3, 2, self.fgcolor)
-                    self.draw_box((x+4, self.clock_yoffset+8), 3, 2, self.fgcolor)
-                x += 10
+                    self.draw_box((x+2, self.clock_yoffset+2), 3, 2, self.fgcolor)
+                    self.draw_box((x+2, self.clock_yoffset+10), 3, 2, self.fgcolor)
+                    x -= 3
+                x += 9
             x += 10
         threading.Timer(15, self.clock_tick).start()
