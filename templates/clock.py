@@ -19,9 +19,14 @@ class clock(base):
         self.clock_yoffset = 0
         self.fgcolor = bytearray(b'\xba\x99\x10')
         self.label_color = bytearray(b'\xff\x00\x00')
+        self.timer = None
 
         self.update_message_2(self.label, self.label_color, anchor=(1,15))
         self.clock_tick()
+
+    def __del__(self):
+        if self.timer:
+            self.timer.cancel()
 
 
     def clock_tick(self):
@@ -38,4 +43,5 @@ class clock(base):
                     x -= 3
                 x += 9
             x += 10
-        threading.Timer(15, self.clock_tick).start()
+        self.timer = threading.Timer(15, self.clock_tick)
+        self.timer.start()
