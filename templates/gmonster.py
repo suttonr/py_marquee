@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from .base import base
+from .base import base, box
 
 def lookup_box(b, r, offset=0):
     x = 0
@@ -19,34 +19,6 @@ def lookup_box(b, r, offset=0):
     elif r == 1:
         y = 14
     return ((x+offset) , y)
-
-class box:
-    def __init__(self, cord=(0,0), value="", h=8, w=8, fgcolor=bytearray(b'\xff\xff\xff'), bgcolor=bytearray(b'\x00\x20\x00')):
-        self.x = cord[0]
-        self.y = cord[1]
-        self.h = h
-        self.w = w
-        self.value = value
-        self.bgcolor = bgcolor
-        self.fgcolor = fgcolor
-    
-    def set_values(self, cord=(0,0), value="", fgcolor=None, bgcolor=None):
-        self.x = cord[0]
-        self.y = cord[1]
-        self.value = value
-        self.bgcolor = bgcolor if bgcolor else self.bgcolor
-        self.fgcolor = fgcolor if fgcolor else self.fgcolor
-
-    def __eq__(self, other):
-        return ( 
-            self.value == other.value and 
-            self.fgcolor == other.fgcolor and 
-            self.bgcolor == other.bgcolor 
-        )
-
-    def get_cord(self, xoffset=0, yoffset=0):
-        return (self.x + xoffset, self.y + yoffset) 
-
 
 class gmonster(base):
     def __init__(self, marquee):
@@ -163,9 +135,9 @@ class gmonster(base):
     def update_batter(self, at_bat):
         index = 0
         if len(str(at_bat)) > 1:
-            self.draw_7seg_digit(at_bat[index])
+            self.draw_7seg_digit(at_bat[index], x_offset=201, y_offset=11)
             index += 1
-        self.draw_7seg_digit(at_bat[index], x_offset=10)
+        self.draw_7seg_digit(at_bat[index], x_offset=211, y_offset=11)
 
     def update_count(self, name, value):
         num_lights = len(self.light[name])
@@ -218,32 +190,3 @@ class gmonster(base):
     def draw_light(self, cord, color=bytearray(b'\xff\xff\xff')):
         self.draw_box((cord[0],cord[1]+1), 4, 6, color)
         self.draw_box((cord[0]+1,cord[1]), 6, 4, color)
-
-    def draw_7seg_digit(self, number, x_offset=0, y_offset=0, 
-            fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00')):
-        seven_seg = {
-            "a" : { "cord" : (201+x_offset, 11+y_offset), "h" : 1, "w" : 5 },
-            "b" : { "cord" : (206+x_offset, 11+y_offset), "h" : 6, "w" : 1 },
-            "c" : { "cord" : (206+x_offset, 17+y_offset), "h" : 6, "w" : 1 },
-            "d" : { "cord" : (201+x_offset, 23+y_offset), "h" : 1, "w" : 5 },
-            "e" : { "cord" : (201+x_offset, 17+y_offset), "h" : 6, "w" : 1 },
-            "f" : { "cord" : (201+x_offset, 11+y_offset), "h" : 6, "w" : 1 },
-            "g" : { "cord" : (201+x_offset, 17+y_offset), "h" : 1, "w" : 5 },
-        }
-        digit = {
-            "1" : ["b", "c"],
-            "2" : ["a", "b", "g", "e", "d"],
-            "3" : ["a", "b", "c", "d", "g"],
-            "4" : ["b", "c", "f", "g"],
-            "5" : ["a", "c", "d", "f", "g"],
-            "6" : ["a", "c", "d", "e", "f", "g"],
-            "7" : ["a", "b", "c"],
-            "8" : ["a", "b", "c", "d", "e", "f", "g"],
-            "9" : ["a", "b", "c", "d", "f", "g"],
-            "0" : ["a", "b", "c", "d", "e", "f"],
-        }
-        for seg,params in seven_seg.items():
-            c = bgcolor
-            if seg in digit[str(number)[0]]:
-                c = fgcolor
-            self.draw_box(**seven_seg[seg], color=c)
