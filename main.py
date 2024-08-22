@@ -101,7 +101,7 @@ def new_message(client, userdata, msg):
             process_raw(message)
         if topic == "esp32/test/clear":
             if template:
-                del template
+                template.__del__()
             template = base(board)
         if topic == "esp32/test/bright":
             board.set_brightness(message[0])
@@ -169,6 +169,8 @@ def new_message(client, userdata, msg):
 def check_template(in_template):
     global board, template
     if not isinstance(template, in_template):
+        if template is not None:
+            template.__del__()
         template = in_template(board)
         print(f"Loaded template: {template}")
 
