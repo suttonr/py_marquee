@@ -21,7 +21,7 @@ class clock(base):
 
 
     def clock_tick(self):
-        x = self.clock_offset
+        x = self.clock_xoffset
         for tz in self.timezones:
             t = datetime.now(ZoneInfo(tz)).strftime("%H %M")
 
