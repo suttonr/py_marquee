@@ -53,7 +53,7 @@ class base:
         message_bit = font.getmask(message)
         i=0
         if bgcolor == None:
-            bgcolor = marquee.bgcolor
+            bgcolor = self.marquee.bgcolor
 
         for y in range(message_bit.size[1]):
             for x in range(message_bit.size[0]):
