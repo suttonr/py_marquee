@@ -31,7 +31,7 @@ class clock(base):
                     self.draw_7seg_digit(c, x)
                 else:
                     self.draw_box((x+4, self.clock_yoffset+3), 3, 2, self.fgcolor)
-                    self.draw_box((x+9, self.clock_yoffset+3), 3, 2, self.fgcolor)
+                    self.draw_box((x+4, self.clock_yoffset+8), 3, 2, self.fgcolor)
                 x += 10
             x += 10
         threading.Timer(15, self.clock_tick).start()
