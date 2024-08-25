@@ -85,9 +85,9 @@ class base:
         seven_seg = {
             "a" : { "cord" : (x_offset, y_offset), "h" : 1, "w" : 5 },
             "b" : { "cord" : (5+x_offset, y_offset), "h" : 6, "w" : 1 },
-            "c" : { "cord" : (5+x_offset, 7+y_offset), "h" : 6, "w" : 1 },
+            "c" : { "cord" : (5+x_offset, 6+y_offset), "h" : 7, "w" : 1 },
             "d" : { "cord" : (x_offset, 12+y_offset), "h" : 1, "w" : 5 },
-            "e" : { "cord" : (x_offset, 7+y_offset), "h" : 6, "w" : 1 },
+            "e" : { "cord" : (x_offset, 6+y_offset), "h" : 7, "w" : 1 },
             "f" : { "cord" : (x_offset, y_offset), "h" : 6, "w" : 1 },
             "g" : { "cord" : (x_offset, 6+y_offset), "h" : 1, "w" : 5 },
         }
