@@ -179,6 +179,9 @@ class gmonster(base):
             return
 
         if prev_status in pregame_statuses and game_status not in pregame_statuses:
+            if self.clock is not None:
+                self.clock.__del__()
+                self.clock = None
             for index, inning in enumerate(self.inning):
                 for row,team in enumerate(("away", "home")):
                         self.update_box("inning", team, index=index, value="")
