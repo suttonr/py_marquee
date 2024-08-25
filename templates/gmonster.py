@@ -82,8 +82,8 @@ class gmonster(base):
     def __del__(self):
         print("gmonster template destroyed")
 
-    def display_mask(self):
-        self.draw_bmp("templates/img/green_monster_marquee_mask.bmp")
+    def display_mask(self, x_start=0):
+        self.draw_bmp("templates/img/green_monster_marquee_mask.bmp",x_start=x_start)
 
     def display_rs_win(self):
         self.draw_bmp("templates/img/redsoxwin.bmp")
@@ -100,20 +100,9 @@ class gmonster(base):
                 self.update_box("inning", "home", value=str(y[inning-3]), index=inning)
         if self.clock is None:
             self.clock = clock(self.marquee, xoffset=400, yoffset=4, show_label=False,
-                fgcolor=bytearray(b'\xff\xff\xff'),
-                bgcolor=bytearray(b'\x00\x64\x00'), tz_list=['America/New_York'], clear=False )
+                fgcolor=bytearray(b'\xff\xff\xff'), bgcolor=bytearray(b'\x00\x64\x00'),
+                tz_list=['America/New_York'], clear=False )
 
-    #def __setattr__(self, name, value):
-    #    self.__dict__[name] = value
-    #    if name != "marquee":
-    #        self.refresh(name)
-
-    #def refresh(self, name):
-    #    val = getattr(self, name, None)
-    #    if type(val) is box:
-    #        self.update_message_2(str(val.value), anchor=val.get_cord(), 
-    #            fgcolor=val.fgcolor, bgcolor=val.bgcolor)
-    # 
     def update_box(self, name, side, value=None, fgcolor=None, 
                    bgcolor=None, index = 0):
         cur_val = getattr(self, name, None)
@@ -183,6 +172,7 @@ class gmonster(base):
             if self.clock is not None:
                 self.clock.__del__()
                 self.clock = None
+                self.display_mask(x_start=325)
             for index, inning in enumerate(self.inning):
                 for row,team in enumerate(("away", "home")):
                         self.update_box("inning", team, index=index, value="")

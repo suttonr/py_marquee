@@ -34,9 +34,8 @@ class clock(base):
         self.clock_tick()
 
     def __del__(self):
-        print(f"destructor {self.timer}")
         if self.timer:
-            print("timer cancel")
+            print("clock timer cancel")
             self.timer.cancel()
 
 
