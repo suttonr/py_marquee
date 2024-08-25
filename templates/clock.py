@@ -15,7 +15,7 @@ class clock(base):
             "America/Los_Angeles",
         ]
         self.label = " KOLKATA     UTC      BOSTON     AUSTIN     SEATTLE   "
-        self.clock_xoffset = 0
+        self.clock_xoffset = 3
         self.clock_yoffset = 0
         self.fgcolor = bytearray(b'\xba\x99\x10')
         self.label_color = bytearray(b'\xff\x00\x00')

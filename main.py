@@ -231,7 +231,7 @@ def setup():
     global board, template
     global m
     global MAX_PIXELS
-
+    # Reset fpga
     GPIO.output(RESET_PIN, GPIO.HIGH)
     time.sleep(5)
     GPIO.output(RESET_PIN, GPIO.LOW)
@@ -250,20 +250,19 @@ def setup():
     update_message(bytearray(b"A"), (0,0))
     update_message(bytearray(b"B"), (0,8))
     update_message(bytearray(b"C"), (0,16))
-
+    # Setup mqtt
     m.on_message = new_message
     m.subscribe("esp32/test/#")
     m.subscribe("marquee/#")
-    
+    # Set initial settings
     process_bright(5)
     template =  clock(board)
     time.sleep(2)
+    # Start listening for mqtt
     m.loop_start()
 
 def main():
     writer_thread()
-
-
 
 def writer_thread():
     global board
@@ -277,13 +276,6 @@ def writer_thread():
             board.send(True)
         full_refresh =- 1
         time.sleep(PIXEL_TIME)
-
-def mqtt_thread():
-    while True:
-        #m.get_msg()
-        m.loop_read()
-        #print(free(True))
-        time.sleep(.1)
 
 if __name__ == '__main__':
     setup()
