@@ -100,6 +100,7 @@ class gmonster(base):
                 self.update_box("inning", "home", value=str(y[inning-3]), index=inning)
         if self.clock is None:
             self.clock = clock(self.marquee, xoffset=400, yoffset=4, show_label=False,
+                fgcolor=bytearray(b'\xff\xff\xff'),
                 bgcolor=bytearray(b'\x00\x64\x00'), tz_list=['America/New_York'], clear=False )
 
     #def __setattr__(self, name, value):
