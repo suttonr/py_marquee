@@ -44,7 +44,7 @@ class clock(base):
         for tz in self.timezones:
             t = datetime.now(ZoneInfo(tz)).strftime("%H %M")
             label = tz_label_map.get(tz, tz)
-            label_offset = int((42-(len(label)*5))/2)
+            label_offset = int((42-(len(label)*6))/2)
             label_offset = label_offset if label_offset > 0 else 0
             self.update_message(label.upper(), (x+label_offset, 15), fgcolor=self.label_color)
             for c in t:
