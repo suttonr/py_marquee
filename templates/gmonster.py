@@ -2,6 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from .base import base, box
+from .clock import clock
 
 def lookup_box(b, r, offset=0):
     x = 0
@@ -28,6 +29,7 @@ class gmonster(base):
         self.inning_status = ""
         self.current_inning = 0
         self.disable_win = False
+        self.clock = None
 
         self.pitcher = { 
             "away" : box(lookup_box(0,0), w=10),
@@ -96,6 +98,9 @@ class gmonster(base):
             self.update_box("inning", "away", value=str(t[inning-padding]), index=inning)
             if inning >= 3 and inning <= 6:
                 self.update_box("inning", "home", value=str(y[inning-3]), index=inning)
+        if self.clock is not None:
+            self.clock = clock(self.marquee, xoffset=400, yoffset=4, show_label=False,
+                bgcolor=bytearray(b'\x00\x64\x00'), tz_list=['America/New_York'] )
 
     #def __setattr__(self, name, value):
     #    self.__dict__[name] = value

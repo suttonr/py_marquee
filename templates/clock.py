@@ -27,6 +27,7 @@ class clock(base):
         self.clock_xoffset = xoffset
         self.clock_yoffset = yoffset
         self.fgcolor = fgcolor
+        self.bgcolor = bgcolor
         self.label_color = label_color
         self.timer = None
 
@@ -46,10 +47,10 @@ class clock(base):
             label = tz_label_map.get(tz, tz)
             label_offset = int((42-(len(label)*6))/2)
             label_offset = label_offset if label_offset > 0 else 0
-            self.update_message(label.upper(), (x+label_offset, 15), fgcolor=self.label_color)
+            self.update_message(label.upper(), (x+label_offset, 15), fgcolor=self.label_color, bgcolor=self.bgcolor)
             for c in t:
                 if c.isdigit():
-                    self.draw_7seg_digit(c, x)
+                    self.draw_7seg_digit(c, x,bgcolor=self.bgcolor)
                 else:
                     self.draw_box((x+2, self.clock_yoffset+2), 3, 2, self.fgcolor)
                     self.draw_box((x+2, self.clock_yoffset+10), 3, 2, self.fgcolor)
