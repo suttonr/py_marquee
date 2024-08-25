@@ -247,6 +247,10 @@ def setup():
                 matrix(64, 8, hspi, mode="PYSPI", xoffset=x, yoffset=y)
             )
     board.matrices = matrices
+    update_message(bytearray(b"A"), (0,0))
+    update_message(bytearray(b"B"), (0,8))
+    update_message(bytearray(b"C"), (0,16))
+
     m.on_message = new_message
     m.subscribe("esp32/test/#")
     m.subscribe("marquee/#")
@@ -257,16 +261,6 @@ def setup():
     m.loop_start()
 
 def main():
-    global SETUP_RUN
-    global matrices
-    global FGCOLOR, BGCOLOR, m
-
-    if not SETUP_RUN:
-        setup()
-        update_message(bytearray(b"A"), (0,0))
-        update_message(bytearray(b"B"), (0,8))
-        update_message(bytearray(b"C"), (0,16))
-        SETUP_RUN=True
     writer_thread()
 
 
@@ -292,4 +286,5 @@ def mqtt_thread():
         time.sleep(.1)
 
 if __name__ == '__main__':
+    setup()
     main()
