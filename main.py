@@ -1,26 +1,17 @@
+import spidev as SPI
+import paho.mqtt.client as mqtt
+import RPi.GPIO as GPIO
+import gc
+import secrets
+import time
+import traceback
+
 from neomatrix.matrix import matrix
 from neomatrix.font import *
 from marquee.marquee import marquee
 from templates.clock import clock
 from templates.gmonster import gmonster
 from templates.base import base
-try:
-    from machine import SPI, Pin, SoftSPI, Timer
-    from neopixel import NeoPixel
-    import mqtt
-    import _thread
-except:
-    pass
-try:
-    import spidev as SPI
-    import paho.mqtt.client as mqtt
-    import RPi.GPIO as GPIO
-except:
-    pass
-import gc
-import secrets
-import time
-import traceback
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
@@ -38,11 +29,10 @@ board = marquee()
 template = None
 refresh = True
 
-#m = mqtt.mqtt_client()
 m = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 m.username_pw_set(secrets.MQTT_USERNAME, secrets.MQTT_PASSWORD)
 m.connect(secrets.MQTT_BROKER, secrets.MQTT_PORT, 60)
-#p10 = Pin(3, mode=Pin.OUT, value=0)
+
 RESET_PIN = 18
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(RESET_PIN, GPIO.OUT)
@@ -59,10 +49,8 @@ GPIO.setup(RESET_PIN, GPIO.OUT)
 
 def mqttLogger(message):
     global m
-    #m.pub(message, secrets.MQTT_LOGGING_TOPIC)
     m.publish(secrets.MQTT_LOGGING_TOPIC, payload=message).wait_for_publish()
 
-#def new_message(topic, message, t=None):
 def new_message(client, userdata, msg):
     global FGCOLOR, BGCOLOR, p10
     global board, template, refresh
@@ -243,6 +231,7 @@ def setup():
     global board, template
     global m
     global MAX_PIXELS
+
     GPIO.output(RESET_PIN, GPIO.HIGH)
     time.sleep(5)
     GPIO.output(RESET_PIN, GPIO.LOW)
@@ -258,20 +247,14 @@ def setup():
                 matrix(64, 8, hspi, mode="PYSPI", xoffset=x, yoffset=y)
             )
     board.matrices = matrices
-    #m.set_callback(new_message)
-    #m.sub("esp32/test/#")
     m.on_message = new_message
     m.subscribe("esp32/test/#")
     m.subscribe("marquee/#")
     
     process_bright(5)
+    template =  clock(board)
+    time.sleep(2)
     m.loop_start()
-    template = base(board)
-    #tim1 = Timer(1)
-    #tim1.init(period=2000, mode=Timer.PERIODIC, callback=lambda t:m.get_msg())
-    #time.sleep(1)
-    #tim2 = Timer(2)
-    #tim2.init(period=20000, mode=Timer.PERIODIC, callback=lambda t:send(True))
 
 def main():
     global SETUP_RUN
@@ -285,8 +268,6 @@ def main():
         update_message(bytearray(b"C"), (0,16))
         SETUP_RUN=True
     writer_thread()
-    #send(True)
-    #write()
 
 
 
@@ -310,7 +291,5 @@ def mqtt_thread():
         #print(free(True))
         time.sleep(.1)
 
-#_thread.start_new_thread(mqtt_thread, ())
-main()
-#gc.threshold(5_000_000)
-#writer_thread()
+if __name__ == '__main__':
+    main()
