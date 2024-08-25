@@ -33,10 +33,11 @@ class box:
 class base:
     marquee = None
     
-    def __init__(self, marquee, brightness=1):
+    def __init__(self, marquee, brightness=1, clear=True):
         self.marquee = marquee
         self.marquee.set_brightness(brightness)
-        self.marquee.clear()
+        if clear:
+            self.marquee.clear()
 
     def process_raw(self, message):
         if ( (len(message) % 6) == 0 ):

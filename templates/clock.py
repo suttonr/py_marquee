@@ -14,8 +14,8 @@ tz_label_map = {
 class clock(base):
     def __init__(self, marquee, xoffset=3, yoffset=0, show_label=True, 
         fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00'),
-        label_color=bytearray(b'\xff\x00\x00'), tz_list=None):
-        super().__init__(marquee)
+        label_color=bytearray(b'\xff\x00\x00'), tz_list=None, clear=False):
+        super().__init__(marquee, clear=clear)
         self.timezones = [
             "Asia/Kolkata",
             "UTC",
