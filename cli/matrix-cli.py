@@ -360,11 +360,12 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     p_msg += f'K: { pitcher_stats.get("strikeOuts", "0") } S: { pitcher_stats.get("strikes", "") } '
     p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
     b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A: {batter_stats_season.get("avg")} P: {batter_stats_season.get("ops")}' 
-    ctx.invoke(send_box, message=p_msg[:25], box="message", side=p_team)
-    if not g.is_play_complete(): 
-        ctx.invoke(send_box, message=b_msg[:25], box="message", side=b_team)  
-    else:
-        ctx.invoke(send_box, message="", box="message", side=b_team)
+    if game_status not in pregame_statuses:
+        ctx.invoke(send_box, message=p_msg[:25], box="message", side=p_team)
+        if not g.is_play_complete(): 
+            ctx.invoke(send_box, message=b_msg[:25], box="message", side=b_team)  
+        else:
+            ctx.invoke(send_box, message="", box="message", side=b_team)
     ctx.invoke(update_game, status=game_status)
     print(f"game_status: {game_status}")
     # exitcode 99 if game is over
@@ -486,6 +487,7 @@ def display_mlb_game(ctx, game_pk, dry_run):
     p_msg += f'K:{ pitcher_stats.get("strikeOuts", "0") } S:{ pitcher_stats.get("strikes", "") } '
     p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
     b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A:{batter_stats_season.get("avg")} P:{batter_stats_season.get("ops")}'
+    
     ctx.invoke(send, file_name="img/green_monster_marquee_mask.bmp", x_start=325)   
     ctx.invoke(text, message=p_msg[:20], x=325, y=p_row)
     if not g.is_play_complete(): 
