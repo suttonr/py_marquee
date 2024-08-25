@@ -4,6 +4,13 @@ from zoneinfo import ZoneInfo
 
 from .base import base, box
 
+tz_label_map = {
+    "Asia/Kolkata" : "Kolkata",
+    "America/New_York" : "Boston",
+    "America/Chicago" : "Austin",
+    "America/Los_Angeles" : "Seattle",
+}
+
 class clock(base):
     def __init__(self, marquee):
         super().__init__(marquee)
@@ -14,14 +21,15 @@ class clock(base):
             "America/Chicago",
             "America/Los_Angeles",
         ]
-        self.label = " KOLKATA     UTC      BOSTON     AUSTIN     SEATTLE   "
+        #self.label = " KOLKATA     UTC      BOSTON     AUSTIN     SEATTLE   "
+        self.show_label = True
         self.clock_xoffset = 3
         self.clock_yoffset = 0
         self.fgcolor = bytearray(b'\xba\x99\x10')
         self.label_color = bytearray(b'\xff\x00\x00')
         self.timer = None
 
-        self.update_message_2(self.label, self.label_color, anchor=(1+self.clock_xoffset,15))
+        #self.update_message_2(self.label, self.label_color, anchor=(1+self.clock_xoffset,15))
         self.clock_tick()
 
     def __del__(self):
@@ -35,7 +43,10 @@ class clock(base):
         x = self.clock_xoffset
         for tz in self.timezones:
             t = datetime.now(ZoneInfo(tz)).strftime("%H %M")
-
+            label = tz_label_map.get(tz, tz)
+            label_offset = int((42-(len(label)*4))/2)
+            label_offset = label_offset if label_offset > 0 else 0
+            self.update_message(label, (x+label_offset, 15), fgcolor=self.label_color)
             for c in t:
                 if c.isdigit():
                     self.draw_7seg_digit(c, x)
