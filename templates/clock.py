@@ -12,7 +12,9 @@ tz_label_map = {
 }
 
 class clock(base):
-    def __init__(self, marquee):
+    def __init__(self, marquee, xoffset=3, yoffset=0, show_label=True, 
+        fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00'),
+        label_color=bytearray(b'\xff\x00\x00'), tz_list=None):
         super().__init__(marquee)
         self.timezones = [
             "Asia/Kolkata",
@@ -20,16 +22,14 @@ class clock(base):
             "America/New_York",
             "America/Chicago",
             "America/Los_Angeles",
-        ]
-        #self.label = " KOLKATA     UTC      BOSTON     AUSTIN     SEATTLE   "
-        self.show_label = True
-        self.clock_xoffset = 3
-        self.clock_yoffset = 0
-        self.fgcolor = bytearray(b'\xba\x99\x10')
-        self.label_color = bytearray(b'\xff\x00\x00')
+        ] if tz_list == None else tz_list
+        self.show_label = show_label
+        self.clock_xoffset = xoffset
+        self.clock_yoffset = yoffset
+        self.fgcolor = fgcolor
+        self.label_color = label_color
         self.timer = None
 
-        #self.update_message_2(self.label, self.label_color, anchor=(1+self.clock_xoffset,15))
         self.clock_tick()
 
     def __del__(self):
