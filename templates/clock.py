@@ -21,7 +21,7 @@ class clock(base):
         self.label_color = bytearray(b'\xff\x00\x00')
         self.timer = None
 
-        self.update_message_2(self.label, self.label_color, anchor=(1,15))
+        self.update_message_2(self.label, self.label_color, anchor=(1+self.clock_xoffset,15))
         self.clock_tick()
 
     def __del__(self):
