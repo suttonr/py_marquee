@@ -37,16 +37,6 @@ RESET_PIN = 18
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(RESET_PIN, GPIO.OUT)
 
-#def free(full=False):
-#  gc.collect()
-#  F = gc.mem_free()
-#  A = gc.mem_alloc()
-#  t = gc.threshold()
-#  T = F+A
-#  P = '{0:.2f}%'.format(F/T*100)
-#  if not full: return P
-#  else : return ('Total:{0} Free:{1} ({2}) Thresh: {3}'.format(T,F,P,t))
-
 def mqttLogger(message):
     global m
     m.publish(secrets.MQTT_LOGGING_TOPIC, payload=message).wait_for_publish()
@@ -84,7 +74,6 @@ def new_message(client, userdata, msg):
             print("fgcolor", FGCOLOR)
         if topic == "esp32/test/bgcolor" and len(message) == 3:
             BGCOLOR = bytearray(message[0:3])
-            #send(fill_background=True)
         if topic == "esp32/test/raw":
             process_raw(message)
         if topic == "esp32/test/clear":
@@ -178,52 +167,12 @@ def process_raw(message):
         print("Message error:", message)
     print("Raw message processed")
 
-def process_pixel(message):
-    global matrices
-    if ( len(message) == 6 ):
-        # print(f"{message[0]:03d}{message[1]:03d} : {message[2]} {message[3]} {message[4]}")
-        x = int.from_bytes(bytearray(message[0:2]), "big")
-        y = int.from_bytes(bytearray(message[2:3]), "big")
-        i = int( y / 8 )
-        j = int( x / 64 )
-        port = i + (j * 3)
-        #print("matrix:", i, j, port, len(matrices), x, y)
-        if ( port < len(matrices) ):
-            matrices[port].buffer.update({f"{(x-int(j*64)):03d}{(y-(i*8)):03d}" : (message[3],message[4],message[5])})
-        else:
-            print("Invalid Matric Index:", i, j, port, len(matrices) )
-
-def clear(index=None):
-    global matrices
-    print("clearing")
-    if index == None:
-        for i in range(len(matrices)):
-            print("clearing",i)
-            matrices[i].buffer={}
-    else:
-        matrices[index].buffer={}
-    print("done",len(matrices))
-    #send(fill_background=True)
-
 def update_message(message, anchor=(0,0)):
     global matrices, board
     global FGCOLOR, BGCOLOR
 
     for x,y,b in font_5x8(message, fgcolor=FGCOLOR):
         board.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
-
-def send(fill_background=False):
-    global matrices
-    global FGCOLOR, BGCOLOR
-
-    for i in range(len(matrices)):
-        matrices[i].send_np(FGCOLOR, BGCOLOR, fill_background, False)
-
-def write():
-    global matrices
-    for i in range(len(matrices)):
-        if matrices[i].mode == "NP":
-            matrices[i].np.write()
 
 
 def setup():
