@@ -106,6 +106,40 @@ def brightness(appctx, brightness):
         ).wait_for_publish()
 
 @cli.command()
+@click.argument('template')
+@pass_appctx
+def set_template(appctx, template):
+    """Sets the active template of the display"""
+    appctx.mqttc.publish(
+            "marquee/template", payload=template
+        ).wait_for_publish()
+
+@cli.command()
+@click.option('-b', '--box')
+@click.option('-s', '--side')
+@click.option('-i', '--inning', default=None)
+@click.option('-t', '--team', default=None)
+@click.option('-g', '--game', default=None)
+@click.option('--backfill', default=False, is_flag=True, 
+    help='backfill game data, supresses influxdb update')
+@click.argument('message')
+@pass_appctx
+def send_box(appctx, message, box, side, inning, team=None, game=None, backfill=None):
+    """Sets the active template of the display"""
+    topic = f"marquee/template/gmonster/box/{box}/{side}"
+    if box == "inning":
+        topic += f"/{inning}" if inning else "/10"
+    # If this is a backfill supress the team and game to avoid updating influx
+    if (team is not None) and not backfill:
+        topic += f"/{team}"
+        if game is not None:
+            topic += f"/{game}"
+    print(f"{topic} {message}")
+    appctx.mqttc.publish(
+            topic, payload=message
+        ).wait_for_publish()
+
+@cli.command()
 @click.option('-r', '--red', type=int, default=0)
 @click.option('-g', '--green', type=int, default=0)
 @click.option('-b', '--blue', type=int, default=0)
@@ -152,17 +186,18 @@ def text_line(appctx, message, line):
 @click.option('-y', default=0, type=int, help='y-cord')
 @click.option('-b', default=None, type=int, help='box')
 @click.option('-r', default=0, type=int, help='row')
+@click.option('-s', default=0, type=int, help='size')
 @click.option('-o', '--offset', default=0, type=int, help='offset')
 @click.argument('message')
 @pass_appctx
-def text(appctx, message="", x=0, y=0, b=None, r=0, offset=0, clear_box=False):
+def text(appctx, message="", x=0, y=0, b=None, r=0, s=16,  offset=0, clear_box=False):
     """Sends a text message to the display"""
     if b is not None:
         (x,y) = lookup_box(b,r, offset=offset)
     payload = x.to_bytes(2,"big") + y.to_bytes(1,"big")
     payload += bytearray(message.encode("utf-8"))
     appctx.mqttc.publish(
-            f"{appctx.mqtt_topic}/message", payload=payload
+            f"{appctx.mqtt_topic}/text/{s}", payload=payload
         ).wait_for_publish()
 
 #####
@@ -203,14 +238,145 @@ def update_box(ctx, b, r, num):
     if r == 0:
         y -= 1
 
-    ctx.invoke(send, file_name=f"/Users/ryan/Downloads/b_shadow.bmp", x_offset=(x-offset), y_offset=y)
+    ctx.invoke(send, file_name=f"img/b_shadow.bmp", x_offset=(x-offset), y_offset=y)
     for digit in str(num):
-        ctx.invoke(send, file_name=f"/Users/ryan/Downloads/gold_{digit}.bmp", x_offset=x, y_offset=y)
+        ctx.invoke(send, file_name=f"img/gold_{digit}.bmp", x_offset=x, y_offset=y)
         x += 8 
+
+@cli.command()
+@click.argument('num')
+@pass_appctx
+def update_batter(appctx, num):
+    appctx.mqttc.publish(
+            f"marquee/template/gmonster/batter", payload=str(num)
+        ).wait_for_publish()
+
+@cli.command()
+@click.argument('status')
+@pass_appctx
+def update_game(appctx, status):
+    appctx.mqttc.publish(
+            f"marquee/template/gmonster/game", payload=str(status)
+        ).wait_for_publish()
+
+@cli.command()
+@click.argument('num')
+@click.option('-n', '--name', default="outs", help='count to update')
+@pass_appctx
+def update_count(appctx, name, num):
+    appctx.mqttc.publish(
+            f"marquee/template/gmonster/count/{name}", payload=str(num)
+        ).wait_for_publish()
+
+@cli.command()
+@click.argument('status')
+@click.option('-i', '--inning', default="0", help='inning')
+@pass_appctx
+def update_inning(appctx, inning, status):
+    appctx.mqttc.publish(
+            f"marquee/template/gmonster/inning/{inning}", payload=str(status)
+        ).wait_for_publish()
+
+@cli.command()
+@click.argument('status')
+@pass_appctx
+def disable_win(appctx, status):
+    appctx.mqttc.publish(
+            f"marquee/template/gmonster/disable-win", payload=str(status)
+        ).wait_for_publish()
 
 #####
 # Baseball Commands
 #####
+@cli.command()
+@click.option('-g','--game-pk', default=None, help='game pk')
+@click.option('--backfill', default=False, is_flag=True, help='backfill game data')
+@click.option('--dry-run', default=False, is_flag=True, help='dry run')
+@click.pass_context
+def send_mlb_game(ctx, game_pk, backfill, dry_run):
+    pregame_statuses = ("S", "P", "PW", "PI")
+    g = mlb.game(game_pk, secrets.MLB_GAME_URL)
+    appctx = ctx.obj
+
+    game_status = g.get_game_status()
+    if game_status in ("S"):
+        ctx.invoke(update_game, status=game_status)
+        print(f"Pregame {game_status}")
+        exit(98)
+
+    # Write Teams Playing
+    teams = g.get_teams(short=True)
+    for row,team in enumerate(("away", "home")):
+        ctx.invoke(send_box, message=teams.get(team,""), box="team", side=team, backfill=backfill)
+
+    # Write Pitchers
+    pitchers = g.get_pitchers()
+    for row,team in enumerate(("away", "home")):
+        player = mlb.player(pitchers[team], secrets.MLB_PLAYER_URL)
+        ctx.invoke(send_box, message=player.get_player_number(), box="pitcher", side=team, backfill=backfill)
+    
+    # Inning, backfill if requested
+    (cur_inning, is_top_inning) = g.get_current_inning()
+    ctx.invoke(update_inning, inning=cur_inning, status=g.get_inning_state())
+    inning_start = 1 if backfill else cur_inning
+    for inning in range(inning_start,cur_inning+1):
+        inning_data = g.get_inning_score(inning)
+        for row,team in enumerate(("away", "home")):
+            s = inning_data.get(team,{}).get("runs",0)
+            if not (inning == cur_inning and is_top_inning and team == "home" ):
+                ctx.invoke(send_box, message=str(s), box="inning", side=team, inning=inning, team=teams.get(team, None), game=game_pk, backfill=backfill)
+    
+    # Write current score
+    score = g.get_score()
+    for row,team in enumerate(("away", "home")):
+        for index,stat in enumerate(("runs", "hits", "errors")):
+            s = score.get(team, {}).get(stat, 0)
+            ctx.invoke(send_box, message=str(s), box=stat, side=team, team=teams.get(team, None), game=game_pk, backfill=backfill ) 
+    
+    # Write batter
+    batter = g.get_batter()
+    if not g.is_play_complete():
+        batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
+        ctx.invoke(update_batter, num=batter_num)
+
+    # Write pitch count
+    for k,v in g.get_count().items():
+        color = "green" if k=="balls" else "red"
+        if k == "outs" or not g.is_play_complete():
+            ctx.invoke(update_count, name=k, num=v) 
+
+    # Write Stats
+    p_team = "away"
+    b_team = "home"
+    if is_top_inning:
+        pitcher_stats = g.get_player_boxscore(pitchers["home"]).get("pitching", {})
+        p_team = "home"
+        b_team = "away"
+    else:
+        pitcher_stats = g.get_player_boxscore(pitchers["away"]).get("pitching", {})
+    batter_stats = g.get_player_boxscore(batter.get("id", None)).get("batting", {})
+    batter_stats_season = g.get_player_season(batter.get("id", None)).get("batting", {})
+    p_msg =  f'P T: { pitcher_stats.get("pitchesThrown", "") } '
+    p_msg += f'K: { pitcher_stats.get("strikeOuts", "0") } S: { pitcher_stats.get("strikes", "") } '
+    p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
+    b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A: {batter_stats_season.get("avg")} P: {batter_stats_season.get("ops")}' 
+    if game_status not in pregame_statuses:
+        ctx.invoke(send_box, message=p_msg[:25], box="message", side=p_team)
+        if not g.is_play_complete(): 
+            ctx.invoke(send_box, message=b_msg[:25], box="message", side=b_team)  
+        else:
+            ctx.invoke(send_box, message="", box="message", side=b_team)
+    ctx.invoke(update_game, status=game_status)
+    print(f"game_status: {game_status}")
+    # exitcode 99 if game is over
+    if game_status == "F":
+        print("Game is final")
+        exit(99)
+    elif game_status in pregame_statuses:
+        print(f"Pregame {game_status}")
+        exit(98)
+
+
 @cli.command()
 @click.option('-g','--game-pk', default=None, help='game pk')
 @click.option('--dry-run', default=False, is_flag=True, help='dry run')
@@ -222,6 +388,20 @@ def display_mlb_game(ctx, game_pk, dry_run):
 
     game_status = g.get_game_status()
     ctx.invoke(fgcolor, red=255, green=255, blue=255)
+
+    # Write Teams Playing
+    teams = g.get_teams(short=True)
+    for row,team in enumerate(("away", "home")):
+        ctx.invoke(text, message=teams.get(team,""), x=19, y=4+(row*10))
+    
+    # Write Pitchers
+    pitchers = g.get_pitchers()
+    for row,team in enumerate(("away", "home")):
+        player = mlb.player(pitchers[team], secrets.MLB_PLAYER_URL)
+        clear_box(ctx, b=0, r=row)
+        clear_box(ctx, b=99, r=row)
+        ctx.invoke(text, message=player.get_player_number(), b=0, r=row)
+    
     if game_status == "P" or game_status == "S":
         # Pregame
         dt = g.get_game_date()
@@ -236,18 +416,6 @@ def display_mlb_game(ctx, game_pk, dry_run):
                 ctx.invoke(text, message=str(y[inning-4]), b=inning, r=1)
         return
 
-    # Write Teams Playing
-    teams = g.get_teams(short=True)
-    for row,team in enumerate(("away", "home")):
-        ctx.invoke(text, message=teams.get(team,""), x=19, y=4+(row*10))
-
-    # Write Pitchers
-    pitchers = g.get_pitchers()
-    for row,team in enumerate(("away", "home")):
-        player = mlb.player(pitchers[team].get("id", None), secrets.MLB_PLAYER_URL)
-        clear_box(ctx, b=0, r=1)
-        ctx.invoke(text, message=player.get_player_number(), b=0, r=row)
-
     # Write score by inning
     (cur_inning, is_top_inning) = g.get_current_inning()
     for inning in range(1,cur_inning+1):
@@ -255,8 +423,10 @@ def display_mlb_game(ctx, game_pk, dry_run):
         for row,team in enumerate(("away", "home")):
             s = inning_data.get(team,{}).get("runs",0)
             offset = 0
-            if ((inning == cur_inning and is_top_inning and team == "away" ) or 
-                (inning == cur_inning and not is_top_inning and team == "home" )):
+            if ( game_status != "F" and 
+                g.get_inning_state() != "End" and g.get_inning_state() != "Middle" and
+                ((inning == cur_inning and is_top_inning and team == "away" ) or 
+                (inning == cur_inning and not is_top_inning and team == "home" )) ):
                 ctx.invoke(fgcolor, red=255, green=255)
             if len(str(s)) > 1:
                 offset = -2
@@ -281,23 +451,47 @@ def display_mlb_game(ctx, game_pk, dry_run):
     
     # Write batter
     ctx.invoke(fgcolor, red=255, green=255)
-    ctx.invoke(send, file_name="/Users/ryan/Downloads/batter_shadow.bmp", x_offset=200, y_offset=10)  
+    ctx.invoke(send, file_name="img/batter_shadow.bmp", x_offset=200, y_offset=10)
     batter = g.get_batter()
-    batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
-    if len(batter_num) == 2:
-        ctx.invoke(text, message=batter_num[0], x=201, y=12)
-        ctx.invoke(text, message=batter_num[1], x=211, y=12)  
-    elif len(batter_num) == 1:
-        ctx.invoke(text, message=batter_num[0], x=211, y=12)  
+    if not g.is_play_complete():
+        batter_num = mlb.player(batter.get("id",None), secrets.MLB_PLAYER_URL).get_player_number()
+        if len(batter_num) == 2:
+            ctx.invoke(text, message=batter_num[0], x=201, y=12)
+            ctx.invoke(text, message=batter_num[1], x=211, y=12)  
+        elif len(batter_num) == 1:
+            ctx.invoke(text, message=batter_num[0], x=211, y=12)  
+    
     ctx.invoke(fgcolor, red=255, green=255, blue=255)
 
     # Write pitch count
     clear_count(ctx, all=True)
     for k,v in g.get_count().items():
         color = "green" if k=="balls" else "red"
-        print(k, v)
-        for i in range(v):
-            light(ctx, k, i, color)
+        if k == "outs" or not g.is_play_complete():
+            print(k, v)
+            for i in range(v):
+                light(ctx, k, i, color)
+    
+    # Write Stats
+    p_row = 4
+    b_row = 14
+    if is_top_inning:
+        pitcher_stats = g.get_player_boxscore(pitchers["home"]).get("pitching", {})
+        p_row = 14
+        b_row = 4
+    else:
+        pitcher_stats = g.get_player_boxscore(pitchers["away"]).get("pitching", {})
+    batter_stats = g.get_player_boxscore(batter.get("id", None)).get("batting", {})
+    batter_stats_season = g.get_player_season(batter.get("id", None)).get("batting", {})
+    p_msg =  f'P T:{ pitcher_stats.get("pitchesThrown", "") } '
+    p_msg += f'K:{ pitcher_stats.get("strikeOuts", "0") } S:{ pitcher_stats.get("strikes", "") } '
+    p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
+    b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A:{batter_stats_season.get("avg")} P:{batter_stats_season.get("ops")}'
+    
+    ctx.invoke(send, file_name="img/green_monster_marquee_mask.bmp", x_start=325)   
+    ctx.invoke(text, message=p_msg[:20], x=325, y=p_row)
+    if not g.is_play_complete(): 
+        ctx.invoke(text, message=b_msg[:20], x=325, y=b_row)     
 
 
 #####
@@ -305,7 +499,7 @@ def display_mlb_game(ctx, game_pk, dry_run):
 #####
 def clear_box(ctx, b, r):
     (x,y) = lookup_box(b,r, offset=-1)
-    ctx.invoke(send, file_name="/Users/ryan/Downloads/shadow_box.bmp", x_offset=x, y_offset=(y-1))   
+    ctx.invoke(send, file_name="img/shadow_box.bmp", x_offset=x, y_offset=(y-1))   
 
 def clear_count(ctx, all=False ):
     sections = ("balls", "strikes")
@@ -319,7 +513,7 @@ def clear_count(ctx, all=False ):
 def light(ctx, section, index, color):
     x = lookup_light(section,index)
     y = 14
-    ctx.invoke(send, file_name=f"/Users/ryan/Downloads/{color}_light.bmp", x_offset=x, y_offset=y)    
+    ctx.invoke(send, file_name=f"img/{color}_light.bmp", x_offset=x, y_offset=y)    
 
 def lookup_light(section, index):
     lights = {
@@ -334,6 +528,8 @@ def lookup_box(b,r,offset=0):
     y = 0
     if b == 0:
         x =  4
+    elif b == 99:
+        x = 10
     elif b >= 1 and b <= 10:
         x = 42 + 10 * (b - 1)
     elif b >= 11 and b <= 13:
