@@ -29,6 +29,7 @@ class gmonster(base):
         self.inning_status = ""
         self.current_inning = 0
         self.disable_win = False
+        self.disable_close = False
         self.clock = None
 
         self.pitcher = { 

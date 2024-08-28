@@ -123,7 +123,11 @@ def new_message(client, userdata, msg):
         if "marquee/template/gmonster/game" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
-            template.update_game_status(message.decode())
+            if ( not template.disable_close and message.decode() == 'F' ):
+                template.__del__()
+                template = clock(board)
+            else:
+                template.update_game_status(message.decode())
 
         if "marquee/template/gmonster/disable-win" in topic:
             check_template(gmonster)
