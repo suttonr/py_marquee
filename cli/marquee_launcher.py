@@ -53,7 +53,7 @@ def get_schedule(ctx, f, d, launch):
 def watch_mlb_game(ctx, game_pk, interval):
     logger.info(f"Started watching gp={game_pk}")
     retcode = 0
-    while retcode == 0 or retcode == 98:
+    while retcode == 0 or retcode == 89 or retcode == 98:
         result = subprocess.run(["python3", "matrix-cli.py", "send-mlb-game", "-g", str(game_pk)], capture_output=True, text=True)
         retcode = int(result.returncode)
         print("result:", retcode)
