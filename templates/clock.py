@@ -14,7 +14,7 @@ tz_label_map = {
 class clock(base):
     def __init__(self, marquee, xoffset=3, yoffset=0, show_label=True, 
         fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00'),
-        label_color=bytearray(b'\xff\x00\x00'), tz_list=None, clear=True):
+        label_color=bytearray(b'\xff\x00\x00'), tz_list=None, weather=None, clear=True):
         super().__init__(marquee, clear=clear)
         self.timezones = [
             "Asia/Kolkata",
@@ -29,6 +29,7 @@ class clock(base):
         self.fgcolor = fgcolor
         self.bgcolor = bgcolor
         self.label_color = label_color
+        self.weather = weather
         self.timer = None
 
         self.clock_tick()
@@ -37,7 +38,6 @@ class clock(base):
         if self.timer:
             print("clock timer cancel")
             self.timer.cancel()
-
 
     def clock_tick(self):
         x = self.clock_xoffset
@@ -57,5 +57,8 @@ class clock(base):
                     x -= 3
                 x += 9
             x += 10
+        if self.weather is not None:
+            self.weather.display_temperature()
+            self.weather.display_forcast()
         self.timer = threading.Timer(15, self.clock_tick)
         self.timer.start()

@@ -12,6 +12,7 @@ from marquee.marquee import marquee
 from templates.clock import clock
 from templates.gmonster import gmonster
 from templates.base import base
+from templates.weather import weather
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
@@ -27,6 +28,7 @@ PIXEL_TIME = 1
 matrices = []
 board = marquee()
 template = None
+local_weather = None
 refresh = True
 
 m = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
@@ -43,7 +45,7 @@ def mqttLogger(message):
 
 def new_message(client, userdata, msg):
     global FGCOLOR, BGCOLOR, p10
-    global board, template, refresh
+    global board, template, refresh, local_weather
     topic = msg.topic
     message = msg.payload
     try:
@@ -98,7 +100,7 @@ def new_message(client, userdata, msg):
                 print("gmonster template set")
             elif message == bytearray(b"clock"):
                 refresh = False
-                template = clock(board)
+                template = clock(board, weather=local_weather)
                 refresh = True
                 print("clock template set")
         if "marquee/template/gmonster/box/" in topic:
@@ -125,7 +127,7 @@ def new_message(client, userdata, msg):
             topic_split = topic.split("/")
             if ( not template.disable_close and message.decode() == 'F' ):
                 template.__del__()
-                template = clock(board)
+                template = clock(board, weather=local_weather)
             else:
                 template.update_game_status(message.decode())
 
@@ -143,6 +145,8 @@ def new_message(client, userdata, msg):
             topic_split = topic.split("/")
             if len(message.decode()) in range(1,3):
                 template.update_batter(message.decode())
+        if "hello/push/Backyard Garage/temperature/value" in topic:
+            local_weather.temperature(message.decode())
     except Exception as exp:
         print(f"message exception: {exp}")
         print(traceback.format_exc())
@@ -181,7 +185,7 @@ def update_message(message, anchor=(0,0)):
 
 def setup():
     global matrices
-    global board, template
+    global board, template, local_weather
     global m
     global MAX_PIXELS
     # Reset fpga
@@ -207,9 +211,11 @@ def setup():
     m.on_message = new_message
     m.subscribe("esp32/test/#")
     m.subscribe("marquee/#")
+    m.subscribe("hello/push/Backyard Garage/temperature/value")
     # Set initial settings
     process_bright(5)
-    template =  clock(board)
+    local_weather = weather(board, clear=False)
+    template =  clock(board, weather=local_weather)
     time.sleep(2)
     # Start listening for mqtt
     m.loop_start()
