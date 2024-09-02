@@ -21,6 +21,7 @@ class weather(base):
         self.temp = None
         self.forecast_hourly = None
         self.urls = None
+        self.timer = None
         try:
             print("weather url", f"https://api.weather.gov/points/{location[0]},{location[1]}")
             res = requests.get(f"https://api.weather.gov/points/{location[0]},{location[1]}")
@@ -32,10 +33,13 @@ class weather(base):
 
 
     def __del__(self):
-        pass
+        if self.timer:
+            print("weather timer cancel")
+            self.timer.cancel()
 
     def refresh(self):
         try:
+            print("Refreshing hourly forcast")
             res = requests.get(self.urls["forecastHourly"])
             res.raise_for_status()
             self.forecast_hourly = res.json()["properties"]
@@ -44,6 +48,10 @@ class weather(base):
     
         if self.temp is None and len(self.forecast_hourly.get("periods", [])) > 1:
             self.temp = self.forecast_hourly.get("periods", [])[0].get("temperature", "--")
+        
+        # Refresh forcast every 30m
+        self.timer = threading.Timer(60*30, self.refresh)
+        self.timer.start()
 
 
 
