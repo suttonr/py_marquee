@@ -295,7 +295,11 @@ def disable_win(appctx, status):
 @click.pass_context
 def send_mlb_game(ctx, game_pk, backfill, dry_run):
     pregame_statuses = ("S", "P", "PW", "PI")
-    g = mlb.game(game_pk, secrets.MLB_GAME_URL)
+    try:
+        g = mlb.game(game_pk, secrets.MLB_GAME_URL)
+    except:
+        print("Failed to get MLB data")
+        exit(89)
     appctx = ctx.obj
 
     game_status = g.get_game_status()
