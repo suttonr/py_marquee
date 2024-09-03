@@ -70,15 +70,15 @@ class weather(base):
         x = xoffset
         fg = fgcolor if fgcolor else self.label_color
         bg = bgcolor if bgcolor else self.bgcolor
-        for period in forecast[2:count+2]:
+        for period in forecast[1:count+1]:
             message = period.get("shortForecast", "NA").split(" ")[-1]
-            self.update_message_2(message, fgcolor=fg, 
+            self.update_message_2(message.replace("0","O"), fgcolor=fg, 
                 bgcolor=bg, font_size=16, anchor=(x, yoffset))
             message = period.get("probabilityOfPrecipitation", {}).get("value","--")
-            self.update_message_2(f"{str(message).rjust(2)}%", fgcolor=fg, 
+            self.update_message_2(f"{str(message).rjust(2)}%".replace("0","O"), fgcolor=fg, 
                 bgcolor=bg, font_size=16, anchor=(x+3, yoffset+9))
             message = period.get("startTime", "NA").split("T")[-1][:5]
-            self.update_message_2(message, fgcolor=fg, 
+            self.update_message_2(message.replace("0","O"), fgcolor=fg, 
                 bgcolor=bg, font_size=16, anchor=(x, yoffset+16))
             x += 32
 
@@ -86,7 +86,7 @@ class weather(base):
     def display_temperature(self, xoffset=421, yoffset=4,
             fgcolor=None, bgcolor=None):
         try:
-            temp_message = f"{int(self.temp)}" #°
+            temp_message = f"{int(self.temp)}".replace("0","O") #°
             offset = len(str(self.temp)) * 10
         except:
             temp_message = "NA"

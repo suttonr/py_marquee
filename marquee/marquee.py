@@ -9,7 +9,7 @@ class marquee:
     
     def set_brightness(self, bright):
         for i in range(len(self.matrices)):
-            print("b",i,bright,bright/100)
+            #print("b",i,bright,bright/100)
             self.matrices[i].brightness = bright / 100
 
     def set_pixel(self, message):
