@@ -38,6 +38,8 @@ class base:
         if clear:
             self.marquee.set_brightness(brightness)
             self.marquee.clear()
+    def __del__(self):
+        print("base template destroyed")
 
     def process_raw(self, message):
         if ( (len(message) % 6) == 0 ):
