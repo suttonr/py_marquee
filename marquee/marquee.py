@@ -30,7 +30,7 @@ class marquee:
     def get_pixels(self):
         ret = {}
         for i in range(len(self.matrices)):
-            for k,v in self.matrices[i].buffer:
+            for k,v in self.matrices[i].buffer.items():
                 x = int(k[0:3]) + self.matrices[i].xoffset
                 y = int(k[3:6]) + self.matrices[i].yoffset
                 ret.update( f"{x:03d}{y:03d}", v )
