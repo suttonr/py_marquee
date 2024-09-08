@@ -30,6 +30,7 @@ board = marquee()
 template = None
 local_weather = None
 refresh = True
+enable_auto_template = True
 
 m = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 m.username_pw_set(secrets.MQTT_USERNAME, secrets.MQTT_PASSWORD)
@@ -45,7 +46,7 @@ def mqttLogger(message):
 
 def new_message(client, userdata, msg):
     global FGCOLOR, BGCOLOR, p10
-    global board, template, refresh, local_weather
+    global board, template, refresh, local_weather, enable_auto_template
     topic = msg.topic
     message = msg.payload
     try:
@@ -95,12 +96,12 @@ def new_message(client, userdata, msg):
             print("template:",topic, message)
             if message == bytearray(b"gmonster"):
                 refresh = False
-                template = gmonster(board)
+                check_template(gmonster)
                 refresh = True
                 print("gmonster template set")
             elif message == bytearray(b"clock"):
                 refresh = False
-                template = clock(board, weather=local_weather)
+                check_template(clock, weather=local_weather)
                 refresh = True
                 print("clock template set")
         if "marquee/template/gmonster/box/" in topic:
@@ -145,18 +146,29 @@ def new_message(client, userdata, msg):
             topic_split = topic.split("/")
             if len(message.decode()) in range(1,3):
                 template.update_batter(message.decode())
+
+        if "marquee/auto_template" in topic:
+            if message.decode().lower() in ( "false", "0", "disable" ):
+                enable_auto_template = False
+            elif message.decode().lower() in ( "true", "1", "enable" ):
+                enable_auto_template = True
+    
+        if "marquee/get_pixels" in topic:
+            send_pixels(board)
+
         if "hello/push/Backyard Garage/temperature/value" in topic:
             local_weather.temperature(message.decode())
     except Exception as exp:
         print(f"message exception: {exp}")
         print(traceback.format_exc())
 
-def check_template(in_template):
-    global board, template
-    if not isinstance(template, in_template):
+def check_template(in_template, **kwargs):
+    global board, template, enable_auto_template
+
+    if enable_auto_template and not isinstance(template, in_template):
         if template is not None:
             template.__del__()
-        template = in_template(board)
+        template = in_template(board, **kwargs)
         print(f"Loaded template: {template}")
 
 def process_bright(bright):
@@ -164,6 +176,14 @@ def process_bright(bright):
     for i in range(len(matrices)):
         print("b",i,bright,bright/100)
         matrices[i].brightness = bright / 100
+
+def send_pixels(board):
+    global m
+    for i in range(len(board.matrices)):
+        for k,v in board.matrices[i].buffer.items():
+            print(f"{k}{v}")
+            m.publish(f"marquee/pixel/{k}",f"{v}")
+
 
 def process_raw(message):
     global matrices, board
