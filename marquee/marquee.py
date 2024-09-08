@@ -33,7 +33,7 @@ class marquee:
             for k,v in self.matrices[i].buffer.items():
                 x = int(k[0:3]) + self.matrices[i].xoffset
                 y = int(k[3:6]) + self.matrices[i].yoffset
-                ret.update( f"{x:03d}{y:03d}", v )
+                ret.update( { f"{x:03d}{y:03d}": v } )
         return ret
 
     def clear(self, index=None):
