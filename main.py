@@ -182,9 +182,7 @@ def send_pixels(board):
     global m
     payload = json.dumps(board.get_pixels())
     m.publish(f"marquee/pixels", payload)
-    #for k,v in board.get_pixels().items():
-    #    print(f"{k}{v}")
-    #    m.publish(f"marquee/pixel/{k}",f"{v}")
+
 
 
 def process_raw(message):
