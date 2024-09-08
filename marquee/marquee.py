@@ -27,6 +27,15 @@ class marquee:
             else:
                 print("Invalid Matric Index:", i, j, port, len(self.matrices) )
 
+    def get_pixels(self):
+        ret = {}
+        for i in range(len(self.matrices)):
+            for k,v in self.matrices[i].buffer:
+                x = int(k[0:3]) + self.matrices[i].xoffset
+                y = int(k[3:6]) + self.matrices[i].yoffset
+                ret.update( f"{x:03d}{y:03d}", v )
+        return ret
+
     def clear(self, index=None):
         print("clearing")
         if index == None:

@@ -5,6 +5,7 @@ import gc
 import secrets
 import time
 import traceback
+import json
 
 from neomatrix.matrix import matrix
 from neomatrix.font import *
@@ -179,10 +180,11 @@ def process_bright(bright):
 
 def send_pixels(board):
     global m
-    for i in range(len(board.matrices)):
-        for k,v in board.matrices[i].buffer.items():
-            print(f"{k}{v}")
-            m.publish(f"marquee/pixel/{k}",f"{v}")
+    payload = json.dumps(board.get_pixels())
+    m.publish(f"marquee/pixels", payload)
+    #for k,v in board.get_pixels().items():
+    #    print(f"{k}{v}")
+    #    m.publish(f"marquee/pixel/{k}",f"{v}")
 
 
 def process_raw(message):
