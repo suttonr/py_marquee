@@ -28,13 +28,15 @@ class marquee:
                 print("Invalid Matric Index:", i, j, port, len(self.matrices) )
 
     def get_pixels(self):
-        ret = {}
+        ret = []
         for i in range(len(self.matrices)):
+            matrix_pixels = {}
             for k,v in self.matrices[i].buffer.items():
                 #print(f'{i} {self.matrices[i].xoffset} {self.matrices[i].yoffset}')
                 x = int(k[0:3]) + (self.matrices[i].xoffset * 64)
                 y = int(k[3:6]) + (self.matrices[i].yoffset * 8)
-                ret.update( { f"{x:03d}{y:03d}": v } )
+                matrix_pixels.update( { f"{x:03d}{y:03d}": v } )
+            ret.append(matrix_pixels)
         return ret
 
     def clear(self, index=None):

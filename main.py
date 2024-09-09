@@ -182,8 +182,10 @@ def process_bright(bright):
 
 def send_pixels(board):
     global m
-    payload = json.dumps(board.get_pixels())
-    m.publish(f"marquee/pixels", payload)
+    pixels = board.get_pixels()
+    for i in pixels:
+        payload = json.dumps(pixels[i])
+        m.publish(f"marquee/pixels", payload)
 
 
 
