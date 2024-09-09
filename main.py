@@ -51,6 +51,8 @@ def new_message(client, userdata, msg):
     topic = msg.topic
     message = msg.payload
     try:
+        if topic == "marquee/pixels":
+            return
         if topic != "esp32/test/raw":
             print("nm:",topic, message)
         if topic == "esp32/test/message" and len(message) > 2:
