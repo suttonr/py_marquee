@@ -143,6 +143,14 @@ def new_message(client, userdata, msg):
             else:
                 template.disable_win = False
 
+        if "marquee/template/gmonster/disable-close" in topic:
+            check_template(gmonster)
+            topic_split = topic.split("/")
+            if message.decode().lower() == "true":
+                template.disable_close = True
+            else:
+                template.disable_close = False
+
         if "marquee/template/gmonster/batter" in topic:
             check_template(gmonster)
             print(f"batter {message}")
