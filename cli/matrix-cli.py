@@ -7,7 +7,7 @@ from base64 import b64encode
 from PIL import Image
 import paho.mqtt.client as mqtt
 
-import mlb, nhl, nfl
+import mlb, nhl
 
 class ctx_obj(object):
     def on_connect(self, client, userdata, flags, reason_code, properties):
@@ -295,7 +295,7 @@ def disable_win(appctx, status):
 @cli.command()
 @click.argument('status')
 @pass_appctx
-def disable_win(appctx, status):
+def disable_close(appctx, status):
     appctx.mqttc.publish(
             f"marquee/template/gmonster/disable-close", payload=str(status)
         ).wait_for_publish()
