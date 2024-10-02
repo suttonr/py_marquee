@@ -97,6 +97,13 @@ def clear(appctx):
     appctx.mqttc.publish(appctx.mqtt_topic + "/clear", payload="a").wait_for_publish()
 
 @cli.command()
+@click.argument('arg', type=int)
+@pass_appctx
+def auto_template(appctx, arg):
+    """Sets auto switching of template"""
+    appctx.mqttc.publish(appctx.mqtt_topic + "/clear", payload=arg).wait_for_publish()
+
+@cli.command()
 @click.argument('brightness', type=int)
 @pass_appctx
 def brightness(appctx, brightness):
@@ -284,6 +291,57 @@ def disable_win(appctx, status):
     appctx.mqttc.publish(
             f"marquee/template/gmonster/disable-win", payload=str(status)
         ).wait_for_publish()
+
+@cli.command()
+@click.argument('status')
+@pass_appctx
+def disable_close(appctx, status):
+    appctx.mqttc.publish(
+            f"marquee/template/gmonster/disable-close", payload=str(status)
+        ).wait_for_publish()
+
+#####
+# Football Commands
+#####
+@cli.command()
+@click.option('-g','--game-pk', default=None, help='game pk')
+@click.option('--backfill', default=False, is_flag=True, help='backfill game data')
+@click.option('--dry-run', default=False, is_flag=True, help='dry run')
+@click.pass_context
+def send_nfl_game(ctx, game_pk, backfill, dry_run):
+    pregame_statuses = ("S", "P", "PW", "PI")
+    #try:
+    g = nfl.game(game_pk, secrets.MLB_GAME_URL)
+    #except:
+    #    print("Failed to get NFL data")
+    #    exit(89)
+    appctx = ctx.obj
+
+    teams = g.get_teams()
+    score = g.get_score()
+    score_all = g.get_period_score()
+
+    rows = ["", ""]
+    for row,team in enumerate(("away", "home")):
+        timeouts = ""
+        for i in range(score[team]["timeouts"]):
+            timeouts += '-'
+        rows[row] = f'  {str(teams[team]).ljust(4)} {str(score_all[team][0]).ljust(4)} {str(score_all[team][1]).ljust(4)} {str(score_all[team][2]).ljust(4)} {str(score_all[team][3]).ljust(4)} {str(score[team]["score"]).ljust(2)} {str(timeouts).ljust(2)}'
+    
+    y=4
+    team_colors = g.get_team_colors()
+    ctx.invoke(fgcolor, red=team_colors["away"][0], green=team_colors["away"][1], blue=team_colors["away"][2])
+    for r in rows:
+        print(r)
+        ctx.invoke(text, message=r.replace("0","O"), x=64, y=y, s=16)
+        ctx.invoke(fgcolor, red=team_colors["home"][0], green=team_colors["home"][1], blue=team_colors["home"][2])
+        y += 9
+    ctx.invoke(fgcolor, red=128, green=128, blue=0)
+    l = ["1st", "2nd", "3rd", "4th"]
+    m = f'Q{str(g.get_current_period())} {str(g.get_clock())}  {l[g.get_down()-1]} and {g.get_yards()}'
+    ctx.invoke( text, message=m.replace("0","O"), x=235, y=6, s=32 )
+
+
 
 #####
 # Baseball Commands

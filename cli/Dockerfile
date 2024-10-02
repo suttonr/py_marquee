@@ -8,4 +8,4 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD [ "python", "-u", "./marquee_launcher.py", "find-games", "-f", "Red Sox", "--launch" ]
+CMD [ "python", "-u", "./marquee_launcher.py", "find-games", "-f", "Orioles", "--launch" ]
