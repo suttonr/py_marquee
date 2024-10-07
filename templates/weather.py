@@ -22,6 +22,8 @@ class weather(base):
         self.forecast_hourly = None
         self.urls = None
         self.timer = None
+        self.data_updated = { "forecast" : False, "temperature" : False }
+        retries = 5
         try:
             print("weather url", f"https://api.weather.gov/points/{location[0]},{location[1]}")
             res = requests.get(f"https://api.weather.gov/points/{location[0]},{location[1]}")
@@ -29,7 +31,12 @@ class weather(base):
             self.urls = res.json().get("properties", None)
         except Exception as e:
             print("failed to load urls",e)
-        self.refresh()
+        
+        for i in range(retries):
+            self.refresh()
+            if self.forecast_hourly is not None:
+                return
+            sleep(1)
 
 
     def __del__(self):
@@ -43,6 +50,7 @@ class weather(base):
             res = requests.get(self.urls["forecastHourly"])
             res.raise_for_status()
             self.forecast_hourly = res.json()["properties"]
+            self.data_updated["forecast"] = True
         except Exception as e:
             print("failed to load forecastHourly", e)
     
@@ -57,6 +65,7 @@ class weather(base):
 
     def temperature(self, temp):
         self.temp = int(float(temp))
+        self.data_updated["temperature"] = True
     
     def display_forcast(self, interval="hourly", count=4, xoffset=270, yoffset=0,
             fgcolor=None, bgcolor=None):
@@ -70,6 +79,9 @@ class weather(base):
         x = xoffset
         fg = fgcolor if fgcolor else self.label_color
         bg = bgcolor if bgcolor else self.bgcolor
+        if self.data_updated["forecast"]:
+            self.draw_box((xoffset, 0), 24, 130, fg)
+            self.data_updated["forecast"] = False
         for period in forecast[1:count+1]:
             message = period.get("shortForecast", "NA").split(" ")[-1]
             self.update_message_2(message.replace("0","O"), fgcolor=fg, 
@@ -94,6 +106,10 @@ class weather(base):
         
         fg = fgcolor if fgcolor else self.label_color
         bg = bgcolor if bgcolor else self.bgcolor
+
+        if self.data_updated["temperature"]:
+            self.draw_box((xoffset, 0), 24, 26, fg)
+            self.data_updated["temperature"] = False
 
         self.update_message_2(temp_message, fgcolor=fg, 
             bgcolor=bg, font_size=32, anchor=(xoffset, yoffset))
