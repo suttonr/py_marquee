@@ -36,7 +36,10 @@ def find_games(ctx, f, sleep, launch):
 def get_schedule(ctx, f, d, launch):
     now = datetime.now(ZoneInfo("America/New_York"))
     date_str = d if d is not None else now.strftime("%Y-%m-%d")
-    sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
+    try:
+        sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
+    except:
+        logger.error(f"Failed to get schedule for date {date_str} and filter {f}")
 
     for game in sch.get_games(f):
         game_dt = datetime.fromisoformat(game.get("gameDate"))
