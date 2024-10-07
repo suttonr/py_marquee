@@ -80,7 +80,7 @@ class weather(base):
         fg = fgcolor if fgcolor else self.label_color
         bg = bgcolor if bgcolor else self.bgcolor
         if self.data_updated["forecast"]:
-            self.draw_box((xoffset, 0), 24, 130, fg)
+            self.draw_box((xoffset, 0), 24, 130, bg)
             self.data_updated["forecast"] = False
         for period in forecast[1:count+1]:
             message = period.get("shortForecast", "NA").split(" ")[-1]
@@ -108,7 +108,7 @@ class weather(base):
         bg = bgcolor if bgcolor else self.bgcolor
 
         if self.data_updated["temperature"]:
-            self.draw_box((xoffset, 0), 24, 26, fg)
+            self.draw_box((xoffset, 0), 24, 26, bg)
             self.data_updated["temperature"] = False
 
         self.update_message_2(temp_message, fgcolor=fg, 
