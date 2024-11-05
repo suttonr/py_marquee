@@ -7,7 +7,7 @@ from base64 import b64encode
 from PIL import Image
 import paho.mqtt.client as mqtt
 
-import mlb, nhl
+import mlb, nhl, election
 
 class ctx_obj(object):
     def on_connect(self, client, userdata, flags, reason_code, properties):
@@ -340,6 +340,57 @@ def send_nfl_game(ctx, game_pk, backfill, dry_run):
     l = ["1st", "2nd", "3rd", "4th"]
     m = f'Q{str(g.get_current_period())} {str(g.get_clock())}  {l[g.get_down()-1]} and {g.get_yards()}'
     ctx.invoke( text, message=m.replace("0","O"), x=235, y=6, s=32 )
+
+#####
+# Election Commands
+#####
+@cli.command()
+@click.option('--dry-run', default=False, is_flag=True, help='dry run')
+@click.pass_context
+def send_election(ctx, dry_run):
+    try:
+        e = election.election(base_url = secrets.ELECTION_URL)
+    except Exception as e:
+        print("Failed to get election data",e)
+        exit(1)
+    
+    print(f"{e.get_next_polls_close()}")
+    print(e.get_vote_delegates())
+    ctx.invoke(clear)
+    x=0
+    y=0
+    for code,delegates in e.get_vote_delegates().items():
+        print(code,delegates,x,y)
+        if code == "D":
+            ctx.invoke(fgcolor, red=0, green=0, blue=255)
+        else:
+            ctx.invoke(fgcolor, red=255, green=0, blue=0)
+        ctx.invoke(text, message=code, x=x, y=y, s=24)
+        y += 3
+        
+        ctx.invoke(text, message=f'{"*"*(int(delegates/10))} - {delegates}'.replace("0","O"), x=14, y=y, s=16)
+        y += 9
+
+    print(e.get_hot_races())
+    x=250
+    y=0
+    for index, race in enumerate(e.get_hot_races().items()):
+        state, results = race
+        print(index, state, results)
+        ctx.invoke(fgcolor, red=255, green=255, blue=255)
+        ctx.invoke(text, message=f"{state} {results.get('reporting',0) }% ".replace("0","O"), x=x, y=y, s=16)
+        y += 8
+        for code, p_votes in results["results"].items():
+            if code == "D":
+                ctx.invoke(fgcolor, red=0, green=0, blue=255)
+            else:
+                ctx.invoke(fgcolor, red=255, green=0, blue=0)
+            ctx.invoke(text, message=f"{code}: {p_votes}% ".replace("0","O"), x=(x+3), y=y, s=16)
+            y += 8
+        print(x)
+        x -= 10
+
+
 
 
 
