@@ -11,6 +11,7 @@ from neomatrix.matrix import matrix
 from neomatrix.font import *
 from marquee.marquee import marquee
 from templates.clock import clock
+from templates.timer import timer
 from templates.gmonster import gmonster
 from templates.base import base
 from templates.weather import weather
@@ -107,6 +108,17 @@ def new_message(client, userdata, msg):
                 check_template(clock, weather=local_weather)
                 refresh = True
                 print("clock template set")
+            elif message == bytearray(b"timer"):
+                refresh = False
+                check_template(timer, interval=5, clear=True)
+                template.set_timer_duration("00:10")
+                refresh = True
+                print("timer template set")
+
+        if "marquee/template/timer/duration" in topic:
+            check_template(timer, clear=True)
+            template.set_timer_duration(message.decode())
+
         if "marquee/template/gmonster/box/" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
