@@ -161,7 +161,7 @@ class gmonster(base):
                     self.update_box("inning", team, index=index, fgcolor=bytearray(b'\xff\xff\xff'))
 
     def update_game_status(self, game_status):
-        pregame_statuses = ("S", "P", "PW", "PI")
+        pregame_statuses = ("S", "P", "PW", "PI", "PR")
         prev_status = self.game_status
         self.game_status = game_status
 

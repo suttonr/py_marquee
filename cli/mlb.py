@@ -60,10 +60,14 @@ class game:
         return self.data["scoreboard"]["currentPlay"]["about"]["isComplete"]
     
     def get_pitchers(self):
-        return {
-            "home" : self.data.get("home_pitcher_lineup",[None])[-1] ,
-            "away" : self.data.get("away_pitcher_lineup",[None])[-1]
-        }
+        try:
+            ret = {
+                "home" : self.data.get("home_pitcher_lineup",[None])[-1] ,
+                "away" : self.data.get("away_pitcher_lineup",[None])[-1]
+            }
+        except IndexError:
+            ret = {"home" : 0, "away" : 0}
+        return ret
     
     def get_player_boxscore(self, id):
         print("id",id)
@@ -85,7 +89,7 @@ class player:
         if playerid:
             player_cache = f'./cache/player_{self.id}.json'
             try:
-                cache_seconds = time.now() - os.path.getmtime(player_cache)
+                cache_seconds = time.time() - os.path.getmtime(player_cache)
                 assert( cache_seconds < cache_age )
                 with open(player_cache) as json_data:
                     self.data = json.load(json_data)

@@ -403,7 +403,7 @@ def send_election(ctx, dry_run):
 @click.option('--dry-run', default=False, is_flag=True, help='dry run')
 @click.pass_context
 def send_mlb_game(ctx, game_pk, backfill, dry_run):
-    pregame_statuses = ("S", "P", "PW", "PI")
+    pregame_statuses = ("S", "P", "PW", "PI", "PR")
     try:
         g = mlb.game(game_pk, secrets.MLB_GAME_URL)
     except:
@@ -482,7 +482,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     ctx.invoke(update_game, status=game_status)
     print(f"game_status: {game_status}")
     # exitcode 99 if game is over
-    if game_status == "F":
+    if game_status in ("F", "FT"):
         print("Game is final")
         exit(99)
     elif game_status in pregame_statuses:
