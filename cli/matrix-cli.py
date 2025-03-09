@@ -404,14 +404,16 @@ def send_election(ctx, dry_run):
 @click.pass_context
 def send_mlb_game(ctx, game_pk, backfill, dry_run):
     pregame_statuses = ("S", "P", "PW", "PI", "PR")
+    game_status = ""
     try:
         g = mlb.game(game_pk, secrets.MLB_GAME_URL)
+        # If status throws we didn't get valid game data
+        game_status = g.get_game_status() 
     except:
         print("Failed to get MLB data")
         exit(89)
     appctx = ctx.obj
 
-    game_status = g.get_game_status()
     if game_status in ("S"):
         ctx.invoke(update_game, status=game_status)
         print(f"Pregame {game_status}")
