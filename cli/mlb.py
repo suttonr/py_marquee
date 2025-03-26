@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import time
 from datetime import datetime
 
 class game:
@@ -59,10 +60,14 @@ class game:
         return self.data["scoreboard"]["currentPlay"]["about"]["isComplete"]
     
     def get_pitchers(self):
-        return {
-            "home" : self.data.get("home_pitcher_lineup",[None])[-1] ,
-            "away" : self.data.get("away_pitcher_lineup",[None])[-1]
-        }
+        try:
+            ret = {
+                "home" : self.data.get("home_pitcher_lineup",[None])[-1] ,
+                "away" : self.data.get("away_pitcher_lineup",[None])[-1]
+            }
+        except IndexError:
+            ret = {"home" : 0, "away" : 0}
+        return ret
     
     def get_player_boxscore(self, id):
         print("id",id)
@@ -77,14 +82,20 @@ class game:
 
 
 class player:
-    def __init__(self, playerid, base_url=""):
+    def __init__(self, playerid, base_url="", cache_age=600):
         self.id = playerid
         self.base_url = base_url
+        self.cache_age = cache_age
         if playerid:
+            player_cache = f'./cache/player_{self.id}.json'
             try:
-                with open(f'./cache/player_{self.id}.json') as json_data:
+                cache_seconds = time.time() - os.path.getmtime(player_cache)
+                assert( cache_seconds < cache_age )
+                with open(player_cache) as json_data:
                     self.data = json.load(json_data)
             except FileNotFoundError:
+                self.refresh()
+            except AssertionError:
                 self.refresh()
 
     def refresh(self):
@@ -117,7 +128,8 @@ class schedule:
         print(f"fetching schedule for {self.date} from api")
         res = requests.get(f"{self.base_url}{self.date}")
         res.raise_for_status()
-        self.data = res.json()
+        j = res.json()
+        self.data = j if isinstance(j, dict) else {}
         with open(f'./cache/schedule_{self.date}.json', 'w') as f:
             json.dump(self.data, f)
     

@@ -403,15 +403,17 @@ def send_election(ctx, dry_run):
 @click.option('--dry-run', default=False, is_flag=True, help='dry run')
 @click.pass_context
 def send_mlb_game(ctx, game_pk, backfill, dry_run):
-    pregame_statuses = ("S", "P", "PW", "PI")
+    pregame_statuses = ("S", "P", "PW", "PI", "PR")
+    game_status = ""
     try:
         g = mlb.game(game_pk, secrets.MLB_GAME_URL)
+        # If status throws we didn't get valid game data
+        game_status = g.get_game_status() 
     except:
         print("Failed to get MLB data")
         exit(89)
     appctx = ctx.obj
 
-    game_status = g.get_game_status()
     if game_status in ("S"):
         ctx.invoke(update_game, status=game_status)
         print(f"Pregame {game_status}")
@@ -453,8 +455,11 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         ctx.invoke(update_batter, num=batter_num)
 
     # Write pitch count
+    outs = 0
     for k,v in g.get_count().items():
         color = "green" if k=="balls" else "red"
+        if k == "outs":
+            outs = v
         if k == "outs" or not g.is_play_complete():
             ctx.invoke(update_count, name=k, num=v) 
 
@@ -480,9 +485,17 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         else:
             ctx.invoke(send_box, message="", box="message", side=b_team)
     ctx.invoke(update_game, status=game_status)
+    if cur_inning == 8 and (g.get_inning_state()=="Middle" or (g.get_inning_state()=="Top" and outs == 3)):
+        exit(80)
+    if game_status in ("O"):
+        for row,team in enumerate(("away", "home")):
+            if ( teams.get(team,"") == "BOS" and 
+                 score.get(team, {}).get("runs", 0) >= score.get("home", {}).get("runs", 0) and
+                 score.get(team, {}).get("runs", 0) >= score.get("away", {}).get("runs", 0) ):
+                 exit(81)
     print(f"game_status: {game_status}")
     # exitcode 99 if game is over
-    if game_status == "F":
+    if game_status in ("F", "FT"):
         print("Game is final")
         exit(99)
     elif game_status in pregame_statuses:
