@@ -455,8 +455,11 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         ctx.invoke(update_batter, num=batter_num)
 
     # Write pitch count
+    outs = 0
     for k,v in g.get_count().items():
         color = "green" if k=="balls" else "red"
+        if k == "outs":
+            outs = v
         if k == "outs" or not g.is_play_complete():
             ctx.invoke(update_count, name=k, num=v) 
 
@@ -482,6 +485,14 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         else:
             ctx.invoke(send_box, message="", box="message", side=b_team)
     ctx.invoke(update_game, status=game_status)
+    if cur_inning == 8 and (g.get_inning_state()=="Middle" or (g.get_inning_state()=="Top" and outs == 3)):
+        exit(80)
+    if game_status in ("O"):
+        for row,team in enumerate(("away", "home")):
+            if ( teams.get(team,"") == "BOS" and 
+                 score.get(team, {}).get("runs", 0) >= score.get("home", {}).get("runs", 0) and
+                 score.get(team, {}).get("runs", 0) >= score.get("away", {}).get("runs", 0) ):
+                 exit(81)
     print(f"game_status: {game_status}")
     # exitcode 99 if game is over
     if game_status in ("F", "FT"):

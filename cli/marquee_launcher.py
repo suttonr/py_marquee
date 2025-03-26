@@ -45,7 +45,7 @@ def get_schedule(ctx, f, d, launch):
         game_dt = datetime.fromisoformat(game.get("gameDate"))
         delta_to_game = game_dt - now
         print(f'{game.get("gameDate")}  {game.get("gamePk")}  {game.get("awayTeam")} vs {game.get("homeTeam")} in {delta_to_game}')
-        if launch and game_dt > now and delta_to_game < timedelta(hours=1):
+        if (launch and game_dt > now and delta_to_game < timedelta(hours=1)):
             ctx.invoke(watch_mlb_game, game_pk=game.get("gamePk") )
 
 
@@ -56,7 +56,9 @@ def get_schedule(ctx, f, d, launch):
 def watch_mlb_game(ctx, game_pk, interval):
     logger.info(f"Started watching gp={game_pk}")
     retcode = 0
-    while retcode == 0 or retcode == 89 or retcode == 98:
+    sweet_caroline = False
+    dirty_water = False
+    while retcode == 0 or retcode == 80 or retcode == 81 or retcode == 89 or retcode == 98:
         result = subprocess.run(["python3", "matrix-cli.py", "send-mlb-game", "-g", str(game_pk)], capture_output=True, text=True)
         retcode = int(result.returncode)
         print("result:", retcode)
@@ -66,6 +68,20 @@ def watch_mlb_game(ctx, game_pk, interval):
             logger.error(line)
         if retcode == 0:
             logger.debug("Game is active")
+            time.sleep(interval)
+        elif retcode == 80:
+            logger.debug("Game is active")
+            if not sweet_caroline:
+                logger.info("Sweet Caroline")
+                r = subprocess.run(["/usr/bin/curl", "http://192.168.2.178/apps/api/493/trigger?access_token=cd3abd09-23eb-4e75-acca-f0ecbbab11d0"], capture_output=True, text=True)
+                sweet_caroline = True
+            time.sleep(interval)
+        elif retcode == 81:
+            logger.debug("Game is active")
+            if not dirty_water:
+                logger.info("Dirty Water")
+                r = subprocess.run(["/usr/bin/curl", "http://192.168.2.178/apps/api/489/trigger?access_token=d45b8e96-30a9-4987-9fea-0936c4af7a28"], capture_output=True, text=True)
+                dirty_water = True
             time.sleep(interval)
         elif retcode == 98:
             logger.info("Pregame, longer sleep interval")
