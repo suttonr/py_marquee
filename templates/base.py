@@ -70,6 +70,13 @@ class base:
             for y in range(cord[1], cord[1] + h):
                 self.marquee.set_pixel( x.to_bytes(2,"big") +  y.to_bytes(1,"big") + color )
 
+    def draw_diamond(self, cord, h, w, color):
+        for x in range(w):
+            for y in range(h):
+                c = [ int(w/2), int(h/2) ]
+                if abs(x - c[0]) + abs(y - c[1]) <= min(c):
+                    self.marquee.set_pixel( (cord[0]+x).to_bytes(2,"big") +  (cord[1]+y).to_bytes(1,"big") + color )
+
     def draw_bmp(self, file_name="", x_offset=0, y_offset=0, x_start=0, y_start=0, x_end=0, y_end=0):
         im = Image.open(file_name)
         range_x_end = x_end if x_end else im.size[0]

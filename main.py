@@ -170,6 +170,17 @@ def new_message(client, userdata, msg):
             if len(message.decode()) in range(1,3):
                 template.update_batter(message.decode())
 
+        if "marquee/template/gmonster/bases" in topic:
+            check_template(gmonster)
+            print(f"bases {message}")
+            topic_split = topic.split("/")
+            ocupied = message.decode().lower() in ("true")
+            b = topic_split[4].lower()
+            print(f"bases {ocupied} {b}")
+            if b in ("first", "second", "third"):
+                print(f"write: bases {ocupied} {b}")
+                template.update_bases(**{b:ocupied})
+
         if "marquee/auto_template" in topic:
             if message.decode().lower() in ( "false", "0", "disable" ):
                 enable_auto_template = False
