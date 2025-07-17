@@ -259,6 +259,15 @@ def update_batter(appctx, num):
         ).wait_for_publish()
 
 @cli.command()
+@click.argument('base')
+@click.argument('val')
+@pass_appctx
+def update_base(appctx, base, val):
+    appctx.mqttc.publish(
+            f"marquee/template/gmonster/bases/{base}", payload=str(val)
+        ).wait_for_publish()
+
+@cli.command()
 @click.argument('status')
 @pass_appctx
 def update_game(appctx, status):
