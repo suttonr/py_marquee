@@ -83,7 +83,7 @@ class weather(base):
             self.draw_box((xoffset, 0), 24, 130, bg)
             self.data_updated["forecast"] = False
         for period in forecast[1:count+1]:
-            message = period.get("shortForecast", "NA").split(" ")[-1]
+            message = period.get("shortForecast", "NA").split(" ")[-1][:6]
             self.update_message_2(message.replace("0","O"), fgcolor=fg, 
                 bgcolor=bg, font_size=16, anchor=(x, yoffset))
             message = period.get("probabilityOfPrecipitation", {}).get("value","--")
