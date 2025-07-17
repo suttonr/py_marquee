@@ -486,7 +486,8 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     p_msg =  f'P T: { pitcher_stats.get("pitchesThrown", "") } '
     p_msg += f'K: { pitcher_stats.get("strikeOuts", "0") } S: { pitcher_stats.get("strikes", "") } '
     p_msg += f'{ pitcher_stats.get("strikePercentage", "")[1:3] }%'
-    b_msg = f'B {batter_stats.get("summary", "-").split("|")[0].strip()} A: {batter_stats_season.get("avg")} P: {batter_stats_season.get("ops")}' 
+    b_msg =  f'B {batter_stats.get("summary", "-").split("|")[0].strip()} '
+    b_msg += f'A: {batter_stats_season.get("avg")} P: {batter_stats_season.get("ops")}' 
     if game_status not in pregame_statuses:
         ctx.invoke(send_box, message=p_msg[:25], box="message", side=p_team)
         if not g.is_play_complete(): 
