@@ -31,6 +31,7 @@ class gmonster(base):
         self.disable_win = False
         self.disable_close = False
         self.clock = None
+        self.bgcolor = bytearray(b'\x00\x64\x00')
 
         self.pitcher = { 
             "away" : box(lookup_box(0,0), w=10),
@@ -71,6 +72,7 @@ class gmonster(base):
                 box((313,15), fgcolor=bytearray(b'\xff\x06\x2f'), bgcolor=bytearray(b'\x00\x00\x00')), 
             ]
         }
+        self.bases = [ False, False, False ]
 
         self.inning = []
         for i in range(1,11):
@@ -186,7 +188,27 @@ class gmonster(base):
                 ):
                 self.display_rs_win()
 
+    def update_bases(self, first=None, second=None, third=None ):
+        self.bases[0] = first if first is not None else self.bases[0]
+        self.bases[1] = second if second is not None else self.bases[1]
+        self.bases[2] = third if third is not None else self.bases[2]
+        self.draw_bases((426,2), 23)
 
     def draw_light(self, cord, color=bytearray(b'\xff\xff\xff')):
         self.draw_box((cord[0],cord[1]+1), 4, 6, color)
         self.draw_box((cord[0]+1,cord[1]), 6, 4, color)
+
+    def draw_bases(self, cord, width, color=bytearray(b'\xff\xff\x00')):
+        w = int(width/2)
+        iw = int(width*0.4)
+        p = int(w*0.6)
+        cords = [
+            (cord[0]+w,cord[1]+iw),
+            (cord[0]+p,cord[1]),
+            (cord[0],cord[1]+iw),
+        ]
+        for i,c in enumerate(cords):
+            base_color = color if self.bases[i] else self.bgcolor
+            self.draw_diamond(c, int(iw+2), int(iw+2), (b'\x00\x00\x00'))
+            self.draw_diamond(c, int(iw), int(iw), base_color)
+
