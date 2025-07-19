@@ -78,6 +78,14 @@ class game:
         print("id",id)
         return ( self.data["boxscore"]["teams"]["away"]["players"].get(f"ID{ id }",{}).get("seasonStats",{}) or 
                  self.data["boxscore"]["teams"]["home"]["players"].get(f"ID{ id }",{}).get("seasonStats",{}) )
+    
+    def get_bases(self):
+        offense_keys = []
+        try:
+            offense_keys = self.data["scoreboard"]["currentPlay"]["playEvents"][-1]["offense"].keys()
+        except ( IndexError, KeyError, AttributeError ):
+            pass
+        return offense_keys
 
 
 
@@ -112,7 +120,7 @@ class player:
         except ( IndexError, KeyError ):
             num = "00"
         return num
-
+    
 class schedule:
     def __init__(self, date, base_url=""):
         self.date = date

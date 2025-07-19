@@ -470,7 +470,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         if k == "outs":
             outs = v
         if k == "outs" or not g.is_play_complete():
-            ctx.invoke(update_count, name=k, num=v) 
+            ctx.invoke(update_count, name=k, num=v)
 
     # Write Stats
     p_team = "away"
@@ -511,6 +511,16 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     elif game_status in pregame_statuses:
         print(f"Pregame {game_status}")
         exit(98)
+    
+    # Write bases
+    positiions = g.get_bases()
+    print("positiions", positiions)
+    for base in ("first", "second", "third"):
+        if base in positiions:
+            ctx.invoke(update_base, base=base, val=True)
+        else:
+            ctx.invoke(update_base, base=base, val=False)
+
 
 
 @cli.command()
