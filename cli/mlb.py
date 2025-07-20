@@ -93,6 +93,8 @@ class game:
         try:
             with open(last_play_cache) as json_data:
                 pre_last_play = json.load(json_data)
+            if pre_last_play.get("game_pk","0") != str(self.gamepak):
+                pre_last_play = {"play_id": None}
         except FileNotFoundError:
             pre_last_play = {"play_id": None}
         except AssertionError:
@@ -111,7 +113,7 @@ class game:
             return None
         
         if (last_play.get("play_id") != pre_last_play.get("play_id") and 
-            last_play.get("ab_number",0) > pre_last_play.get("ab_number",0)):
+            last_play.get("game_total_pitches",0) > pre_last_play.get("game_total_pitches",0)):
             with open(last_play_cache, 'w') as f:
                 json.dump(last_play, f)
             last_play.update({"new_play":True})
