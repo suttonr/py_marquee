@@ -511,7 +511,13 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     elif game_status in pregame_statuses:
         print(f"Pregame {game_status}")
         exit(98)
-    
+    last_play = g.get_last_play()
+    print("Last Play:", 
+          last_play.get("team_batting"), ",",
+          last_play.get("result"), ",",
+          last_play.get("des"),
+
+        )
     # Write bases
     positiions = g.get_bases()
     print("positiions", positiions)

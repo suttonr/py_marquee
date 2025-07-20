@@ -82,10 +82,25 @@ class game:
     def get_bases(self):
         offense_keys = []
         try:
-            offense_keys = self.data["scoreboard"]["currentPlay"]["playEvents"][-1]["offense"].keys()
+            offense_keys = self.data["scoreboard"]["linescore"]["offense"].keys()
         except ( IndexError, KeyError, AttributeError ):
             pass
         return offense_keys
+    
+    def get_last_play(self):
+        try:
+            home_plays = [ p for p in self.data.get("team_home",[]) if p.get("result", None) ]
+            away_plays = [ p for p in self.data.get("team_away",[]) if p.get("result", None) ]
+            if len(home_plays) and len(away_plays):
+                last_play = home_plays[-1] if home_plays[-1].get("ab_number",0) >= away_plays[-1].get("ab_number",0) else away_plays[-1]
+            elif len(home_plays):
+                last_play = home_plays[-1]
+            else:
+                last_play = away_plays[-1]
+            return  last_play
+        except ( IndexError, KeyError, AttributeError ):
+            return None
+
 
 
 
