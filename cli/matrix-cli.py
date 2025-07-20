@@ -519,7 +519,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
           last_play.get("new_play")
         )
     if last_play.get("new_play"):
-        ctx.invoke(send_box, message=f"{last_play.get('result')}", box="message", side=b_team)
+        ctx.invoke(send_box, message=f"{last_play.get('result').upper()}", box="message", side=b_team)
 
     # Write bases
     positiions = g.get_bases()
