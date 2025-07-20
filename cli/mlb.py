@@ -110,7 +110,8 @@ class game:
         except ( IndexError, KeyError, AttributeError ):
             return None
         
-        if last_play.get("play_id") != pre_last_play.get("play_id"):
+        if (last_play.get("play_id") != pre_last_play.get("play_id") and 
+            last_play.get("ab_number",0) > pre_last_play.get("ab_number",0)):
             with open(last_play_cache, 'w') as f:
                 json.dump(last_play, f)
             last_play.update({"new_play":True})
