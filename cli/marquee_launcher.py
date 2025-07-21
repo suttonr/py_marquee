@@ -51,7 +51,7 @@ def get_schedule(ctx, f, d, launch):
 
 @cli.command()
 @click.option('-g','--game-pk', default=None, help='game pk')
-@click.option('-i','--interval', default=30, type=int, help='interval to update')
+@click.option('-i','--interval', default=20, type=int, help='interval to update')
 @click.pass_context
 def watch_mlb_game(ctx, game_pk, interval):
     logger.info(f"Started watching gp={game_pk}")
@@ -61,6 +61,7 @@ def watch_mlb_game(ctx, game_pk, interval):
     while retcode == 0 or retcode == 80 or retcode == 81 or retcode == 89 or retcode == 98:
         result = subprocess.run(["python3", "matrix-cli.py", "send-mlb-game", "-g", str(game_pk)], capture_output=True, text=True)
         retcode = int(result.returncode)
+        sleep_time = interval
         print("result:", retcode)
         for line in result.stdout.split('\n'):
             logger.info(line)
@@ -68,28 +69,26 @@ def watch_mlb_game(ctx, game_pk, interval):
             logger.error(line)
         if retcode == 0:
             logger.debug("Game is active")
-            time.sleep(interval)
         elif retcode == 80:
             logger.debug("Game is active")
             if not sweet_caroline:
                 logger.info("Sweet Caroline")
                 r = subprocess.run(["/usr/bin/curl", "http://192.168.2.178/apps/api/493/trigger?access_token=cd3abd09-23eb-4e75-acca-f0ecbbab11d0"], capture_output=True, text=True)
                 sweet_caroline = True
-            time.sleep(interval)
         elif retcode == 81:
             logger.debug("Game is active")
             if not dirty_water:
                 logger.info("Dirty Water")
                 r = subprocess.run(["/usr/bin/curl", "http://192.168.2.178/apps/api/489/trigger?access_token=d45b8e96-30a9-4987-9fea-0936c4af7a28"], capture_output=True, text=True)
                 dirty_water = True
-            time.sleep(interval)
         elif retcode == 98:
             logger.info("Pregame, longer sleep interval")
-            time.sleep(interval * 4)
+            sleep_time *= 10
         elif retcode == 99:
             logger.info("Game has ended, stopping polling")
         else:
             logger.error("Error sending")
+        time.sleep(sleep_time)
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, 
