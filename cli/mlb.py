@@ -78,6 +78,46 @@ class game:
         print("id",id)
         return ( self.data["boxscore"]["teams"]["away"]["players"].get(f"ID{ id }",{}).get("seasonStats",{}) or 
                  self.data["boxscore"]["teams"]["home"]["players"].get(f"ID{ id }",{}).get("seasonStats",{}) )
+    
+    def get_bases(self):
+        offense_keys = []
+        try:
+            offense_keys = self.data["scoreboard"]["linescore"]["offense"].keys()
+        except ( IndexError, KeyError, AttributeError ):
+            pass
+        return offense_keys
+    
+    def get_last_play(self):
+        last_play_cache = f'./cache/last_play.json'
+        pre_last_play = {"play_id": None}
+        try:
+            with open(last_play_cache) as json_data:
+                pre_last_play = json.load(json_data)
+            if pre_last_play.get("game_pk","0") != str(self.gamepak):
+                pre_last_play = {"play_id": None}
+        except FileNotFoundError:
+            pre_last_play = {"play_id": None}
+        except AssertionError:
+            pre_last_play = {"play_id": None}
+        
+        try:
+            home_plays = [ p for p in self.data.get("team_home",[]) if p.get("result", None) ]
+            away_plays = [ p for p in self.data.get("team_away",[]) if p.get("result", None) ]
+            if len(home_plays) and len(away_plays):
+                last_play = home_plays[-1] if home_plays[-1].get("ab_number",0) >= away_plays[-1].get("ab_number",0) else away_plays[-1]
+            elif len(home_plays):
+                last_play = home_plays[-1]
+            else:
+                last_play = away_plays[-1]
+        except ( IndexError, KeyError, AttributeError ):
+            return None
+        
+        if (last_play.get("play_id") != pre_last_play.get("play_id") and 
+            last_play.get("game_total_pitches",0) > pre_last_play.get("game_total_pitches",0)):
+            with open(last_play_cache, 'w') as f:
+                json.dump(last_play, f)
+            last_play.update({"new_play":True})
+        return  last_play
 
 
 
@@ -112,7 +152,7 @@ class player:
         except ( IndexError, KeyError ):
             num = "00"
         return num
-
+    
 class schedule:
     def __init__(self, date, base_url=""):
         self.date = date

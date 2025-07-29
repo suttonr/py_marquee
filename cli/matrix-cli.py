@@ -417,7 +417,8 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     try:
         g = mlb.game(game_pk, secrets.MLB_GAME_URL)
         # If status throws we didn't get valid game data
-        game_status = g.get_game_status() 
+        game_status = g.get_game_status()
+        game_status_detail = g.get_game_status("detailedState")
     except:
         print("Failed to get MLB data")
         exit(89)
@@ -470,7 +471,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         if k == "outs":
             outs = v
         if k == "outs" or not g.is_play_complete():
-            ctx.invoke(update_count, name=k, num=v) 
+            ctx.invoke(update_count, name=k, num=v)
 
     # Write Stats
     p_team = "away"
@@ -503,7 +504,9 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
                  score.get(team, {}).get("runs", 0) >= score.get("home", {}).get("runs", 0) and
                  score.get(team, {}).get("runs", 0) >= score.get("away", {}).get("runs", 0) ):
                  exit(81)
-    print(f"game_status: {game_status}")
+    print(f"game_status: {game_status} {game_status_detail}")
+    if game_status not in ("I", "O", "F", "FT"):
+        ctx.invoke(send_box, message=f"CODE: {game_status.upper()}", box="message", side=p_team)
     # exitcode 99 if game is over
     if game_status in ("F", "FT"):
         print("Game is final")
@@ -511,6 +514,31 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     elif game_status in pregame_statuses:
         print(f"Pregame {game_status}")
         exit(98)
+    elif game_status in ("IR", "IZ"):
+        print(f"Rain Delay {game_status}")
+        ctx.invoke(send_box, message=f"{game_status_detail.upper()}", box="message", side=b_team)
+        exit(98)
+    
+    # Last Play
+    last_play = g.get_last_play() or {}
+    print("Last Play:", 
+          last_play.get("team_batting"), ",",
+          last_play.get("result"), ",",
+          last_play.get("des"),
+          last_play.get("new_play")
+        )
+    if last_play.get("new_play"):
+        ctx.invoke(send_box, message=f"{last_play.get('result').upper()}", box="message", side=b_team)
+
+    # Write bases
+    positiions = g.get_bases()
+    print("positiions", positiions)
+    for base in ("first", "second", "third"):
+        if base in positiions:
+            ctx.invoke(update_base, base=base, val=True)
+        else:
+            ctx.invoke(update_base, base=base, val=False)
+
 
 
 @cli.command()
