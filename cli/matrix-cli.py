@@ -511,7 +511,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     if game_status in ("F", "FT"):
         print("Game is final")
         exit(99)
-    elif game_status in ("IR", "IZ", "PR"):
+    elif game_status in ("IR", "IZ", "PR", "II"):
         print(f"Rain Delay {game_status}")
         ctx.invoke(send_box, message=f"{game_status_detail.upper()}", box="message", side=b_team)
         exit(98)
