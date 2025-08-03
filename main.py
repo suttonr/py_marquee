@@ -141,7 +141,7 @@ def new_message(client, userdata, msg):
         if "marquee/template/gmonster/game" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
-            if ( not template.disable_close and message.decode() in ("F", "FT") ):
+            if ( not template.disable_close and message.decode() in ("F", "FT", "UR") ):
                 template.__del__()
                 template = clock(board, weather=local_weather)
             else:
