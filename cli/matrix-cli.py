@@ -508,7 +508,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     if game_status not in ("I", "O", "F", "FT"):
         ctx.invoke(send_box, message=f"CODE: {game_status.upper()}", box="message", side=p_team)
     # exitcode 99 if game is over
-    if game_status in ("F", "FT"):
+    if game_status in ("F", "FT", "UR"):
         print("Game is final")
         exit(99)
     elif game_status in ("IR", "IZ", "PR", "II"):
