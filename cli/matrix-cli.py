@@ -519,7 +519,16 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         print(f"Pregame {game_status}")
         exit(98)
     
-    # Last Play
+    # Write bases
+    positiions = g.get_bases()
+    print("positiions", positiions)
+    for base in ("first", "second", "third"):
+        if base in positiions:
+            ctx.invoke(update_base, base=base, val=True)
+        else:
+            ctx.invoke(update_base, base=base, val=False)
+        
+    # Last Play, This must be last for HR banner to work
     last_play = g.get_last_play() or {}
     print("Last Play:", 
           last_play.get("team_batting"), ",",
@@ -530,14 +539,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     if last_play.get("new_play"):
         ctx.invoke(send_box, message=f"{last_play.get('result').upper()}", box="message", side=b_team)
 
-    # Write bases
-    positiions = g.get_bases()
-    print("positiions", positiions)
-    for base in ("first", "second", "third"):
-        if base in positiions:
-            ctx.invoke(update_base, base=base, val=True)
-        else:
-            ctx.invoke(update_base, base=base, val=False)
+
 
 
 
