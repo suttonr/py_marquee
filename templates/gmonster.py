@@ -31,6 +31,7 @@ class gmonster(base):
         self.disable_win = False
         self.disable_close = False
         self.clock = None
+        self.hr = False
         self.bgcolor = bytearray(b'\x00\x64\x00')
 
         self.pitcher = { 
@@ -54,8 +55,8 @@ class gmonster(base):
             "home" : box((21,13), w=18)
         }
         self.message = { 
-            "away" : box((325,3), w=122, bgcolor=bytearray(b'\x00\x64\x00')),
-            "home" : box((325,13), w=122, bgcolor=bytearray(b'\x00\x64\x00'))
+            "away" : box((325,3), w=101, bgcolor=bytearray(b'\x00\x64\x00')),
+            "home" : box((325,13), w=101, bgcolor=bytearray(b'\x00\x64\x00'))
         }
         self.light = {
             "balls" : [ 
@@ -90,6 +91,32 @@ class gmonster(base):
 
     def display_rs_win(self):
         self.draw_bmp("templates/img/redsoxwin.bmp")
+
+    def display_hr(self):
+        self.draw_bmp("templates/img/hr.bmp")
+        self.hr = True
+    
+    def refresh_board(self):
+        boxes = [
+            "pitcher",
+            "runs",
+            "hits",
+            "errors",
+            "team",
+        ]
+
+        if self.hr:
+            self.display_mask()
+            self.hr = False
+        
+        for i, inning in enumerate(self.inning):
+            for side,box in inning.items():
+                self.update_box("inning", side, index=i, refresh=True)
+        
+        for box in boxes:
+            for side in ("away", "home"):
+                self.update_box(box, side, refresh=True)
+
     
     def display_pregram(self):
         dt = datetime.now(ZoneInfo("America/New_York"))
@@ -107,7 +134,9 @@ class gmonster(base):
                 tz_list=['America/New_York'], clear=False )
 
     def update_box(self, name, side, value=None, fgcolor=None, 
-                   bgcolor=None, index = 0):
+                   bgcolor=None, index = 0, refresh=False):
+        if not refresh:
+            self.refresh_board()
         cur_val = getattr(self, name, None)
         if isinstance(cur_val, list):
             cur_val = cur_val[index]
@@ -122,16 +151,24 @@ class gmonster(base):
             self.draw_box(cur_val[side].get_cord(), cur_val[side].h, cur_val[side].w, cur_val[side].bgcolor )
 
         if ((value is not None and cur_val[side].value != value) or 
-            (fgcolor is not None and cur_val[side].fgcolor != fgcolor)):
+            (fgcolor is not None and cur_val[side].fgcolor != fgcolor) or refresh):
             cur_val[side].value = value if value is not None else cur_val[side].value
             cur_val[side].fgcolor = fgcolor if fgcolor is not None else cur_val[side].fgcolor
             self.update_message_2(
-                str(cur_val[side].value).replace("0","O"), anchor=cur_val[side].get_cord(xoffset = xoffset, yoffset = yoffset), 
+                str(cur_val[side].value).replace("0","O"), 
+                anchor=cur_val[side].get_cord(xoffset = xoffset, yoffset = yoffset), 
                 fgcolor=cur_val[side].fgcolor, bgcolor=cur_val[side].bgcolor
             )
 
+        if ( name =="message" and 
+             value == "HOME RUN" and 
+              self.team[side].value == "BOS"):
+            self.display_hr()
+
     def update_batter(self, at_bat):
         index = 0
+        self.draw_box((200,10), 14, 8, bytearray(b'\x00\x00\x00') )
+        self.draw_box((210,10), 14, 8, bytearray(b'\x00\x00\x00') )
         if len(str(at_bat)) > 1:
             self.draw_7seg_digit(at_bat[index], x_offset=201, y_offset=11)
             index += 1
@@ -207,6 +244,7 @@ class gmonster(base):
             (cord[0]+p,cord[1]),
             (cord[0],cord[1]+iw),
         ]
+        self.draw_box(cord, 21, 20, self.bgcolor)
         for i,c in enumerate(cords):
             base_color = color if self.bases[i] else self.bgcolor
             self.draw_diamond(c, int(iw+2), int(iw+2), (b'\x00\x00\x00'))
