@@ -166,8 +166,8 @@ class gmonster(base):
 
     def update_batter(self, at_bat):
         index = 0
-        self.draw_box((200,10), 22, 8, bytearray(b'\x00\x00\x00') )
-        self.draw_box((210,10), 22, 8, bytearray(b'\x00\x00\x00') )
+        self.draw_box((200,10), 14, 8, bytearray(b'\x00\x00\x00') )
+        self.draw_box((210,10), 14, 8, bytearray(b'\x00\x00\x00') )
         if len(str(at_bat)) > 1:
             self.draw_7seg_digit(at_bat[index], x_offset=201, y_offset=11)
             index += 1
