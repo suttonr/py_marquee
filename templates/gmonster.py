@@ -161,7 +161,7 @@ class gmonster(base):
 
         if ( name =="message" and 
              value == "HOME RUN" and 
-              self.team[team].value == "BOS"):
+              self.team[side].value == "BOS"):
             self.display_hr()
 
     def update_batter(self, at_bat):
