@@ -135,7 +135,8 @@ class gmonster(base):
 
     def update_box(self, name, side, value=None, fgcolor=None, 
                    bgcolor=None, index = 0, refresh=False):
-        self.refresh_board()
+        if not refresh:
+            self.refresh_board()
         cur_val = getattr(self, name, None)
         if isinstance(cur_val, list):
             cur_val = cur_val[index]
