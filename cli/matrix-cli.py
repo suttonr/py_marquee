@@ -505,7 +505,7 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
                  score.get(team, {}).get("runs", 0) >= score.get("away", {}).get("runs", 0) ):
                  exit(81)
     print(f"game_status: {game_status} {game_status_detail}")
-    if game_status not in ("I", "O", "F", "FT"):
+    if game_status not in ("I", "O", "F", "FT", "MA"):
         ctx.invoke(send_box, message=f"CODE: {game_status.upper()}", box="message", side=p_team)
     # exitcode 99 if game is over
     if game_status in ("F", "FT", "UR"):
@@ -518,7 +518,12 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
     elif game_status in pregame_statuses:
         print(f"Pregame {game_status}")
         exit(98)
-    
+    elif game_status in ("MA") and isinstance(game_status_detail,str):    
+        m_split = game_status_detail.split(":")
+        ctx.invoke(send_box, message=f"{m_split[0][:25].upper()}", box="message", side="away")
+        if len(m_split) > 1:
+            ctx.invoke(send_box, message=f"{m_split[1][:25].upper()}", box="message", side="home")
+
     # Write bases
     positiions = g.get_bases()
     print("positiions", positiions)

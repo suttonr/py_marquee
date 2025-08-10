@@ -55,8 +55,8 @@ class gmonster(base):
             "home" : box((21,13), w=18)
         }
         self.message = { 
-            "away" : box((325,3), w=122, bgcolor=bytearray(b'\x00\x64\x00')),
-            "home" : box((325,13), w=122, bgcolor=bytearray(b'\x00\x64\x00'))
+            "away" : box((325,3), w=101, bgcolor=bytearray(b'\x00\x64\x00')),
+            "home" : box((325,13), w=101, bgcolor=bytearray(b'\x00\x64\x00'))
         }
         self.light = {
             "balls" : [ 
@@ -155,7 +155,8 @@ class gmonster(base):
             cur_val[side].value = value if value is not None else cur_val[side].value
             cur_val[side].fgcolor = fgcolor if fgcolor is not None else cur_val[side].fgcolor
             self.update_message_2(
-                str(cur_val[side].value).replace("0","O"), anchor=cur_val[side].get_cord(xoffset = xoffset, yoffset = yoffset), 
+                str(cur_val[side].value).replace("0","O"), 
+                anchor=cur_val[side].get_cord(xoffset = xoffset, yoffset = yoffset), 
                 fgcolor=cur_val[side].fgcolor, bgcolor=cur_val[side].bgcolor
             )
 
@@ -243,6 +244,7 @@ class gmonster(base):
             (cord[0]+p,cord[1]),
             (cord[0],cord[1]+iw),
         ]
+        self.draw_box(cord, 21, 20, self.bgcolor)
         for i,c in enumerate(cords):
             base_color = color if self.bases[i] else self.bgcolor
             self.draw_diamond(c, int(iw+2), int(iw+2), (b'\x00\x00\x00'))
