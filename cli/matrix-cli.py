@@ -542,7 +542,8 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
           last_play.get("new_play")
         )
     if last_play.get("new_play"):
-        ctx.invoke(send_box, message=f"{last_play.get('result').upper()}", box="message", side=b_team)
+        if last_play.get("result") not in [ None, 'Batter Timeout' ]:
+            ctx.invoke(send_box, message=f"{last_play.get('result').upper()}", box="message", side=b_team)
 
 
 
