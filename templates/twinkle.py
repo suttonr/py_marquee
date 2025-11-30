@@ -34,7 +34,7 @@ class twinkle(base):
                 for y in range(self.marquee.panel_height):
                     matrix.update(
                         f"{(x):03d}{(y):03d}", 
-                        bytearray(random.randbytes(3))
+                        (random.randbytes(3), random.randbytes(3), random.randbytes(3) )
                     )
 
         self.timer = threading.Timer(1, self.clock_tick)
