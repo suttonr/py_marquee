@@ -29,7 +29,7 @@ class marquee:
                 #self.matrices[port].buffer.update({f"{(x-int(j*64)):03d}{(y-(i*8)):03d}" : (message[3],message[4],message[5])})
                 self.matrices[port].update(f"{(x-int(j*self.panel_width)):03d}{(y-(i*self.panel_height)):03d}", (message[3],message[4],message[5]))
             else:
-                print("Invalid Matric Index:", i, j, port, len(self.matrices) )
+                print("Invalid Matric Index:", x, y, i, j, port, len(self.matrices) )
 
     def get_pixels(self):
         ret = []
