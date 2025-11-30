@@ -28,17 +28,11 @@ class twinkle(base):
             self.timer.cancel()
 
     def clock_tick(self):
-        x = self.clock_xoffset
         for i in range(255):
-            for matrix in self.marquee.matrices:
-                x = random.randint(1, self.marquee.panel_width)
-                y = random.randint(1, self.marquee.panel_height)
-                matrix.update(
-                    f"{(x):03d}{(y):03d}", 
-                    (random.randint(1, 255), 
-                     random.randint(1, 255), 
-                     random.randint(1, 255) )
-                )
+            x = random.randint(1, self.marquee.panel_width)
+            y = random.randint(1, self.marquee.panel_height * 18)
+            color = bytearray(random.randbytes(3))
+            self.marquee.set_pixel( (x).to_bytes(2,"big") + (y).to_bytes(1,"big") + color  )
 
         self.timer = threading.Timer(.1, self.clock_tick)
         self.timer.start()
