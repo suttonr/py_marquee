@@ -25,7 +25,6 @@ class matrix():
 
     def update(self, address, value):
         if address not in self.buffer or self.buffer[address] != value:
-            print(value)
             self.buffer.update({address : value})
             self.dirty_pixels.append(address)
 
