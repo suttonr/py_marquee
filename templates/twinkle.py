@@ -30,10 +30,12 @@ class twinkle(base):
     def clock_tick(self):
         x = self.clock_xoffset
         for matrix in self.marquee.matrices:
-            matrix.update(
-                f"{(x-int(j*self.marquee.panel_width)):03d}{(y-(i*self.marquee.panel_height)):03d}", 
-                (bytearray(random.randbytes(1)), bytearray(random.randbytes(1)), bytearray(random.randbytes(1)))
-            )
+            for x in range(self.marquee.panel_width):
+                for y in range(self.marquee.panel_height):
+                    matrix.update(
+                        f"{(x):03d}{(y):03d}", 
+                        (bytearray(random.randbytes(1)), bytearray(random.randbytes(1)), bytearray(random.randbytes(1)))
+                    )
 
         self.timer = threading.Timer(1, self.clock_tick)
         self.timer.start()
