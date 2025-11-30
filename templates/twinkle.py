@@ -34,5 +34,6 @@ class twinkle(base):
             color = bytearray(random.randbytes(3))
             self.marquee.set_pixel( (x).to_bytes(2,"big") + (y).to_bytes(1,"big") + color  )
 
-        self.timer = threading.Timer(.1, self.clock_tick)
+        self.marquee.send()
+        self.timer = threading.Timer(0.1, self.clock_tick)
         self.timer.start()
