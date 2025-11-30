@@ -15,20 +15,23 @@ from templates.timer import timer
 from templates.gmonster import gmonster
 from templates.base import base
 from templates.weather import weather
+from templates.twinkle import twinkle
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
 
-FGCOLOR=bytearray(b'\x32\x00\x00')
-BGCOLOR=bytearray(b'\x00\x00\x00')
+FGCOLOR = bytearray(b'\x32\x00\x00')
+BGCOLOR = bytearray(b'\x00\x00\x00')
 
 SETUP_RUN = False
-MAX_PIXELS=512
+MAX_PIXELS = 512
 NP_PINS = [14,0,2]
 PIXEL_TIME = 1
+PANEL_HEIGHT = 8
+PABEL_WIDTH = 144
 
 matrices = []
-board = marquee(panel_height=1, panel_width=144)
+board = marquee(panel_height=PANEL_HEIGHT, panel_width=PABEL_WIDTH)
 template = None
 local_weather = None
 refresh = True
@@ -270,7 +273,8 @@ def setup():
     # Set initial settings
     process_bright(5)
     local_weather = weather(board, clear=False)
-    template =  clock(board, weather=local_weather)
+    #template =  clock(board, weather=local_weather)
+    template = twinkle(board)
     time.sleep(2)
     # Start listening for mqtt
     m.loop_start()
