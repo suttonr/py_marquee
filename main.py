@@ -28,7 +28,7 @@ NP_PINS = [14,0,2]
 PIXEL_TIME = 1
 
 matrices = []
-board = marquee()
+board = marquee(panel_height=1, panel_width=144)
 template = None
 local_weather = None
 refresh = True
@@ -256,7 +256,7 @@ def setup():
         for y in range(3):
             print("setup matrix ",len(matrices)," loc ", x,y)
             matrices.append(
-                matrix(144, 1, hspi, mode="PYSPI", xoffset=x, yoffset=y)
+                matrix(144, 1, hspi, mode="PYSPI", xoffset=x, yoffset=y),
             )
     board.matrices = matrices
     update_message(bytearray(b"A"), (0,0))

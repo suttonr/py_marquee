@@ -2,10 +2,14 @@
 class marquee:
     fgcolor = bytearray(b'\x32\x00\x00')
     bgcolor = bytearray(b'\x00\x00\x00')
+    panel_height = 8
+    panel_width = 64
     matrices = []
 
-    def __init__(self, matrices=[]):
+    def __init__(self, matrices=[], panel_height=8, panel_width=64):
         self.matrices = matrices
+        self.panel_height = panel_height
+        self.panel_width = panel_width
     
     def set_brightness(self, bright):
         for i in range(len(self.matrices)):
@@ -17,13 +21,13 @@ class marquee:
             # print(f"{message[0]:03d}{message[1]:03d} : {message[2]} {message[3]} {message[4]}")
             x = int.from_bytes(bytearray(message[0:2]), "big")
             y = int.from_bytes(bytearray(message[2:3]), "big")
-            i = int( y / 8 )
-            j = int( x / 64 )
+            i = int( y / self.panel_height )
+            j = int( x / self.panel_width )
             port = i + (j * 3)
             #print("matrix:", i, j, port, len(self.matrices), x, y)
             if ( port < len(self.matrices) ):
                 #self.matrices[port].buffer.update({f"{(x-int(j*64)):03d}{(y-(i*8)):03d}" : (message[3],message[4],message[5])})
-                self.matrices[port].update(f"{(x-int(j*64)):03d}{(y-(i*8)):03d}", (message[3],message[4],message[5]))
+                self.matrices[port].update(f"{(x-int(j*self.panel_width)):03d}{(y-(i*self.panel_height)):03d}", (message[3],message[4],message[5]))
             else:
                 print("Invalid Matric Index:", i, j, port, len(self.matrices) )
 
@@ -33,8 +37,8 @@ class marquee:
             matrix_pixels = {}
             for k,v in self.matrices[i].buffer.items():
                 #print(f'{i} {self.matrices[i].xoffset} {self.matrices[i].yoffset}')
-                x = int(k[0:3]) + (self.matrices[i].xoffset * 64)
-                y = int(k[3:6]) + (self.matrices[i].yoffset * 8)
+                x = int(k[0:3]) + (self.matrices[i].xoffset * self.panel_width)
+                y = int(k[3:6]) + (self.matrices[i].yoffset * self.panel_height)
                 matrix_pixels.update( { f"{x:03d}{y:03d}": v } )
             ret.append(matrix_pixels)
         return ret
