@@ -252,7 +252,7 @@ def setup():
     hspi.open(0, 0)
     hspi.max_speed_hz = 48_000_000
     hspi.mode = 0
-    for x in range(7):
+    for x in range(1):
         for y in range(3):
             print("setup matrix ",len(matrices)," loc ", x,y)
             matrices.append(
@@ -265,7 +265,7 @@ def setup():
     # Setup mqtt
     m.on_message = new_message
     m.subscribe("esp32/test/#")
-    m.subscribe("marquee/#")
+    m.subscribe("piball/#")
     m.subscribe("hello/push/Backyard Garage/temperature/value")
     # Set initial settings
     process_bright(5)
