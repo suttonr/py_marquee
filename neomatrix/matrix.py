@@ -50,7 +50,8 @@ class matrix():
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True, dirty_only=True):
         if dirty_only:
             for address in self.dirty_pixels:
-                self.write_pixel( self.xy2i(int(address[:3]),int(address[3:])), 
+                if address in self.buffer.keys():
+                    self.write_pixel( self.xy2i(int(address[:3]),int(address[3:])), 
                         self.scale_color(self.buffer[address], self.brightness)
                     )
                 self.dirty_pixels.remove(address) if address in self.dirty_pixels else None

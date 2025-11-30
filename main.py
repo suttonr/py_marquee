@@ -256,7 +256,7 @@ def setup():
         for y in range(3):
             print("setup matrix ",len(matrices)," loc ", x,y)
             matrices.append(
-                matrix(64, 8, hspi, mode="PYSPI", xoffset=x, yoffset=y)
+                matrix(144, 1, hspi, mode="PYSPI", xoffset=x, yoffset=y)
             )
     board.matrices = matrices
     update_message(bytearray(b"A"), (0,0))
