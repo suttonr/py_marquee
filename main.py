@@ -256,7 +256,7 @@ def setup():
     hspi.max_speed_hz = 48_000_000
     hspi.mode = 0
     for x in range(1):
-        for y in range(3):
+        for y in range(18):
             print("setup matrix ",len(matrices)," loc ", x,y)
             matrices.append(
                 matrix(144, 1, hspi, mode="PYSPI", xoffset=x, yoffset=y),
