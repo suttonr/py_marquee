@@ -29,11 +29,11 @@ class twinkle(base):
 
     def clock_tick(self):
         for i in range(1024):
-            x = random.randint(0, self.marquee.panel_width)
+            x = random.randint(0, self.marquee.panel_width - 1)
             y = random.randint(0, self.marquee.panel_height * 17)
             color = bytearray(random.randbytes(3))
             self.marquee.set_pixel( (x).to_bytes(2,"big") + (y).to_bytes(1,"big") + color  )
 
         self.marquee.send()
-        self.timer = threading.Timer(0.1, self.clock_tick)
+        self.timer = threading.Timer(0.04, self.clock_tick)
         self.timer.start()
