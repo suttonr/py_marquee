@@ -28,9 +28,9 @@ class twinkle(base):
             self.timer.cancel()
 
     def clock_tick(self):
-        for i in range(255):
-            x = random.randint(1, self.marquee.panel_width)
-            y = random.randint(1, self.marquee.panel_height * 18)
+        for i in range(1024):
+            x = random.randint(0, self.marquee.panel_width)
+            y = random.randint(0, self.marquee.panel_height * 18)
             color = bytearray(random.randbytes(3))
             self.marquee.set_pixel( (x).to_bytes(2,"big") + (y).to_bytes(1,"big") + color  )
 
