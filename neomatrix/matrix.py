@@ -38,7 +38,7 @@ class matrix():
         if self.mode == "NP":
             self.np[address] = color
         elif self.mode == "SPI" or self.mode == "PYSPI":
-            port = self.yoffset + ( self.xoffset * 1 )
+            port = self.yoffset + ( self.xoffset * 3 )
             print(port, address)
             data_to_send = int(15).to_bytes(1,"big") + ((port << 9) | address).to_bytes(2,"big") + color[1:2] + color[0:1] + color[2:3]
             if self.mode == "SPI":

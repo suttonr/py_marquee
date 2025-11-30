@@ -32,6 +32,9 @@ class twinkle(base):
         for matrix in self.marquee.matrices:
             for x in range(self.marquee.panel_width):
                 for y in range(self.marquee.panel_height):
+                    print(f"{(x):03d}{(y):03d}",(random.randint(1, 255), 
+                         random.randint(1, 255), 
+                         random.randint(1, 255) ) )
                     matrix.update(
                         f"{(x):03d}{(y):03d}", 
                         (random.randint(1, 255), 
