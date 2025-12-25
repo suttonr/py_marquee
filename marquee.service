@@ -1,0 +1,15 @@
+[Unit]
+Description=Marquee service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/ryan/git/py_marquee/
+ExecStart=/home/ryan/git/py_marquee/venv/bin/python3 -u /home/ryan/git/py_marquee/main.py
+StandardOutput=journal
+StandardError=journal
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
