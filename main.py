@@ -11,6 +11,7 @@ from neomatrix.matrix import matrix
 from neomatrix.font import *
 from marquee.marquee import marquee
 from templates.clock import clock
+from templates.xmas import xmas
 from templates.timer import timer
 from templates.gmonster import gmonster
 from templates.base import base
@@ -270,7 +271,8 @@ def setup():
     # Set initial settings
     process_bright(5)
     local_weather = weather(board, clear=False)
-    template =  clock(board, weather=local_weather)
+    #template =  clock(board, weather=local_weather)
+    template = xmas(board)
     time.sleep(2)
     # Start listening for mqtt
     m.loop_start()
