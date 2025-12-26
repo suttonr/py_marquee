@@ -271,8 +271,8 @@ def setup():
     # Set initial settings
     process_bright(5)
     local_weather = weather(board, clear=False)
-    #template =  clock(board, weather=local_weather)
-    template = xmas(board)
+    template =  clock(board, weather=local_weather)
+    #template = xmas(board)
     time.sleep(2)
     # Start listening for mqtt
     m.loop_start()
