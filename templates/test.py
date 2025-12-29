@@ -29,11 +29,13 @@ class test(base):
             self.timer.cancel()
 
     def clock_tick(self):
+        print(self.offset, self.fgcolor, self.bgcolor)
         for x in range(self.marquee.panel_width):
             for y in range( self.marquee.panel_height * 17):
                 color = self.fgcolor if x == self.offset else self.bgcolor
                 self.marquee.set_pixel( (x).to_bytes(2,"big") + (y).to_bytes(1,"big") + color )
         
+        self.offset += 1
         if (self.offset > self.marquee.panel_width):
             self.offset = 0
                            

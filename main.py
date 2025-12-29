@@ -114,12 +114,12 @@ def new_message(client, userdata, msg):
                 print("clock template set")
             elif message == bytearray(b"twinkle"):
                 refresh = False
-                check_template(twinkle, weather=local_weather)
+                check_template(twinkle)
                 refresh = True
                 print("clock template set")
             elif message == bytearray(b"test"):
                 refresh = False
-                check_template(test, weather=local_weather)
+                check_template(test)
                 refresh = True
                 print("clock template set")
             elif message == bytearray(b"timer"):
