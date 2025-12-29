@@ -112,6 +112,16 @@ def new_message(client, userdata, msg):
                 check_template(clock, weather=local_weather)
                 refresh = True
                 print("clock template set")
+            elif message == bytearray(b"twinkle"):
+                refresh = False
+                check_template(twinkle, weather=local_weather)
+                refresh = True
+                print("clock template set")
+            elif message == bytearray(b"test"):
+                refresh = False
+                check_template(test, weather=local_weather)
+                refresh = True
+                print("clock template set")
             elif message == bytearray(b"timer"):
                 refresh = False
                 check_template(timer, interval=5, clear=True)
