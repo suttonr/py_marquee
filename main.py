@@ -16,6 +16,7 @@ from templates.gmonster import gmonster
 from templates.base import base
 from templates.weather import weather
 from templates.twinkle import twinkle
+from templates.test import test
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
@@ -274,7 +275,8 @@ def setup():
     process_bright(5)
     local_weather = weather(board, clear=False)
     #template =  clock(board, weather=local_weather)
-    template = twinkle(board)
+    #template = twinkle(board)
+    template = test(board)
     time.sleep(2)
     # Start listening for mqtt
     m.loop_start()
