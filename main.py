@@ -55,15 +55,15 @@ def new_message(client, userdata, msg):
     topic = msg.topic
     message = msg.payload
     try:
-        if topic == "marquee/pixels":
+        if topic == "piball/pixels":
             return
-        if topic != "esp32/test/raw":
+        if topic != "piball/test/raw":
             print("nm:",topic, message)
-        if topic == "esp32/test/message" and len(message) > 2:
+        if topic == "piball/test/message" and len(message) > 2:
             x = int.from_bytes(bytearray(message[0:2]), "big")
             print("x", x, "y", message[2], "rawx", message[0:1])
             update_message(message[3:], (x, message[2]))  
-        if "esp32/test/text" in topic and len(message) > 2:
+        if "piball/test/text" in topic and len(message) > 2:
             topic_split = topic.split("/")
             text_size = 16
             if len(topic_split) > 3:
@@ -79,18 +79,18 @@ def new_message(client, userdata, msg):
             update_message(message, (0,8))
         if topic == "esp32/test/3":
             update_message(message, (0,16))
-        if topic == "esp32/test/fgcolor" and len(message) == 3:
+        if topic == "piball/test/fgcolor" and len(message) == 3:
             FGCOLOR = bytearray(message[0:3])
             print("fgcolor", FGCOLOR)
-        if topic == "esp32/test/bgcolor" and len(message) == 3:
+        if topic == "piball/test/bgcolor" and len(message) == 3:
             BGCOLOR = bytearray(message[0:3])
-        if topic == "esp32/test/raw":
+        if topic == "piball/test/raw":
             process_raw(message)
-        if topic == "esp32/test/clear":
+        if topic == "piball/test/clear":
             if template:
                 template.__del__()
             template = base(board)
-        if topic == "esp32/test/bright":
+        if topic == "piball/test/bright":
             board.set_brightness(message[0])
         if topic == "esp32/test/reset":
             print("resetting...")
@@ -99,7 +99,7 @@ def new_message(client, userdata, msg):
             GPIO.output(RESET_PIN, GPIO.LOW)
             print("reset complete")
 
-        if topic == "marquee/template":
+        if topic == "piball/template":
             print("template:",topic, message)
             if message == bytearray(b"gmonster"):
                 refresh = False
@@ -118,11 +118,11 @@ def new_message(client, userdata, msg):
                 refresh = True
                 print("timer template set")
 
-        if "marquee/template/timer/duration" in topic:
+        if "piball/template/timer/duration" in topic:
             check_template(timer, clear=True)
             template.set_timer_duration(message.decode())
 
-        if "marquee/template/gmonster/box/" in topic:
+        if "piball/template/gmonster/box/" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
             if len(topic_split) >= 7 and topic_split[4] == "inning":
@@ -131,17 +131,17 @@ def new_message(client, userdata, msg):
             elif len(topic_split) >= 6:
                 template.update_box(topic_split[4], topic_split[5], message.decode())
 
-        if "marquee/template/gmonster/count/" in topic:
+        if "piball/template/gmonster/count/" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
             template.update_count(topic_split[4], message.decode())
 
-        if "marquee/template/gmonster/inning/" in topic:
+        if "piball/template/gmonster/inning/" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
             template.update_current_inning(topic_split[4], message.decode())
 
-        if "marquee/template/gmonster/game" in topic:
+        if "piball/template/gmonster/game" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
             if ( not template.disable_close and message.decode() in ("F", "FT", "UR") ):
@@ -150,7 +150,7 @@ def new_message(client, userdata, msg):
             else:
                 template.update_game_status(message.decode())
 
-        if "marquee/template/gmonster/disable-win" in topic:
+        if "piball/template/gmonster/disable-win" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
             if message.decode().lower() == "true":
@@ -158,7 +158,7 @@ def new_message(client, userdata, msg):
             else:
                 template.disable_win = False
 
-        if "marquee/template/gmonster/disable-close" in topic:
+        if "piball/template/gmonster/disable-close" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
             if message.decode().lower() == "true":
@@ -166,14 +166,14 @@ def new_message(client, userdata, msg):
             else:
                 template.disable_close = False
 
-        if "marquee/template/gmonster/batter" in topic:
+        if "piball/template/gmonster/batter" in topic:
             check_template(gmonster)
             print(f"batter {message}")
             topic_split = topic.split("/")
             if len(message.decode()) in range(1,3):
                 template.update_batter(message.decode())
 
-        if "marquee/template/gmonster/bases" in topic:
+        if "piball/template/gmonster/bases" in topic:
             check_template(gmonster)
             print(f"bases {message}")
             topic_split = topic.split("/")
@@ -184,13 +184,13 @@ def new_message(client, userdata, msg):
                 print(f"write: bases {ocupied} {b}")
                 template.update_bases(**{b:ocupied})
 
-        if "marquee/auto_template" in topic:
+        if "piball/auto_template" in topic:
             if message.decode().lower() in ( "false", "0", "disable" ):
                 enable_auto_template = False
             elif message.decode().lower() in ( "true", "1", "enable" ):
                 enable_auto_template = True
     
-        if "marquee/get_pixels" in topic:
+        if "piball/get_pixels" in topic:
             send_pixels(board)
 
         if "hello/push/Backyard Garage/temperature/value" in topic:
