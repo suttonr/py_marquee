@@ -28,7 +28,7 @@ class test(base):
             print("clock timer cancel")
             self.timer.cancel()
 
-    def get_color_from_map(index):
+    def get_color_from_map(self, index):
         color_map = [
             bytearray(b'\x00\x00\xFF'),
             bytearray(b'\x00\xFF\x00'),
