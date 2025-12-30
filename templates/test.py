@@ -41,7 +41,7 @@ class test(base):
         default = bytearray(b'\x0A\x0A\x0A')
         try:
             ret = color_map[index]
-        except KeyError:
+        except IndexError:
             ret = default
         return ret
     
