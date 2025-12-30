@@ -28,11 +28,28 @@ class test(base):
             print("clock timer cancel")
             self.timer.cancel()
 
+    def get_color_from_map(index):
+        color_map = [
+            bytearray(b'\x00\x00\xFF'),
+            bytearray(b'\x00\xFF\x00'),
+            bytearray(b'\xFF\x00\x00'),
+            bytearray(b'\x00\xFF\xFF'),
+            bytearray(b'\xFF\x00\xFF'),
+            bytearray(b'\xFF\xFF\x00'),
+            bytearray(b'\xFF\xFF\xFF'),
+        ]
+        default = bytearray(b'\x0A\x0A\x0A')
+        try:
+            ret = color_map[index]
+        except KeyError:
+            ret = default
+        return ret
+    
     def clock_tick(self):
         print(self.offset, self.fgcolor, self.bgcolor)
         for x in range(self.marquee.panel_width):
             for y in range( self.marquee.panel_height * 17):
-                color = self.fgcolor if x == self.offset else self.bgcolor
+                color = self.get_color_from_map(y) if x == self.offset else self.bgcolor
                 self.marquee.set_pixel( (x).to_bytes(2,"big") + (y).to_bytes(1,"big") + color )
         
         self.offset += 1
