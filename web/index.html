@@ -9,13 +9,35 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.min.js"></script>
     <!-- Include the refactored MQTT handler -->
     <script type=module>
-        import { sendTemplate, sendClear, sendBright, sendText, getPixels, reconnect } from "./mqttHandler.mjs";
+        import {
+            sendTemplate, sendClear, sendBright, sendText, getPixels, reconnect,
+            sendAutoTemplate, sendBox, sendBgColor, sendFgColor, sendReset, sendTextLine,
+            updateBatter, updateBase, updateGame, updateCount, updateInning, disableWin, disableClose,
+            sendMlbGame, sendNhlGame, sendNflGame, sendElection
+        } from "./mqttHandler.mjs";
         window.sendTemplate = sendTemplate
         window.sendClear = sendClear
         window.sendBright = sendBright
         window.sendText = sendText
         window.reconnect = reconnect
         window.getPixels = getPixels
+        window.sendAutoTemplate = sendAutoTemplate
+        window.sendBox = sendBox
+        window.sendBgColor = sendBgColor
+        window.sendFgColor = sendFgColor
+        window.sendReset = sendReset
+        window.sendTextLine = sendTextLine
+        window.updateBatter = updateBatter
+        window.updateBase = updateBase
+        window.updateGame = updateGame
+        window.updateCount = updateCount
+        window.updateInning = updateInning
+        window.disableWin = disableWin
+        window.disableClose = disableClose
+        window.sendMlbGame = sendMlbGame
+        window.sendNhlGame = sendNhlGame
+        window.sendNflGame = sendNflGame
+        window.sendElection = sendElection
 
         console.log = (function (old_log, log) { 
             return function () {
@@ -64,6 +86,124 @@
                 pix.classList.toggle("matrix-cell-grid");
             });
         }
+
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            menu.classList.toggle('show');
+        }
+
+        function selectCommand(command) {
+            const noParams = ['clear', 'reset', 'send_election', 'reconnect', 'get_pixels', 'toggle_grid'];
+            const paramsDiv = document.getElementById('parameters');
+            if (noParams.includes(command)) {
+                // Execute immediately
+                switch (command) {
+                    case 'clear': sendClear(); break;
+                    case 'reset': sendReset(); break;
+                    case 'send_election': sendElection(); break;
+                    case 'reconnect': reconnect(); break;
+                    case 'get_pixels': getPixels(); break;
+                    case 'toggle_grid': toggleGrid(); break;
+                }
+                paramsDiv.style.display = 'none';
+                toggleMenu();
+            } else {
+                // Show parameters
+                console.log("command:",command)
+                document.getElementById('command_select').value = command;
+                showParameters();
+                toggleMenu();
+            }
+        }
+
+        function closeParameters() {
+            const paramsDiv = document.getElementById('parameters');
+            paramsDiv.style.display = 'none';
+        }
+
+        function showParameters() {
+            const command = document.getElementById('command_select').value;
+            const paramsDiv = document.getElementById('parameters');
+            paramsDiv.innerHTML = '<div style="text-align:right;"><button onclick="closeParameters()" style="background:none;border:none;color:#e0e0e0;font-size:20px;cursor:pointer;">&times;</button></div><h4>' + command.replace(/_/g, ' ').toUpperCase() + '</h4>';
+            paramsDiv.style.display = 'block';
+            console.log("command2:",command)
+            switch (command) {
+                case 'set_template':
+                    paramsDiv.innerHTML += '<label>Template:</label><select id="template"><option>clock</option><option>base</option><option>gmonster</option><option>tick</option><option>timer</option><option>weather</option><option>xmas</option></select><br><input type="button" value="Execute" onclick="sendTemplate(document.getElementById(\'template\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'clear':
+                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="sendClear();">';
+                    break;
+                case 'reset':
+                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="sendReset();">';
+                    break;
+                case 'brightness':
+                    paramsDiv.innerHTML = '<label>Brightness (0-255):</label><input id="brightness_val" type="range" min="0" max="255" value="128" oninput="sendBright(this.value);"><span id="brightness_display">128</span><script>document.getElementById(\'brightness_val\').addEventListener(\'input\', function() { document.getElementById(\'brightness_display\').textContent = this.value; });<\/script>';
+                    break;
+                case 'auto_template':
+                    paramsDiv.innerHTML += '<label>Argument:</label><input id="auto_arg" type="number" value="0"><br><input type="button" value="Execute" onclick="sendAutoTemplate(document.getElementById(\'auto_arg\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'bgcolor':
+                    paramsDiv.innerHTML += '<label>R:</label><input id="bg_r" type="number" min="0" max="255" value="0"><label>G:</label><input id="bg_g" type="number" min="0" max="255" value="0"><label>B:</label><input id="bg_b" type="number" min="0" max="255" value="0"><br><input type="button" value="Execute" onclick="sendBgColor(document.getElementById(\'bg_r\').value, document.getElementById(\'bg_g\').value, document.getElementById(\'bg_b\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'fgcolor':
+                    paramsDiv.innerHTML += '<label>R:</label><input id="fg_r" type="number" min="0" max="255" value="255"><label>G:</label><input id="fg_g" type="number" min="0" max="255" value="255"><label>B:</label><input id="fg_b" type="number" min="0" max="255" value="255"><br><input type="button" value="Execute" onclick="sendFgColor(document.getElementById(\'fg_r\').value, document.getElementById(\'fg_g\').value, document.getElementById(\'fg_b\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'text':
+                    paramsDiv.innerHTML += '<label>Message:</label><input id="send_text" type="text"><br><label>Size:</label><input id="text_size" type="number" value="16"><br><label>X:</label><input id="pos_x" type="number" value="0"><label>Y:</label><input id="pos_y" type="number" value="0"><br><input type="button" value="Execute" onclick="sendText(document.getElementById(\'send_text\').value, document.getElementById(\'text_size\').value, document.getElementById(\'pos_x\').value, document.getElementById(\'pos_y\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'text_line':
+                    paramsDiv.innerHTML += '<label>Message:</label><input id="send_text" type="text"><br><label>Line:</label><input id="text_line" type="number" value="1"><br><input type="button" value="Execute" onclick="sendTextLine(document.getElementById(\'send_text\').value, document.getElementById(\'text_line\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'send_box':
+                    paramsDiv.innerHTML += '<label>Message:</label><input id="box_msg" type="text"><br><label>Box:</label><input id="box" type="text" value="team"><br><label>Side:</label><select id="side"><option>away</option><option>home</option></select><br><label>Inning:</label><input id="inning" type="number"><br><label>Team:</label><input id="team" type="text"><br><label>Game:</label><input id="game" type="text"><br><input type="button" value="Execute" onclick="sendBox(document.getElementById(\'box_msg\').value, document.getElementById(\'box\').value, document.getElementById(\'side\').value, document.getElementById(\'inning\').value, document.getElementById(\'team\').value, document.getElementById(\'game\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'update_batter':
+                    paramsDiv.innerHTML += '<label>Batter Number:</label><input id="batter_num" type="number"><br><input type="button" value="Execute" onclick="updateBatter(document.getElementById(\'batter_num\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'update_base':
+                    paramsDiv.innerHTML += '<label>Base:</label><select id="base"><option>first</option><option>second</option><option>third</option></select><br><label>Occupied:</label><input id="base_val" type="checkbox"><br><input type="button" value="Execute" onclick="updateBase(document.getElementById(\'base\').value, document.getElementById(\'base_val\').checked);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'update_game':
+                    paramsDiv.innerHTML += '<label>Status:</label><input id="game_status" type="text"><br><input type="button" value="Execute" onclick="updateGame(document.getElementById(\'game_status\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'update_count':
+                    paramsDiv.innerHTML += '<label>Count:</label><select id="count_name"><option>balls</option><option>strikes</option><option>outs</option></select><br><label>Number:</label><input id="count_num" type="number" value="0"><br><input type="button" value="Execute" onclick="updateCount(document.getElementById(\'count_name\').value, document.getElementById(\'count_num\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'update_inning':
+                    paramsDiv.innerHTML += '<label>Inning:</label><input id="inning_num" type="number" value="1"><br><label>Status:</label><input id="inning_status" type="text"><br><input type="button" value="Execute" onclick="updateInning(document.getElementById(\'inning_num\').value, document.getElementById(\'inning_status\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'disable_win':
+                    paramsDiv.innerHTML += '<label>Disable:</label><input id="disable_win_val" type="checkbox" checked><br><input type="button" value="Execute" onclick="disableWin(document.getElementById(\'disable_win_val\').checked.toString());"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'disable_close':
+                    paramsDiv.innerHTML += '<label>Disable:</label><input id="disable_close_val" type="checkbox" checked><br><input type="button" value="Execute" onclick="disableClose(document.getElementById(\'disable_close_val\').checked.toString());"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'send_mlb_game':
+                    paramsDiv.innerHTML += '<label>Game PK:</label><input id="mlb_pk" type="text"><br><input type="button" value="Execute" onclick="sendMlbGame(document.getElementById(\'mlb_pk\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'send_nhl_game':
+                    paramsDiv.innerHTML += '<label>Game PK:</label><input id="nhl_pk" type="text"><br><input type="button" value="Execute" onclick="sendNhlGame(document.getElementById(\'nhl_pk\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'send_nfl_game':
+                    paramsDiv.innerHTML += '<label>Game PK:</label><input id="nfl_pk" type="text"><br><input type="button" value="Execute" onclick="sendNflGame(document.getElementById(\'nfl_pk\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
+                    break;
+                case 'send_election':
+                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="sendElection();">';
+                    break;
+                case 'reconnect':
+                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="reconnect();">';
+                    break;
+                case 'get_pixels':
+                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="getPixels();">';
+                    break;
+                case 'toggle_grid':
+                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="toggleGrid();">';
+                    break;
+                default:
+                    break;
+            }
+        }
     </script>
     <style>
         body {
@@ -81,11 +221,19 @@
         .container {
             display: flex;
             width: 100%;
-            height: 100vh;
+            height: calc(100vh - 48px);
+            margin-top: 48px;
             border: none;
         }
 
-        .left-panel,
+        .left-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding: 20px;
+        }
         .right-panel {
             flex: 1;
             display: flex;
@@ -99,8 +247,11 @@
             height: auto;
         }
         .matrix {
-            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
             display: flex;
+            z-index: 1;
         }
         .matrix-row {
             display: flex;
@@ -137,36 +288,155 @@
             padding: 10px;
             box-sizing: border-box;
         }
+
+        .hamburger {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        .hamburger div {
+            width: 25px;
+            height: 3px;
+            background-color: #e0e0e0;
+            margin: 5px 0;
+            transition: 0.3s;
+        }
+
+        .menu {
+            position: fixed;
+            top: 50px;
+            right: 10px;
+            background-color: #333;
+            border: 1px solid #555;
+            border-radius: 5px;
+            display: none;
+            z-index: 999;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .menu.show {
+            display: block;
+        }
+        .menu optgroup {
+            display: block;
+            margin: 10px;
+        }
+        .menu optgroup label {
+            display: block;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .menu button {
+            display: block;
+            width: 100%;
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            padding: 5px 10px;
+            text-align: left;
+            cursor: pointer;
+        }
+        .menu button:hover {
+            background-color: #555;
+        }
     </style>
 </head>
 
 <body>
+    <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+    <div class="menu" id="menu">
+        <div>
+            <label>Templates</label>
+            <button onclick="selectCommand('set_template')">Set Template</button>
+        </div>
+        <div>
+            <label>Basic</label>
+            <button onclick="selectCommand('clear')">Clear</button>
+            <button onclick="selectCommand('reset')">Reset</button>
+            <button onclick="selectCommand('brightness')">Brightness</button>
+            <button onclick="selectCommand('auto_template')">Auto Template</button>
+        </div>
+        <div>
+            <label>Colors</label>
+            <button onclick="selectCommand('bgcolor')">Background Color</button>
+            <button onclick="selectCommand('fgcolor')">Foreground Color</button>
+        </div>
+        <div>
+            <label>Text</label>
+            <button onclick="selectCommand('text')">Send Text</button>
+            <button onclick="selectCommand('text_line')">Send Text Line</button>
+        </div>
+        <div>
+            <label>Box</label>
+            <button onclick="selectCommand('send_box')">Send Box</button>
+        </div>
+        <div>
+            <label>Game Updates</label>
+            <button onclick="selectCommand('update_batter')">Update Batter</button>
+            <button onclick="selectCommand('update_base')">Update Base</button>
+            <button onclick="selectCommand('update_game')">Update Game</button>
+            <button onclick="selectCommand('update_count')">Update Count</button>
+            <button onclick="selectCommand('update_inning')">Update Inning</button>
+        </div>
+        <div>
+            <label>Disable</label>
+            <button onclick="selectCommand('disable_win')">Disable Win</button>
+            <button onclick="selectCommand('disable_close')">Disable Close</button>
+        </div>
+        <div>
+            <label>Sports</label>
+            <button onclick="selectCommand('send_mlb_game')">Send MLB Game</button>
+            <button onclick="selectCommand('send_nhl_game')">Send NHL Game</button>
+            <button onclick="selectCommand('send_nfl_game')">Send NFL Game</button>
+            <button onclick="selectCommand('send_election')">Send Election</button>
+        </div>
+        <div>
+            <label>Other</label>
+            <button onclick="selectCommand('reconnect')">Reconnect</button>
+            <button onclick="selectCommand('get_pixels')">Get Pixels</button>
+            <button onclick="selectCommand('toggle_grid')">Toggle Grid</button>
+        </div>
+    </div>
 
     <div class="container">
         <div id="matrix_preview", class="matrix">
             <script>generateMatrixOfDivs(document.querySelector('#matrix_preview'), 24, 448)</script>
         </div>
         <div class="left-panel">
-            <input id="clock_btn" type="button" value="clock" onclick="sendTemplate('clock');" />
-            <input id="base_btn" type="button" value="base" onclick="sendTemplate('base');" />
-            <input id="gmonster_btn" type="button" value="gmonster" onclick="sendTemplate('gmonster');" />
-            <input id="clear_btn" type="button" value="clear" onclick="sendClear();" />
-            <input id="bright1_btn" type="button" value="bright-1" onclick="sendBright(1);" />
-            <input id="bright2_btn" type="button" value="bright-2" onclick="sendBright(2);" />
-            <input id="bright2_btn" type="button" value="bright-5" onclick="sendBright(5);" />
-            <input id="reconnect_btn" type="button" value="reconnect" onclick="reconnect();" />
-            <input id="get_pixels_btn" type="button" value="get_pixels" onclick="getPixels();" />
-            <input id="toggle_grid_btn" type="button" value="toggle_grid" onclick="toggleGrid();" />
-            <input id="send_text" type="text" />
-            <input id="text_size" type="text", value="16" />
-            <input id="pos_x" type="text", value="0" />
-            <input id="pos_y" type="text", value="0" />
-            <input id="bright2_btn" type="button" value="Send Text" onclick="sendText(
-                document.getElementById('send_text').value,
-                document.getElementById('text_size').value,
-                document.getElementById('pos_x').value,
-                document.getElementById('pos_y').value,
-            );" />
+            <select id="command_select" style="display:none;">
+                <option value="set_template">Set Template</option>
+                <option value="clear">Clear</option>
+                <option value="reset">Reset</option>
+                <option value="brightness">Brightness</option>
+                <option value="auto_template">Auto Template</option>
+                <option value="bgcolor">Background Color</option>
+                <option value="fgcolor">Foreground Color</option>
+                <option value="text">Send Text</option>
+                <option value="text_line">Send Text Line</option>
+                <option value="send_box">Send Box</option>
+                <option value="update_batter">Update Batter</option>
+                <option value="update_base">Update Base</option>
+                <option value="update_game">Update Game</option>
+                <option value="update_count">Update Count</option>
+                <option value="update_inning">Update Inning</option>
+                <option value="disable_win">Disable Win</option>
+                <option value="disable_close">Disable Close</option>
+                <option value="send_mlb_game">Send MLB Game</option>
+                <option value="send_nhl_game">Send NHL Game</option>
+                <option value="send_nfl_game">Send NFL Game</option>
+                <option value="send_election">Send Election</option>
+                <option value="reconnect">Reconnect</option>
+                <option value="get_pixels">Get Pixels</option>
+                <option value="toggle_grid">Toggle Grid</option>
+            </select>
+            <div id="parameters" style="margin-top: 20px; border: 1px solid #555; padding: 10px; min-height: 100px; display:none;"></div>
         </div>
         <div class="right-panel">
             <div class="log-window" id="logWindow"><p>Log Messages:</p></div>
