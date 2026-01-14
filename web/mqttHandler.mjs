@@ -45,13 +45,13 @@ function onConnect() {
     client.subscribe(MQTT_TOPIC_TEST_SUB);
 }
 
-function processPixels(payload) {
+export function processPixels(payload) {
     //console.log("processPixels: Start")
     const pixels = JSON.parse(payload);
     window.pixels = pixels
     const canvas = document.getElementById('matrix_canvas');
     const ctx = canvas.getContext('2d');
-    const scale = canvas.width === 448 ? 2 : 2; // Both use 2 for visibility
+    const scale = parseInt(localStorage.getItem('pixel-scale')) || 2; // Default to 2 if not set
     for (const [key, value] of Object.entries(pixels)) {
         const x = parseInt(key.substring(0,3));
         const y = parseInt(key.substring(3,6));

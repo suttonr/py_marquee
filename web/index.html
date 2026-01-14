@@ -639,6 +639,13 @@
 
                     <div class="card">
                         <h3><i class="fas fa-cog"></i> System</h3>
+                        <div class="form-group">
+                            <label for="pixel-scale">Pixel Scale</label>
+                            <div class="range-slider">
+                                <input type="range" id="pixel-scale" min="1" max="10" value="2" oninput="updatePixelScaleValue(this.value)">
+                                <span class="range-value" id="pixel-scale-value">2</span>
+                            </div>
+                        </div>
                         <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
                             <label for="dark-mode" style="margin-bottom: 0; font-size: 1rem;">Dark Mode</label>
                             <label class="toggle-switch">
@@ -939,7 +946,7 @@
     <!-- Import MQTT Handler -->
     <script type="module">
         import {
-            sendTemplate, sendClear, sendBright, sendText, getPixels, reconnect,
+            sendTemplate, sendClear, sendBright, sendText, getPixels, reconnect, processPixels,
             sendAutoTemplate, sendBox, sendBgColor, sendFgColor, sendReset, sendTextLine,
             updateBatter, updateBase, updateGame, updateCount, updateInning, disableWin, disableClose,
             sendMlbGame, sendNhlGame, sendNflGame, sendElection
@@ -952,6 +959,7 @@
         window.sendText = sendText;
         window.getPixels = getPixels;
         window.reconnect = reconnect;
+        window.processPixels = processPixels;
         window.sendAutoTemplate = sendAutoTemplate;
         window.sendBox = sendBox;
         window.sendBgColor = sendBgColor;
@@ -1007,6 +1015,16 @@
         // Brightness slider update
         function updateBrightnessValue(value) {
             document.getElementById('brightness-value').textContent = value;
+        }
+
+        // Pixel scale slider update
+        function updatePixelScaleValue(value) {
+            document.getElementById('pixel-scale-value').textContent = value;
+            localStorage.setItem('pixel-scale', value);
+            // Refresh canvas to apply new scale
+            if (window.pixels) {
+                processPixels(JSON.stringify(window.pixels));
+            }
         }
 
         // Logging system
@@ -1111,6 +1129,15 @@
         } else {
             // Initialize with default 30s refresh if no saved value
             startAutoRefresh(30);
+        }
+
+        // Load saved pixel scale
+        const savedPixelScale = localStorage.getItem('pixel-scale');
+        if (savedPixelScale !== null) {
+            const pixelScaleSlider = document.getElementById('pixel-scale');
+            const pixelScaleValue = document.getElementById('pixel-scale-value');
+            pixelScaleSlider.value = savedPixelScale;
+            pixelScaleValue.textContent = savedPixelScale;
         }
 
         // Color picker functionality
