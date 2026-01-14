@@ -11,6 +11,7 @@ from neomatrix.matrix import matrix
 from neomatrix.font import *
 from marquee.marquee import marquee
 from templates.clock import clock
+from templates.xmas import xmas
 from templates.timer import timer
 from templates.gmonster import gmonster
 from templates.base import base
@@ -141,7 +142,7 @@ def new_message(client, userdata, msg):
         if "marquee/template/gmonster/game" in topic:
             check_template(gmonster)
             topic_split = topic.split("/")
-            if ( not template.disable_close and message.decode() in ("F", "FT") ):
+            if ( not template.disable_close and message.decode() in ("F", "FT", "UR") ):
                 template.__del__()
                 template = clock(board, weather=local_weather)
             else:
@@ -271,6 +272,7 @@ def setup():
     process_bright(5)
     local_weather = weather(board, clear=False)
     template =  clock(board, weather=local_weather)
+    #template = xmas(board)
     time.sleep(2)
     # Start listening for mqtt
     m.loop_start()
