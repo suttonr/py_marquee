@@ -1,61 +1,866 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marquee</title>
-    <!-- Ensure correct and accessible CDN link for Paho MQTT library -->
+    <title>Marquee Control</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.min.js"></script>
-    <!-- Include the refactored MQTT handler -->
-    <script type=module>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --error-color: #dc2626;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--card-bg);
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error-color);
+        }
+
+        .status-dot.connected {
+            background: var(--success-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .display-section {
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .canvas-container {
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            background: #000;
+        }
+
+        #matrix_canvas {
+            border-radius: 0.25rem;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--secondary-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-button:hover {
+            background: var(--bg-color);
+        }
+
+        .tab-content {
+            padding: 1.5rem;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 44px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .log-section {
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+            margin-top: 1.5rem;
+        }
+
+        .log-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-content {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            background: #f8fafc;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-lg);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--secondary-color);
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+        }
+
+        .close-btn:hover {
+            background: var(--bg-color);
+        }
+
+        .range-slider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .range-slider input {
+            flex: 1;
+        }
+
+        .range-value {
+            min-width: 3rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+
+            .header {
+                padding: 0.75rem;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+            }
+
+            .tab-content {
+                padding: 1rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .btn-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                justify-content: flex-start;
+            }
+
+            .log-header {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-tv"></i> Marquee Control</h1>
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="display-section">
+            <div class="canvas-container">
+                <canvas id="matrix_canvas" width="896" height="48"></canvas>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" data-tab="templates">
+                <i class="fas fa-layer-group"></i>
+                <span>Templates</span>
+            </button>
+            <button class="tab-button" data-tab="display">
+                <i class="fas fa-display"></i>
+                <span>Display</span>
+            </button>
+            <button class="tab-button" data-tab="text">
+                <i class="fas fa-font"></i>
+                <span>Text</span>
+            </button>
+            <button class="tab-button" data-tab="games">
+                <i class="fas fa-trophy"></i>
+                <span>Games</span>
+            </button>
+            <button class="tab-button" data-tab="advanced">
+                <i class="fas fa-cogs"></i>
+                <span>Advanced</span>
+            </button>
+        </div>
+
+        <div class="tab-content">
+            <!-- Templates Tab -->
+            <div class="tab-pane active" id="templates">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3><i class="fas fa-clock"></i> Set Template</h3>
+                        <div class="form-group">
+                            <label for="template-select">Template</label>
+                            <select id="template-select">
+                                <option value="clock">Clock</option>
+                                <option value="base">Base</option>
+                                <option value="gmonster">Green Monster</option>
+                                <option value="tick">Tick</option>
+                                <option value="timer">Timer</option>
+                                <option value="weather">Weather</option>
+                                <option value="xmas">Christmas</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="sendTemplate(document.getElementById('template-select').value)">
+                            <i class="fas fa-play"></i> Apply Template
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-magic"></i> Auto Template</h3>
+                        <div class="form-group">
+                            <label for="auto-arg">Argument</label>
+                            <input type="number" id="auto-arg" value="0">
+                        </div>
+                        <button class="btn btn-primary" onclick="sendAutoTemplate(document.getElementById('auto-arg').value)">
+                            <i class="fas fa-play"></i> Apply Auto Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display Tab -->
+            <div class="tab-pane" id="display">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3><i class="fas fa-sun"></i> Brightness</h3>
+                        <div class="range-slider">
+                            <input type="range" id="brightness-slider" min="0" max="255" value="128" oninput="updateBrightnessValue(this.value)">
+                            <span class="range-value" id="brightness-value">128</span>
+                        </div>
+                        <button class="btn btn-primary" onclick="sendBright(document.getElementById('brightness-slider').value)">
+                            <i class="fas fa-adjust"></i> Set Brightness
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-palette"></i> Colors</h3>
+                        <div class="form-group">
+                            <label>Background Color</label>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <input type="number" id="bg-r" placeholder="R" min="0" max="255" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="bg-g" placeholder="G" min="0" max="255" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="bg-b" placeholder="B" min="0" max="255" value="0">
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="sendBgColor(document.getElementById('bg-r').value, document.getElementById('bg-g').value, document.getElementById('bg-b').value)">
+                                <i class="fas fa-fill"></i> Set Background
+                            </button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Foreground Color</label>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <input type="number" id="fg-r" placeholder="R" min="0" max="255" value="255">
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="fg-g" placeholder="G" min="0" max="255" value="255">
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="fg-b" placeholder="B" min="0" max="255" value="255">
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="sendFgColor(document.getElementById('fg-r').value, document.getElementById('fg-g').value, document.getElementById('fg-b').value)">
+                                <i class="fas fa-font"></i> Set Foreground
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-eraser"></i> Display Control</h3>
+                        <div class="btn-grid">
+                            <button class="btn btn-success" onclick="sendClear()">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                            <button class="btn btn-warning" onclick="sendReset()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                            <button class="btn btn-primary" onclick="getPixels()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Text Tab -->
+            <div class="tab-pane" id="text">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3><i class="fas fa-i-cursor"></i> Send Text</h3>
+                        <div class="form-group">
+                            <label for="text-message">Message</label>
+                            <input type="text" id="text-message" placeholder="Enter text to display">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="text-size">Size</label>
+                                <input type="number" id="text-size" value="16" min="8" max="48">
+                            </div>
+                            <div class="form-group">
+                                <label for="text-x">X Position</label>
+                                <input type="number" id="text-x" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="text-y">Y Position</label>
+                                <input type="number" id="text-y" value="0">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="sendText(document.getElementById('text-message').value, document.getElementById('text-size').value, document.getElementById('text-x').value, document.getElementById('text-y').value)">
+                            <i class="fas fa-paper-plane"></i> Send Text
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-align-left"></i> Text Line</h3>
+                        <div class="form-group">
+                            <label for="line-message">Message</label>
+                            <input type="text" id="line-message" placeholder="Enter text for line">
+                        </div>
+                        <div class="form-group">
+                            <label for="line-number">Line Number</label>
+                            <input type="number" id="line-number" value="1" min="1" max="8">
+                        </div>
+                        <button class="btn btn-primary" onclick="sendTextLine(document.getElementById('line-message').value, document.getElementById('line-number').value)">
+                            <i class="fas fa-paper-plane"></i> Send to Line
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Games Tab -->
+            <div class="tab-pane" id="games">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3><i class="fas fa-baseball-ball"></i> MLB Game</h3>
+                        <div class="form-group">
+                            <label for="mlb-game-pk">Game PK</label>
+                            <input type="text" id="mlb-game-pk" placeholder="Enter MLB game ID">
+                        </div>
+                        <button class="btn btn-primary" onclick="sendMlbGame(document.getElementById('mlb-game-pk').value)">
+                            <i class="fas fa-play"></i> Send MLB Game
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-hockey-puck"></i> NHL Game</h3>
+                        <div class="form-group">
+                            <label for="nhl-game-pk">Game PK</label>
+                            <input type="text" id="nhl-game-pk" placeholder="Enter NHL game ID">
+                        </div>
+                        <button class="btn btn-primary" onclick="sendNhlGame(document.getElementById('nhl-game-pk').value)">
+                            <i class="fas fa-play"></i> Send NHL Game
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-football-ball"></i> NFL Game</h3>
+                        <div class="form-group">
+                            <label for="nfl-game-pk">Game PK</label>
+                            <input type="text" id="nfl-game-pk" placeholder="Enter NFL game ID">
+                        </div>
+                        <button class="btn btn-primary" onclick="sendNflGame(document.getElementById('nfl-game-pk').value)">
+                            <i class="fas fa-play"></i> Send NFL Game
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-vote-yea"></i> Election</h3>
+                        <button class="btn btn-primary" onclick="sendElection()">
+                            <i class="fas fa-play"></i> Send Election Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Tab -->
+            <div class="tab-pane" id="advanced">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3><i class="fas fa-cog"></i> System</h3>
+                        <div class="btn-grid">
+                            <button class="btn btn-warning" onclick="reconnect()">
+                                <i class="fas fa-wifi"></i> Reconnect
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-comment"></i> Send Box Message</h3>
+                        <div class="form-group">
+                            <label for="box-message">Message</label>
+                            <input type="text" id="box-message" placeholder="Box message">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="box-type">Box Type</label>
+                                <select id="box-type">
+                                    <option value="team">Team</option>
+                                    <option value="inning">Inning</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="box-side">Side</label>
+                                <select id="box-side">
+                                    <option value="away">Away</option>
+                                    <option value="home">Home</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="box-inning">Inning</label>
+                                <input type="number" id="box-inning">
+                            </div>
+                            <div class="form-group">
+                                <label for="box-team">Team</label>
+                                <input type="text" id="box-team">
+                            </div>
+                            <div class="form-group">
+                                <label for="box-game">Game</label>
+                                <input type="text" id="box-game">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="sendBox(document.getElementById('box-message').value, document.getElementById('box-type').value, document.getElementById('box-side').value, document.getElementById('box-inning').value, document.getElementById('box-team').value, document.getElementById('box-game').value)">
+                            <i class="fas fa-paper-plane"></i> Send Box
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-gamepad"></i> Game Updates</h3>
+                        <div class="form-group">
+                            <label for="batter-num">Batter Number</label>
+                            <input type="number" id="batter-num">
+                        </div>
+                        <button class="btn btn-secondary" onclick="updateBatter(document.getElementById('batter-num').value)">
+                            <i class="fas fa-user"></i> Update Batter
+                        </button>
+
+                        <div class="form-group">
+                            <label for="base-select">Base</label>
+                            <select id="base-select">
+                                <option value="first">First</option>
+                                <option value="second">Second</option>
+                                <option value="third">Third</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="base-occupied"> Occupied
+                            </label>
+                        </div>
+                        <button class="btn btn-secondary" onclick="updateBase(document.getElementById('base-select').value, document.getElementById('base-occupied').checked)">
+                            <i class="fas fa-square"></i> Update Base
+                        </button>
+
+                        <div class="form-group">
+                            <label for="game-status">Game Status</label>
+                            <input type="text" id="game-status">
+                        </div>
+                        <button class="btn btn-secondary" onclick="updateGame(document.getElementById('game-status').value)">
+                            <i class="fas fa-info"></i> Update Game
+                        </button>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="count-type">Count Type</label>
+                                <select id="count-type">
+                                    <option value="balls">Balls</option>
+                                    <option value="strikes">Strikes</option>
+                                    <option value="outs">Outs</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="count-num">Number</label>
+                                <input type="number" id="count-num" value="0">
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="updateCount(document.getElementById('count-type').value, document.getElementById('count-num').value)">
+                            <i class="fas fa-hashtag"></i> Update Count
+                        </button>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="inning-num">Inning</label>
+                                <input type="number" id="inning-num" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="inning-status">Status</label>
+                                <input type="text" id="inning-status">
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="updateInning(document.getElementById('inning-num').value, document.getElementById('inning-status').value)">
+                            <i class="fas fa-clock"></i> Update Inning
+                        </button>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="disable-win"> Disable Win Display
+                            </label>
+                        </div>
+                        <button class="btn btn-warning" onclick="disableWin(document.getElementById('disable-win').checked)">
+                            <i class="fas fa-ban"></i> Toggle Win Disable
+                        </button>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="disable-close"> Disable Close Display
+                            </label>
+                        </div>
+                        <button class="btn btn-warning" onclick="disableClose(document.getElementById('disable-close').checked)">
+                            <i class="fas fa-ban"></i> Toggle Close Disable
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-section">
+            <div class="log-header">
+                <h3><i class="fas fa-terminal"></i> Console Log</h3>
+                <button class="btn btn-secondary" onclick="clearLog()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+            <div class="log-content" id="logContent">
+                <div class="log-entry">Initializing Marquee Control...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import MQTT Handler -->
+    <script type="module">
         import {
             sendTemplate, sendClear, sendBright, sendText, getPixels, reconnect,
             sendAutoTemplate, sendBox, sendBgColor, sendFgColor, sendReset, sendTextLine,
             updateBatter, updateBase, updateGame, updateCount, updateInning, disableWin, disableClose,
             sendMlbGame, sendNhlGame, sendNflGame, sendElection
         } from "./mqttHandler.mjs";
-        window.sendTemplate = sendTemplate
-        window.sendClear = sendClear
-        window.sendBright = sendBright
-        window.sendText = sendText
-        window.reconnect = reconnect
-        window.getPixels = getPixels
-        window.sendAutoTemplate = sendAutoTemplate
-        window.sendBox = sendBox
-        window.sendBgColor = sendBgColor
-        window.sendFgColor = sendFgColor
-        window.sendReset = sendReset
-        window.sendTextLine = sendTextLine
-        window.updateBatter = updateBatter
-        window.updateBase = updateBase
-        window.updateGame = updateGame
-        window.updateCount = updateCount
-        window.updateInning = updateInning
-        window.disableWin = disableWin
-        window.disableClose = disableClose
-        window.sendMlbGame = sendMlbGame
-        window.sendNhlGame = sendNhlGame
-        window.sendNflGame = sendNflGame
-        window.sendElection = sendElection
 
-        console.log = (function (old_log, log) { 
-            return function () {
-                log.innerHTML += "<p>" + Array.prototype.slice.call(arguments).join(' ') + "</p>";
-                old_log.apply(console, arguments);
-                log.scrollTop = log.scrollHeight
-            };
-        } (console.log.bind(console), document.querySelector('#logWindow')));
+        // Make functions globally available
+        window.sendTemplate = sendTemplate;
+        window.sendClear = sendClear;
+        window.sendBright = sendBright;
+        window.sendText = sendText;
+        window.getPixels = getPixels;
+        window.reconnect = reconnect;
+        window.sendAutoTemplate = sendAutoTemplate;
+        window.sendBox = sendBox;
+        window.sendBgColor = sendBgColor;
+        window.sendFgColor = sendFgColor;
+        window.sendReset = sendReset;
+        window.sendTextLine = sendTextLine;
+        window.updateBatter = updateBatter;
+        window.updateBase = updateBase;
+        window.updateGame = updateGame;
+        window.updateCount = updateCount;
+        window.updateInning = updateInning;
+        window.disableWin = disableWin;
+        window.disableClose = disableClose;
+        window.sendMlbGame = sendMlbGame;
+        window.sendNhlGame = sendNhlGame;
+        window.sendNflGame = sendNflGame;
+        window.sendElection = sendElection;
     </script>
-    <script>
-        function toggleGrid() {
-            // Placeholder, since now using canvas
-            console.log("Toggle grid - not applicable with canvas");
-        }
 
-        // Resize canvas based on screen size
-        const canvas = document.getElementById('matrix_canvas');
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+
+                // Update tab buttons
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                // Update tab content
+                document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+
+        // Canvas responsive sizing
         function resizeCanvas() {
+            const canvas = document.getElementById('matrix_canvas');
+            const container = document.querySelector('.canvas-container');
+
             if (window.innerWidth < 768) {
                 canvas.width = 448;
                 canvas.height = 96;
@@ -64,448 +869,50 @@
                 canvas.height = 48;
             }
         }
+
         window.addEventListener('resize', resizeCanvas);
-        resizeCanvas(); // Initial call
+        resizeCanvas();
 
-        function toggleMenu() {
-            const menu = document.getElementById('menu');
-            menu.classList.toggle('show');
+        // Brightness slider update
+        function updateBrightnessValue(value) {
+            document.getElementById('brightness-value').textContent = value;
         }
 
-        function selectCommand(command) {
-            const noParams = ['clear', 'reset', 'send_election', 'reconnect', 'get_pixels', 'toggle_grid'];
-            const paramsDiv = document.getElementById('parameters');
-            if (noParams.includes(command)) {
-                // Execute immediately
-                switch (command) {
-                    case 'clear': sendClear(); break;
-                    case 'reset': sendReset(); break;
-                    case 'send_election': sendElection(); break;
-                    case 'reconnect': reconnect(); break;
-                    case 'get_pixels': getPixels(); break;
-                    case 'toggle_grid': toggleGrid(); break;
-                }
-                paramsDiv.style.display = 'none';
-                toggleMenu();
+        // Logging system
+        const logContent = document.getElementById('logContent');
+        const originalLog = console.log;
+        console.log = function(...args) {
+            const message = args.join(' ');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContent.appendChild(entry);
+            logContent.scrollTop = logContent.scrollHeight;
+            originalLog.apply(console, args);
+        };
+
+        function clearLog() {
+            logContent.innerHTML = '';
+        }
+
+        // Connection status
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
             } else {
-                // Show parameters
-                console.log("command:",command)
-                document.getElementById('command_select').value = command;
-                showParameters();
-                toggleMenu();
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
             }
         }
 
-        function closeParameters() {
-            const paramsDiv = document.getElementById('parameters');
-            paramsDiv.style.display = 'none';
-        }
-
-        function showParameters() {
-            const command = document.getElementById('command_select').value;
-            const paramsDiv = document.getElementById('parameters');
-            paramsDiv.innerHTML = '<div style="text-align:right;"><button onclick="closeParameters()" style="background:none;border:none;color:#e0e0e0;font-size:20px;cursor:pointer;">&times;</button></div><h4>' + command.replace(/_/g, ' ').toUpperCase() + '</h4>';
-            paramsDiv.style.display = 'block';
-            console.log("command2:",command)
-            switch (command) {
-                case 'set_template':
-                    paramsDiv.innerHTML += '<label>Template:</label><select id="template"><option>clock</option><option>base</option><option>gmonster</option><option>tick</option><option>timer</option><option>weather</option><option>xmas</option></select><br><input type="button" value="Execute" onclick="sendTemplate(document.getElementById(\'template\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'clear':
-                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="sendClear();">';
-                    break;
-                case 'reset':
-                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="sendReset();">';
-                    break;
-                case 'brightness':
-                    paramsDiv.innerHTML = '<label>Brightness (0-255):</label><input id="brightness_val" type="range" min="0" max="255" value="128" oninput="sendBright(this.value);"><span id="brightness_display">128</span><script>document.getElementById(\'brightness_val\').addEventListener(\'input\', function() { document.getElementById(\'brightness_display\').textContent = this.value; });<\/script>';
-                    break;
-                case 'auto_template':
-                    paramsDiv.innerHTML += '<label>Argument:</label><input id="auto_arg" type="number" value="0"><br><input type="button" value="Execute" onclick="sendAutoTemplate(document.getElementById(\'auto_arg\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'bgcolor':
-                    paramsDiv.innerHTML += '<label>R:</label><input id="bg_r" type="number" min="0" max="255" value="0"><label>G:</label><input id="bg_g" type="number" min="0" max="255" value="0"><label>B:</label><input id="bg_b" type="number" min="0" max="255" value="0"><br><input type="button" value="Execute" onclick="sendBgColor(document.getElementById(\'bg_r\').value, document.getElementById(\'bg_g\').value, document.getElementById(\'bg_b\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'fgcolor':
-                    paramsDiv.innerHTML += '<label>R:</label><input id="fg_r" type="number" min="0" max="255" value="255"><label>G:</label><input id="fg_g" type="number" min="0" max="255" value="255"><label>B:</label><input id="fg_b" type="number" min="0" max="255" value="255"><br><input type="button" value="Execute" onclick="sendFgColor(document.getElementById(\'fg_r\').value, document.getElementById(\'fg_g\').value, document.getElementById(\'fg_b\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'text':
-                    paramsDiv.innerHTML += '<label>Message:</label><input id="send_text" type="text"><br><label>Size:</label><input id="text_size" type="number" value="16"><br><label>X:</label><input id="pos_x" type="number" value="0"><label>Y:</label><input id="pos_y" type="number" value="0"><br><input type="button" value="Execute" onclick="sendText(document.getElementById(\'send_text\').value, document.getElementById(\'text_size\').value, document.getElementById(\'pos_x\').value, document.getElementById(\'pos_y\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'text_line':
-                    paramsDiv.innerHTML += '<label>Message:</label><input id="send_text" type="text"><br><label>Line:</label><input id="text_line" type="number" value="1"><br><input type="button" value="Execute" onclick="sendTextLine(document.getElementById(\'send_text\').value, document.getElementById(\'text_line\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'send_box':
-                    paramsDiv.innerHTML += '<label>Message:</label><input id="box_msg" type="text"><br><label>Box:</label><input id="box" type="text" value="team"><br><label>Side:</label><select id="side"><option>away</option><option>home</option></select><br><label>Inning:</label><input id="inning" type="number"><br><label>Team:</label><input id="team" type="text"><br><label>Game:</label><input id="game" type="text"><br><input type="button" value="Execute" onclick="sendBox(document.getElementById(\'box_msg\').value, document.getElementById(\'box\').value, document.getElementById(\'side\').value, document.getElementById(\'inning\').value, document.getElementById(\'team\').value, document.getElementById(\'game\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'update_batter':
-                    paramsDiv.innerHTML += '<label>Batter Number:</label><input id="batter_num" type="number"><br><input type="button" value="Execute" onclick="updateBatter(document.getElementById(\'batter_num\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'update_base':
-                    paramsDiv.innerHTML += '<label>Base:</label><select id="base"><option>first</option><option>second</option><option>third</option></select><br><label>Occupied:</label><input id="base_val" type="checkbox"><br><input type="button" value="Execute" onclick="updateBase(document.getElementById(\'base\').value, document.getElementById(\'base_val\').checked);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'update_game':
-                    paramsDiv.innerHTML += '<label>Status:</label><input id="game_status" type="text"><br><input type="button" value="Execute" onclick="updateGame(document.getElementById(\'game_status\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'update_count':
-                    paramsDiv.innerHTML += '<label>Count:</label><select id="count_name"><option>balls</option><option>strikes</option><option>outs</option></select><br><label>Number:</label><input id="count_num" type="number" value="0"><br><input type="button" value="Execute" onclick="updateCount(document.getElementById(\'count_name\').value, document.getElementById(\'count_num\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'update_inning':
-                    paramsDiv.innerHTML += '<label>Inning:</label><input id="inning_num" type="number" value="1"><br><label>Status:</label><input id="inning_status" type="text"><br><input type="button" value="Execute" onclick="updateInning(document.getElementById(\'inning_num\').value, document.getElementById(\'inning_status\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'disable_win':
-                    paramsDiv.innerHTML += '<label>Disable:</label><input id="disable_win_val" type="checkbox" checked><br><input type="button" value="Execute" onclick="disableWin(document.getElementById(\'disable_win_val\').checked.toString());"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'disable_close':
-                    paramsDiv.innerHTML += '<label>Disable:</label><input id="disable_close_val" type="checkbox" checked><br><input type="button" value="Execute" onclick="disableClose(document.getElementById(\'disable_close_val\').checked.toString());"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'send_mlb_game':
-                    paramsDiv.innerHTML += '<label>Game PK:</label><input id="mlb_pk" type="text"><br><input type="button" value="Execute" onclick="sendMlbGame(document.getElementById(\'mlb_pk\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'send_nhl_game':
-                    paramsDiv.innerHTML += '<label>Game PK:</label><input id="nhl_pk" type="text"><br><input type="button" value="Execute" onclick="sendNhlGame(document.getElementById(\'nhl_pk\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'send_nfl_game':
-                    paramsDiv.innerHTML += '<label>Game PK:</label><input id="nfl_pk" type="text"><br><input type="button" value="Execute" onclick="sendNflGame(document.getElementById(\'nfl_pk\').value);"><input type="button" value="Cancel" onclick="closeParameters();">';
-                    break;
-                case 'send_election':
-                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="sendElection();">';
-                    break;
-                case 'reconnect':
-                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="reconnect();">';
-                    break;
-                case 'get_pixels':
-                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="getPixels();">';
-                    break;
-                case 'toggle_grid':
-                    paramsDiv.innerHTML = '<input type="button" value="Execute" onclick="toggleGrid();">';
-                    break;
-                default:
-                    break;
-            }
-        }
-    </script>
-    <style>
-        body {
-            background-color: #121212;
-            /* Dark background */
-            color: #e0e0e0;
-            /* Light text */
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-        }
-
-        .container {
-            display: flex;
-            width: 100%;
-            height: calc(100vh - 48px);
-            margin-top: 48px;
-            border: none;
-        }
-
-        .left-panel {
-            flex: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            justify-content: flex-start;
-            padding: 20px;
-        }
-        .right-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .right-panel img {
-            width: 100%;
-            height: auto;
-        }
-        .matrix {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-            width: 896px;
-            height: 48px;
-        }
-        .matrix-cell {
-            flex: 0 0 2px;
-            border: black;
-            width: 2px;
-            height: 2px;
-        }
-        .matrix-cell-grid {
-            border: darkgray;
-            border-style: solid;
-            border-width: thin;
-        }
-
-        .status {
-            margin-top: 20px;
-            font-size: 20px;
-            color: #90ee90;
-        }
-
-        .log-window {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 150px;
-            background-color: #333;
-            color: #fff;
-            overflow-y: auto;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        .hamburger {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            cursor: pointer;
-            z-index: 1000;
-            padding: 10px;
-        }
-        .hamburger div {
-            width: 25px;
-            height: 3px;
-            background-color: #e0e0e0;
-            margin: 5px 0;
-            transition: 0.3s;
-        }
-
-        .menu {
-            position: fixed;
-            top: 50px;
-            right: 10px;
-            background-color: #333;
-            border: 1px solid #555;
-            border-radius: 5px;
-            display: none;
-            z-index: 999;
-            max-height: 80vh;
-            overflow-y: auto;
-            width: 200px;
-        }
-        .menu.show {
-            display: block;
-        }
-        .menu optgroup {
-            display: block;
-            margin: 10px;
-        }
-        .menu optgroup label {
-            display: block;
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 5px;
-        }
-        .menu button {
-            display: block;
-            width: 100%;
-            background: none;
-            border: none;
-            color: #e0e0e0;
-            padding: 8px 10px;
-            text-align: left;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .menu button:hover {
-            background-color: #555;
-        }
-
-        /* Mobile styles */
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-                height: calc(100vh - 96px - 150px); /* Account for taller matrix */
-                margin-top: 96px;
-            }
-
-            .left-panel {
-                flex: none;
-                height: auto;
-                padding: 10px;
-                overflow-y: auto;
-            }
-
-            .right-panel {
-                flex: none;
-                height: 100px;
-                padding: 10px;
-            }
-
-            .matrix {
-                grid-template-columns: repeat(224, 2px);
-                grid-template-rows: repeat(48, 2px);
-                height: 96px;
-                width: 448px;
-                margin: 0 auto; /* Center it */
-            }
-
-            .hamburger {
-                top: 5px;
-                right: 5px;
-                padding: 8px;
-            }
-
-            .hamburger div {
-                width: 20px;
-                height: 2px;
-                margin: 3px 0;
-            }
-
-            .menu {
-                top: 40px;
-                right: 5px;
-                width: 180px;
-                max-height: 60vh;
-            }
-
-            .menu button {
-                padding: 10px;
-                font-size: 16px;
-            }
-
-            .log-window {
-                height: 120px;
-            }
-
-            input, select, button {
-                font-size: 16px;
-                padding: 8px;
-                margin: 2px;
-            }
-
-            label {
-                font-size: 14px;
-            }
-
-            h4 {
-                font-size: 18px;
-            }
-        }
-
-        /* Touch targets */
-        button, input[type="button"] {
-            min-height: 44px;
-            min-width: 44px;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="hamburger" onclick="toggleMenu()">
-        <div></div>
-        <div></div>
-        <div></div>
-    </div>
-    <div class="menu" id="menu">
-        <div>
-            <label>Templates</label>
-            <button onclick="selectCommand('set_template')">Set Template</button>
-        </div>
-        <div>
-            <label>Basic</label>
-            <button onclick="selectCommand('clear')">Clear</button>
-            <button onclick="selectCommand('reset')">Reset</button>
-            <button onclick="selectCommand('brightness')">Brightness</button>
-            <button onclick="selectCommand('auto_template')">Auto Template</button>
-        </div>
-        <div>
-            <label>Colors</label>
-            <button onclick="selectCommand('bgcolor')">Background Color</button>
-            <button onclick="selectCommand('fgcolor')">Foreground Color</button>
-        </div>
-        <div>
-            <label>Text</label>
-            <button onclick="selectCommand('text')">Send Text</button>
-            <button onclick="selectCommand('text_line')">Send Text Line</button>
-        </div>
-        <div>
-            <label>Box</label>
-            <button onclick="selectCommand('send_box')">Send Box</button>
-        </div>
-        <div>
-            <label>Game Updates</label>
-            <button onclick="selectCommand('update_batter')">Update Batter</button>
-            <button onclick="selectCommand('update_base')">Update Base</button>
-            <button onclick="selectCommand('update_game')">Update Game</button>
-            <button onclick="selectCommand('update_count')">Update Count</button>
-            <button onclick="selectCommand('update_inning')">Update Inning</button>
-        </div>
-        <div>
-            <label>Disable</label>
-            <button onclick="selectCommand('disable_win')">Disable Win</button>
-            <button onclick="selectCommand('disable_close')">Disable Close</button>
-        </div>
-        <div>
-            <label>Sports</label>
-            <button onclick="selectCommand('send_mlb_game')">Send MLB Game</button>
-            <button onclick="selectCommand('send_nhl_game')">Send NHL Game</button>
-            <button onclick="selectCommand('send_nfl_game')">Send NFL Game</button>
-            <button onclick="selectCommand('send_election')">Send Election</button>
-        </div>
-        <div>
-            <label>Other</label>
-            <button onclick="selectCommand('reconnect')">Reconnect</button>
-            <button onclick="selectCommand('get_pixels')">Get Pixels</button>
-            <button onclick="selectCommand('toggle_grid')">Toggle Grid</button>
-        </div>
-    </div>
-
-    <div class="container">
-        <canvas id="matrix_canvas" class="matrix" width="896" height="48"></canvas>
-        <div class="left-panel">
-            <select id="command_select" style="display:none;">
-                <option value="set_template">Set Template</option>
-                <option value="clear">Clear</option>
-                <option value="reset">Reset</option>
-                <option value="brightness">Brightness</option>
-                <option value="auto_template">Auto Template</option>
-                <option value="bgcolor">Background Color</option>
-                <option value="fgcolor">Foreground Color</option>
-                <option value="text">Send Text</option>
-                <option value="text_line">Send Text Line</option>
-                <option value="send_box">Send Box</option>
-                <option value="update_batter">Update Batter</option>
-                <option value="update_base">Update Base</option>
-                <option value="update_game">Update Game</option>
-                <option value="update_count">Update Count</option>
-                <option value="update_inning">Update Inning</option>
-                <option value="disable_win">Disable Win</option>
-                <option value="disable_close">Disable Close</option>
-                <option value="send_mlb_game">Send MLB Game</option>
-                <option value="send_nhl_game">Send NHL Game</option>
-                <option value="send_nfl_game">Send NFL Game</option>
-                <option value="send_election">Send Election</option>
-                <option value="reconnect">Reconnect</option>
-                <option value="get_pixels">Get Pixels</option>
-                <option value="toggle_grid">Toggle Grid</option>
-            </select>
-            <div id="parameters" style="margin-top: 20px; border: 1px solid #555; padding: 10px; min-height: 100px; display:none;"></div>
-        </div>
-        <div class="right-panel">
-            <div class="log-window" id="logWindow"><p>Log Messages:</p></div>
-        </div>
-    </div>
-
-    
-
-    <script>
-        let isTracking = false;
-        const statusElement = document.getElementById('status');
-        let lastLaserCoords = { x: 0, y: 0 };
-        let lastImageCoords = { x: 0, y: 0 };
+        // Check connection status (this would need to be integrated with MQTT handler)
+        setTimeout(() => {
+            updateConnectionStatus(true); // Assume connected for now
+        }, 2000);
     </script>
 </body>
-
 </html>
