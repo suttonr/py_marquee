@@ -48,17 +48,22 @@ function onConnect() {
 function processPixels(payload) {
     console.log("processPixels: Start")
     const pixels = JSON.parse(payload);
-    console.log("processPixels: Parsed")
     window.pixels = pixels
+    const canvas = document.getElementById('matrix_canvas');
+    const ctx = canvas.getContext('2d');
+    // Clear canvas to black
+    //ctx.fillStyle = 'black';
+    //ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Draw pixels
+    const scale = canvas.width === 448 ? 2 : 2; // Both use 2 for visibility
     for (const [key, value] of Object.entries(pixels)) {
-        //console.log(`${key}: ${value}`);
         const x = parseInt(key.substring(0,3));
         const y = parseInt(key.substring(3,6));
-        const pixelDiv = document.querySelector(`#pix-${x}-${y}`)
-
-        if ( pixelDiv !== null ) {
-            pixelDiv.style.backgroundColor = `rgb(${value.join(',')})`
-        }
+        let drawX, drawY;
+        drawX = x;
+        drawY = y;
+        ctx.fillStyle = `rgb(${value[0]},${value[1]},${value[2]})`;
+        ctx.fillRect(drawX * scale, drawY * scale, scale, scale);
     }
     console.log("processPixels: End")
 }
@@ -90,13 +95,12 @@ export function sendBright(brightness) {
 
 // Get pixel status
 export function getPixels() {
-    //const payload = new Uint8Array([parseInt(brightness)])
     const message = new Paho.Message("");
     message.destinationName = "marquee/get_pixels";
-    const pixel_divs = document.querySelectorAll('.matrix-cell');
-    pixel_divs.forEach((pix) => {
-        pix.style.backgroundColor = "black"
-    });
+    const canvas = document.getElementById('matrix_canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     client.send(message);
 }
 

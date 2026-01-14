@@ -48,44 +48,24 @@
         } (console.log.bind(console), document.querySelector('#logWindow')));
     </script>
     <script>
-        function generateMatrixOfDivs(container, rows, cols) {
-          const matrixContainer = document.createElement('div');
-          matrixContainer.classList.add('matrix-container');
-
-          for (let i = 0; i < rows; i++) {
-            const rowDiv = document.createElement('div');
-            rowDiv.classList.add('matrix-row');
-        
-            for (let j = 0; j < cols; j++) {
-              const cellDiv = document.createElement('div');
-              cellDiv.classList.add('matrix-cell');
-              // Add content to the cell if needed
-              cellDiv.id = `pix-${j}-${i}`; 
-              cellDiv.onclick = setXY;
-            
-              rowDiv.appendChild(cellDiv);
-            }
-        
-            matrixContainer.appendChild(rowDiv);
-          }
-      
-          container.appendChild(matrixContainer);
-        }
-
-        function setXY(){
-            console.log("onClick:",event.srcElement.id)
-            idSplit = event.srcElement.id.split('-')
-            document.querySelector('#pos_x').value = idSplit[1]
-            document.querySelector('#pos_y').value = idSplit[2]
-        }
-
         function toggleGrid() {
-            console.log("onClick:",event.srcElement.id);
-            const pixel_divs = document.querySelectorAll('.matrix-cell');
-            pixel_divs.forEach((pix) => {
-                pix.classList.toggle("matrix-cell-grid");
-            });
+            // Placeholder, since now using canvas
+            console.log("Toggle grid - not applicable with canvas");
         }
+
+        // Resize canvas based on screen size
+        const canvas = document.getElementById('matrix_canvas');
+        function resizeCanvas() {
+            if (window.innerWidth < 768) {
+                canvas.width = 448;
+                canvas.height = 96;
+            } else {
+                canvas.width = 896;
+                canvas.height = 48;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // Initial call
 
         function toggleMenu() {
             const menu = document.getElementById('menu');
@@ -250,16 +230,12 @@
             position: absolute;
             top: 0;
             left: 0;
-            display: flex;
             z-index: 1;
-        }
-        .matrix-row {
-            display: flex;
-            flex-direction: row;
+            width: 896px;
+            height: 48px;
         }
         .matrix-cell {
-            display: flex;
-            flex-direction: column;
+            flex: 0 0 2px;
             border: black;
             width: 2px;
             height: 2px;
@@ -295,6 +271,7 @@
             right: 10px;
             cursor: pointer;
             z-index: 1000;
+            padding: 10px;
         }
         .hamburger div {
             width: 25px;
@@ -315,6 +292,7 @@
             z-index: 999;
             max-height: 80vh;
             overflow-y: auto;
+            width: 200px;
         }
         .menu.show {
             display: block;
@@ -335,12 +313,91 @@
             background: none;
             border: none;
             color: #e0e0e0;
-            padding: 5px 10px;
+            padding: 8px 10px;
             text-align: left;
             cursor: pointer;
+            font-size: 14px;
         }
         .menu button:hover {
             background-color: #555;
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: calc(100vh - 96px - 150px); /* Account for taller matrix */
+                margin-top: 96px;
+            }
+
+            .left-panel {
+                flex: none;
+                height: auto;
+                padding: 10px;
+                overflow-y: auto;
+            }
+
+            .right-panel {
+                flex: none;
+                height: 100px;
+                padding: 10px;
+            }
+
+            .matrix {
+                grid-template-columns: repeat(224, 2px);
+                grid-template-rows: repeat(48, 2px);
+                height: 96px;
+                width: 448px;
+                margin: 0 auto; /* Center it */
+            }
+
+            .hamburger {
+                top: 5px;
+                right: 5px;
+                padding: 8px;
+            }
+
+            .hamburger div {
+                width: 20px;
+                height: 2px;
+                margin: 3px 0;
+            }
+
+            .menu {
+                top: 40px;
+                right: 5px;
+                width: 180px;
+                max-height: 60vh;
+            }
+
+            .menu button {
+                padding: 10px;
+                font-size: 16px;
+            }
+
+            .log-window {
+                height: 120px;
+            }
+
+            input, select, button {
+                font-size: 16px;
+                padding: 8px;
+                margin: 2px;
+            }
+
+            label {
+                font-size: 14px;
+            }
+
+            h4 {
+                font-size: 18px;
+            }
+        }
+
+        /* Touch targets */
+        button, input[type="button"] {
+            min-height: 44px;
+            min-width: 44px;
         }
     </style>
 </head>
@@ -406,9 +463,7 @@
     </div>
 
     <div class="container">
-        <div id="matrix_preview", class="matrix">
-            <script>generateMatrixOfDivs(document.querySelector('#matrix_preview'), 24, 448)</script>
-        </div>
+        <canvas id="matrix_canvas" class="matrix" width="896" height="48"></canvas>
         <div class="left-panel">
             <select id="command_select" style="display:none;">
                 <option value="set_template">Set Template</option>
