@@ -21,6 +21,15 @@
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
+        [data-theme="dark"] {
+            --bg-color: #1f2937;
+            --card-bg: #374151;
+            --text-color: #f9fafb;
+            --border-color: #4b5563;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -322,6 +331,12 @@
             font-family: 'Monaco', 'Menlo', monospace;
             font-size: 0.875rem;
             background: #f8fafc;
+            color: var(--text-color);
+        }
+
+        [data-theme="dark"] .log-content {
+            background: #000000;
+            color: #ffffff;
         }
 
         .modal {
@@ -405,6 +420,55 @@
             font-weight: 600;
         }
 
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .toggle-slider:hover {
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 0.5rem;
@@ -463,7 +527,6 @@
         <div class="right-controls">
             <i class="fas fa-sync refresh-icon" id="manual-refresh" title="Manual Refresh"></i>
             <div class="refresh-control">
-                <label for="refresh-interval">Auto Refresh:</label>
                 <select id="refresh-interval">
                     <option value="0">Off</option>
                     <option value="5">5s</option>
@@ -551,51 +614,12 @@
                     <div class="card">
                         <h3><i class="fas fa-sun"></i> Brightness</h3>
                         <div class="range-slider">
-                            <input type="range" id="brightness-slider" min="0" max="255" value="128" oninput="updateBrightnessValue(this.value)">
-                            <span class="range-value" id="brightness-value">128</span>
+                            <input type="range" id="brightness-slider" min="0" max="100" value="5" oninput="updateBrightnessValue(this.value)">
+                            <span class="range-value" id="brightness-value">5</span>
                         </div>
                         <button class="btn btn-primary" onclick="sendBright(document.getElementById('brightness-slider').value)">
                             <i class="fas fa-adjust"></i> Set Brightness
                         </button>
-                    </div>
-
-                    <div class="card">
-                        <h3><i class="fas fa-palette"></i> Colors</h3>
-                        <div class="form-group">
-                            <label>Background Color</label>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <input type="number" id="bg-r" placeholder="R" min="0" max="255" value="0">
-                                </div>
-                                <div class="form-group">
-                                    <input type="number" id="bg-g" placeholder="G" min="0" max="255" value="0">
-                                </div>
-                                <div class="form-group">
-                                    <input type="number" id="bg-b" placeholder="B" min="0" max="255" value="0">
-                                </div>
-                            </div>
-                            <button class="btn btn-secondary" onclick="sendBgColor(document.getElementById('bg-r').value, document.getElementById('bg-g').value, document.getElementById('bg-b').value)">
-                                <i class="fas fa-fill"></i> Set Background
-                            </button>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Foreground Color</label>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <input type="number" id="fg-r" placeholder="R" min="0" max="255" value="255">
-                                </div>
-                                <div class="form-group">
-                                    <input type="number" id="fg-g" placeholder="G" min="0" max="255" value="255">
-                                </div>
-                                <div class="form-group">
-                                    <input type="number" id="fg-b" placeholder="B" min="0" max="255" value="255">
-                                </div>
-                            </div>
-                            <button class="btn btn-secondary" onclick="sendFgColor(document.getElementById('fg-r').value, document.getElementById('fg-g').value, document.getElementById('fg-b').value)">
-                                <i class="fas fa-font"></i> Set Foreground
-                            </button>
-                        </div>
                     </div>
 
                     <div class="card">
@@ -609,6 +633,22 @@
                             </button>
                             <button class="btn btn-primary" onclick="getPixels()">
                                 <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-cog"></i> System</h3>
+                        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+                            <label for="dark-mode" style="margin-bottom: 0; font-size: 1rem;">Dark Mode</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="dark-mode">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="btn-grid">
+                            <button class="btn btn-warning" onclick="reconnect()">
+                                <i class="fas fa-wifi"></i> Reconnect
                             </button>
                         </div>
                     </div>
@@ -656,6 +696,45 @@
                         <button class="btn btn-primary" onclick="sendTextLine(document.getElementById('line-message').value, document.getElementById('line-number').value)">
                             <i class="fas fa-paper-plane"></i> Send to Line
                         </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-palette"></i> Colors</h3>
+                        <div class="form-group">
+                            <label>Background Color</label>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <input type="number" id="bg-r" placeholder="R" min="0" max="255" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="bg-g" placeholder="G" min="0" max="255" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="bg-b" placeholder="B" min="0" max="255" value="0">
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="sendBgColor(document.getElementById('bg-r').value, document.getElementById('bg-g').value, document.getElementById('bg-b').value)">
+                                <i class="fas fa-fill"></i> Set Background
+                            </button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Foreground Color</label>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <input type="number" id="fg-r" placeholder="R" min="0" max="255" value="255">
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="fg-g" placeholder="G" min="0" max="255" value="255">
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="fg-b" placeholder="B" min="0" max="255" value="255">
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="sendFgColor(document.getElementById('fg-r').value, document.getElementById('fg-g').value, document.getElementById('fg-b').value)">
+                                <i class="fas fa-font"></i> Set Foreground
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -708,15 +787,6 @@
             <!-- Advanced Tab -->
             <div class="tab-pane" id="advanced">
                 <div class="card-grid">
-                    <div class="card">
-                        <h3><i class="fas fa-cog"></i> System</h3>
-                        <div class="btn-grid">
-                            <button class="btn btn-warning" onclick="reconnect()">
-                                <i class="fas fa-wifi"></i> Reconnect
-                            </button>
-                        </div>
-                    </div>
-
                     <div class="card">
                         <h3><i class="fas fa-comment"></i> Send Box Message</h3>
                         <div class="form-group">
@@ -1009,6 +1079,24 @@
 
         // Initialize with default 30s refresh
         startAutoRefresh(30);
+
+        // Dark mode functionality
+        document.getElementById('dark-mode').addEventListener('change', function() {
+            if (this.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('dark-mode').checked = true;
+        }
     </script>
 </body>
 </html>
