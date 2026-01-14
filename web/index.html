@@ -46,6 +46,48 @@
             z-index: 100;
         }
 
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .right-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .refresh-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .refresh-control select {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            background: var(--card-bg);
+            color: var(--text-color);
+            font-size: 0.875rem;
+        }
+
+        .refresh-icon {
+            cursor: pointer;
+            color: var(--primary-color);
+            transition: color 0.2s;
+        }
+
+        .refresh-icon:hover {
+            color: #1d4ed8;
+        }
+
+        .refresh-icon:active {
+            transform: rotate(180deg);
+        }
+
         .header h1 {
             font-size: 1.5rem;
             font-weight: 600;
@@ -418,9 +460,22 @@
 <body>
     <div class="header">
         <h1><i class="fas fa-tv"></i> Marquee Control</h1>
-        <div class="status">
-            <span class="status-dot" id="statusDot"></span>
-            <span id="statusText">Connecting...</span>
+        <div class="right-controls">
+            <i class="fas fa-sync refresh-icon" id="manual-refresh" title="Manual Refresh"></i>
+            <div class="refresh-control">
+                <label for="refresh-interval">Auto Refresh:</label>
+                <select id="refresh-interval">
+                    <option value="0">Off</option>
+                    <option value="5">5s</option>
+                    <option value="10">10s</option>
+                    <option value="30" selected>30s</option>
+                    <option value="60">60s</option>
+                </select>
+            </div>
+            <div class="status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Connecting...</span>
+            </div>
         </div>
     </div>
 
@@ -913,6 +968,47 @@
         setTimeout(() => {
             updateConnectionStatus(true); // Assume connected for now
         }, 2000);
+
+        // Auto refresh functionality
+        let refreshIntervalId = null;
+
+        function startAutoRefresh(intervalSeconds) {
+            if (refreshIntervalId) {
+                clearInterval(refreshIntervalId);
+            }
+            if (intervalSeconds > 0) {
+                refreshIntervalId = setInterval(() => {
+                    console.log(`Auto-refreshing canvas (${intervalSeconds}s interval)`);
+                    getPixels();
+                }, intervalSeconds * 1000);
+                console.log(`Auto-refresh enabled: ${intervalSeconds}s`);
+            } else {
+                console.log('Auto-refresh disabled');
+            }
+        }
+
+        function stopAutoRefresh() {
+            if (refreshIntervalId) {
+                clearInterval(refreshIntervalId);
+                refreshIntervalId = null;
+                console.log('Auto-refresh stopped');
+            }
+        }
+
+        // Refresh interval dropdown handler
+        document.getElementById('refresh-interval').addEventListener('change', function() {
+            const intervalSeconds = parseInt(this.value);
+            startAutoRefresh(intervalSeconds);
+        });
+
+        // Manual refresh icon handler
+        document.getElementById('manual-refresh').addEventListener('click', function() {
+            console.log('Manual refresh triggered');
+            getPixels();
+        });
+
+        // Initialize with default 30s refresh
+        startAutoRefresh(30);
     </script>
 </body>
 </html>

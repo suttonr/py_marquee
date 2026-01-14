@@ -46,15 +46,11 @@ function onConnect() {
 }
 
 function processPixels(payload) {
-    console.log("processPixels: Start")
+    //console.log("processPixels: Start")
     const pixels = JSON.parse(payload);
     window.pixels = pixels
     const canvas = document.getElementById('matrix_canvas');
     const ctx = canvas.getContext('2d');
-    // Clear canvas to black
-    //ctx.fillStyle = 'black';
-    //ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Draw pixels
     const scale = canvas.width === 448 ? 2 : 2; // Both use 2 for visibility
     for (const [key, value] of Object.entries(pixels)) {
         const x = parseInt(key.substring(0,3));
@@ -65,7 +61,6 @@ function processPixels(payload) {
         ctx.fillStyle = `rgb(${value[0]},${value[1]},${value[2]})`;
         ctx.fillRect(drawX * scale, drawY * scale, scale, scale);
     }
-    console.log("processPixels: End")
 }
 
 export function reconnect() {
