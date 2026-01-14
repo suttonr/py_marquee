@@ -89,7 +89,7 @@ export function sendTemplate(template) {
 export function sendBright(brightness) {
     const payload = new Uint8Array([parseInt(brightness)])
     const message = new Paho.Message(payload);
-    message.destinationName = "marquee/bright";
+    message.destinationName = "esp32/test/bright";
     client.send(message);
 }
 
@@ -116,7 +116,7 @@ export function sendText(message_text="", size=16, x=0, y=8) {
     console.log("address", address)
     console.log("mtext", mtext)
     const message = new Paho.Message(payload);
-    message.destinationName = `marquee/text/${size}`;
+    message.destinationName = `esp32/test/text/${size}`;
     client.send(message);
 }
 
@@ -130,7 +130,7 @@ export function sendImage(file, x_offset=0, y_offset=0, x_start=0, y_start=0, x_
 // Clear display
 export function sendClear() {
     const message = new Paho.Message("");
-    message.destinationName = "marquee/clear";
+    message.destinationName = "esp32/test/clear";
     client.send(message);
 }
 
@@ -159,7 +159,7 @@ export function sendBox(message, box, side, inning=null, team=null, game=null) {
 export function sendBgColor(r=0, g=0, b=0) {
     const payload = new Uint8Array([r, g, b]);
     const message = new Paho.Message(payload);
-    message.destinationName = "marquee/bgcolor";
+    message.destinationName = "esp32/test/bgcolor";
     client.send(message);
 }
 
@@ -167,21 +167,21 @@ export function sendBgColor(r=0, g=0, b=0) {
 export function sendFgColor(r=0, g=0, b=0) {
     const payload = new Uint8Array([r, g, b]);
     const message = new Paho.Message(payload);
-    message.destinationName = "marquee/fgcolor";
+    message.destinationName = "esp32/test/fgcolor";
     client.send(message);
 }
 
 // Reset display
 export function sendReset() {
     const message = new Paho.Message("");
-    message.destinationName = "marquee/reset";
+    message.destinationName = "esp32/test/reset";
     client.send(message);
 }
 
 // Send text to line
 export function sendTextLine(message, line=1) {
     const msg = new Paho.Message(message);
-    msg.destinationName = `marquee/${line}`;
+    msg.destinationName = `esp32/test/${line}`;
     client.send(msg);
 }
 
