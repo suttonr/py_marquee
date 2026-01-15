@@ -52,7 +52,15 @@ class base:
             print("Message error:", message)
 
     def update_message(self, message, anchor=(0,0), fgcolor=bytearray(b'\x00\x00\x00'), bgcolor=None):
-        for x,y,b in font_5x8(bytearray(message, encoding="utf-8"), fgcolor=fgcolor):
+        # Handle both string and bytearray inputs
+        if isinstance(message, str):
+            message_bytes = bytearray(message, encoding="utf-8")
+        elif isinstance(message, bytearray):
+            message_bytes = message
+        else:
+            message_bytes = bytearray(str(message), encoding="utf-8")
+
+        for x,y,b in font_5x8(message_bytes, fgcolor=fgcolor):
             self.marquee.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
     
     def update_message_2(self, message, fgcolor=bytearray(b'\x00\x00\x00'), bgcolor=None, font_size=16, anchor=(0,0)):
