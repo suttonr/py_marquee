@@ -331,10 +331,14 @@ def main():
 
 def writer_thread():
     global board
+    print("Writer thread started")
     board.send(True, False)
     full_refresh = 10
+    loop_count = 0
     while True:
+        loop_count += 1
         current_time = time.time()
+        print(f"Main loop iteration {loop_count}, time={current_time:.1f}, registered_animations={len(animation_callbacks)}")
 
         # Call registered animation callbacks
         for animation in animation_callbacks[:]:  # Copy list to avoid modification during iteration
@@ -357,6 +361,7 @@ def writer_thread():
         elif refresh:
             board.send(True)
         full_refresh -= 1
+        print(f"Sleeping for {PIXEL_TIME} seconds")
         time.sleep(PIXEL_TIME)
 
 if __name__ == '__main__':
