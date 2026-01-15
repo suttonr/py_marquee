@@ -199,20 +199,21 @@ def new_message(client, userdata, msg):
             loop = True
             y_offset = 0
 
-            # Parse optional parameters from topic
-            if len(topic_split) > 5:
+            # Parse optional parameters from topic (parameters start at index 4)
+            # Topic format: marquee/template/base/scrolltext/speed/direction/loop/y_offset
+            if len(topic_split) > 4:
                 try:
-                    speed = float(topic_split[5])
+                    speed = float(topic_split[4])
                 except (ValueError, IndexError):
                     pass
+            if len(topic_split) > 5:
+                if topic_split[5].lower() in ("left", "right"):
+                    direction = topic_split[5].lower()
             if len(topic_split) > 6:
-                if topic_split[6].lower() in ("left", "right"):
-                    direction = topic_split[6].lower()
+                loop = topic_split[6].lower() not in ("false", "0", "no")
             if len(topic_split) > 7:
-                loop = topic_split[7].lower() not in ("false", "0", "no")
-            if len(topic_split) > 8:
                 try:
-                    y_offset = int(topic_split[8])
+                    y_offset = int(topic_split[7])
                 except (ValueError, IndexError):
                     pass
 
