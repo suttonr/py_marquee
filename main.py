@@ -327,12 +327,18 @@ def setup():
     m.loop_start()
 
 def main():
+    print("Main function called, starting writer thread")
     writer_thread()
 
 def writer_thread():
     global board
     print("Writer thread started")
-    board.send(True, False)
+    try:
+        board.send(True, False)
+        print("Initial board.send() completed")
+    except Exception as e:
+        print(f"Error in initial board.send(): {e}")
+        return
     full_refresh = 10
     loop_count = 0
     while True:
