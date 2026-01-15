@@ -16,6 +16,10 @@ class matrix():
         self.dirty_pixels = []
         self.xoffset = xoffset
         self.yoffset = yoffset
+
+        # Precomputed constants for efficiency
+        self.header = b'\x0f'
+        self.spi_buffer = bytearray()
     
     def xy2i(self,x,y):
         if ( x & 0x01 ):
@@ -29,10 +33,18 @@ class matrix():
             self.dirty_pixels.append(address)
 
     def scale_color(self, color, scale):
+        if scale == 1.0:
+            return color
         ret = bytearray()
         for i in range(len(color)):
             ret += bytearray([int(math.sqrt(color[i] * color[i] * (scale/2)))])
         return ret
+
+    def construct_data(self, address, color):
+        port = self.yoffset + (self.xoffset * 3)
+        addr_part = ((port << 9) | address).to_bytes(2, "big")
+        color_part = color[1:2] + color[0:1] + color[2:3]
+        return self.header + addr_part + color_part
     
     def write_pixel(self, address, color):
         if self.mode == "NP":
@@ -48,29 +60,58 @@ class matrix():
         
 
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True, dirty_only=True):
+        # Initialize SPI buffer for batching
+        self.spi_buffer = bytearray()
+
+        to_remove = set()
+
         if dirty_only:
             for address in self.dirty_pixels:
-                self.write_pixel( self.xy2i(int(address[:3]),int(address[3:])), 
-                        self.scale_color(self.buffer[address], self.brightness)
-                    )
-                self.dirty_pixels.remove(address) if address in self.dirty_pixels else None
+                pixel_addr = self.xy2i(int(address[:3]), int(address[3:]))
+                color = self.scale_color(self.buffer[address], self.brightness)
+                if self.mode == "NP":
+                    self.np[pixel_addr] = color
+                else:  # SPI modes
+                    self.spi_buffer += self.construct_data(pixel_addr, color)
+                to_remove.add(address)
         elif not fill_background:
             for k in self.buffer:
                 if int(k[:3]) < self.width and int(k[3:]) < self.width:
-                    self.write_pixel( self.xy2i(int(k[:3]),int(k[3:])), 
-                        self.scale_color(self.buffer[k], self.brightness)
-                    )
+                    pixel_addr = self.xy2i(int(k[:3]), int(k[3:]))
+                    color = self.scale_color(self.buffer[k], self.brightness)
+                    if self.mode == "NP":
+                        self.np[pixel_addr] = color
+                    else:  # SPI modes
+                        self.spi_buffer += self.construct_data(pixel_addr, color)
         else:
             for y in range(self.height):
                 for x in range(self.width):
                     address = f"{x:03d}{y:03d}"
+                    pixel_addr = self.xy2i(x, y)
                     if address in self.buffer:
-                        self.write_pixel(self.xy2i(x,y), 
-                            self.scale_color(self.buffer[address], self.brightness)
-                        )
+                        color = self.scale_color(self.buffer[address], self.brightness)
                     else:
-                        self.write_pixel(self.xy2i(x,y), bgcolor)
-                    self.dirty_pixels.remove(address) if address in self.dirty_pixels else None
+                        color = bgcolor
+                    if self.mode == "NP":
+                        self.np[pixel_addr] = color
+                    else:  # SPI modes
+                        self.spi_buffer += self.construct_data(pixel_addr, color)
+                    if address in self.dirty_pixels:
+                        to_remove.add(address)
+
+        # Send batched SPI data
+        if self.spi_buffer:
+            if self.mode == "SPI":
+                self.cs(0)
+                self.np.write(self.spi_buffer)
+            elif self.mode == "PYSPI":
+                self.np.xfer3(self.spi_buffer, 48_000_000, 0, 8)
+
+        # Clean up dirty pixels
+        for addr in to_remove:
+            if addr in self.dirty_pixels:
+                self.dirty_pixels.remove(addr)
+
         if write_np and self.mode == "NP":
             self.np.write()
 
@@ -82,4 +123,3 @@ class matrix():
                 print( "x" if f"{xloc:03d}{yloc:03d}" in self.buffer else " ", end=" ")
             print(" ")
         return " "
-                
