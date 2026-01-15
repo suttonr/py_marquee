@@ -275,11 +275,13 @@ animation_callbacks = []  # List of {'callback': func, 'last_called': timestamp,
 
 def register_animation(callback, interval):
     """Register a callback to be called every 'interval' seconds by the main loop"""
+    print(f"Registering animation callback with interval {interval}")
     animation_callbacks.append({
         'callback': callback,
         'last_called': 0,
         'interval': interval
     })
+    print(f"Total registered animations: {len(animation_callbacks)}")
 
 def unregister_animation(callback):
     """Remove a callback from the animation registry"""
@@ -338,6 +340,7 @@ def writer_thread():
         for animation in animation_callbacks[:]:  # Copy list to avoid modification during iteration
             if current_time - animation['last_called'] >= animation['interval']:
                 try:
+                    print(f"Calling animation callback, interval: {animation['interval']}")
                     animation['callback'](current_time)
                     animation['last_called'] = current_time
                 except Exception as e:

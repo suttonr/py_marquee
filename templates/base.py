@@ -206,6 +206,9 @@ class base:
             if not state:
                 return  # Scroll was cancelled
 
+            # Debug: print scroll position
+            print(f"Scrolling '{state['text']}' at position {state['position']}")
+
             # Draw text at current position using TrueType font
             self.update_message_2(state['text'], fgcolor=state['fgcolor'], bgcolor=state['bgcolor'],
                                 font_size=state['font_size'], anchor=(state['position'], state['y_offset']))
