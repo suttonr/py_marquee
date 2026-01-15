@@ -60,9 +60,21 @@ class matrix():
         
 
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True, dirty_only=True):
-        # Collect all pixel data to send
-        pixel_data = []
         to_remove = set()
+        chunk_data = bytearray()
+        chunk_count = 0
+        chunk_size = 16  # Send 16 pixels at a time (96 bytes)
+
+        def send_chunk():
+            nonlocal chunk_data, chunk_count
+            if chunk_data:
+                if self.mode == "SPI":
+                    self.cs(0)
+                    self.np.write(chunk_data)
+                elif self.mode == "PYSPI":
+                    self.np.xfer3(chunk_data, 48_000_000, 0, 8)
+                chunk_data = bytearray()
+                chunk_count = 0
 
         if dirty_only:
             for address in self.dirty_pixels:
@@ -70,9 +82,12 @@ class matrix():
                 color = self.scale_color(self.buffer[address], self.brightness)
                 if self.mode == "NP":
                     self.np[pixel_addr] = color
-                else:  # SPI modes
+                else:  # SPI modes - send in chunks
                     data = self.construct_data(pixel_addr, color)
-                    pixel_data.append(data)
+                    chunk_data += data
+                    chunk_count += 1
+                    if chunk_count >= chunk_size:
+                        send_chunk()
                 to_remove.add(address)
         elif not fill_background:
             for k in self.buffer:
@@ -81,9 +96,12 @@ class matrix():
                     color = self.scale_color(self.buffer[k], self.brightness)
                     if self.mode == "NP":
                         self.np[pixel_addr] = color
-                    else:  # SPI modes
+                    else:  # SPI modes - send in chunks
                         data = self.construct_data(pixel_addr, color)
-                        pixel_data.append(data)
+                        chunk_data += data
+                        chunk_count += 1
+                        if chunk_count >= chunk_size:
+                            send_chunk()
         else:
             for y in range(self.height):
                 for x in range(self.width):
@@ -95,23 +113,17 @@ class matrix():
                         color = bgcolor
                     if self.mode == "NP":
                         self.np[pixel_addr] = color
-                    else:  # SPI modes
+                    else:  # SPI modes - send in chunks
                         data = self.construct_data(pixel_addr, color)
-                        pixel_data.append(data)
+                        chunk_data += data
+                        chunk_count += 1
+                        if chunk_count >= chunk_size:
+                            send_chunk()
                     if address in self.dirty_pixels:
                         to_remove.add(address)
 
-        # Send SPI data in chunks to avoid overwhelming hardware
-        if pixel_data:
-            chunk_size = 16  # Send 16 pixels at a time (96 bytes)
-            for i in range(0, len(pixel_data), chunk_size):
-                chunk = pixel_data[i:i + chunk_size]
-                spi_data = b''.join(chunk)
-                if self.mode == "SPI":
-                    self.cs(0)
-                    self.np.write(spi_data)
-                elif self.mode == "PYSPI":
-                    self.np.xfer3(spi_data, 48_000_000, 0, 8)
+        # Send any remaining chunk
+        send_chunk()
 
         # Clean up dirty pixels
         for addr in to_remove:
