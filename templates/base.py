@@ -41,8 +41,8 @@ class base:
     def __del__(self):
         # Cancel any active scroll animation
         if hasattr(self, '_scroll_callback') and self._scroll_callback:
-            from main import unregister_animation
-            unregister_animation(self._scroll_callback)
+            import main
+            main.unregister_animation(self._scroll_callback)
         print("base template destroyed")
 
     def process_raw(self, message):
@@ -163,11 +163,11 @@ class base:
             y_offset (int): Vertical offset for text position
             font_size (int): Font size for TrueType rendering (default: 16)
         """
-        from main import register_animation, unregister_animation
+        import main
 
         # Cancel any existing scroll timer/animation
         if hasattr(self, '_scroll_callback') and self._scroll_callback:
-            unregister_animation(self._scroll_callback)
+            main.unregister_animation(self._scroll_callback)
 
         # Set default colors
         if fgcolor is None:
@@ -224,7 +224,7 @@ class base:
                         # Stop scrolling
                         if scroll_id in self._scroll_state:
                             del self._scroll_state[scroll_id]
-                        unregister_animation(scroll_frame)
+                        main.unregister_animation(scroll_frame)
                         return
             else:  # right direction
                 state['position'] += 1
@@ -236,9 +236,9 @@ class base:
                         # Stop scrolling
                         if scroll_id in self._scroll_state:
                             del self._scroll_state[scroll_id]
-                        unregister_animation(scroll_frame)
+                        main.unregister_animation(scroll_frame)
                         return
 
         # Register with main loop instead of creating Timer thread
         self._scroll_callback = scroll_frame
-        register_animation(scroll_frame, speed)
+        main.register_animation(scroll_frame, speed)
