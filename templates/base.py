@@ -198,7 +198,9 @@ class base:
             'y_offset': y_offset,
             'font_size': font_size,
             'text_width': text_width,
-            'display_width': display_width
+            'display_width': display_width,
+            'subpixel_accumulator': 0,  # Accumulate subpixel movement
+            'pixel_step': 1,  # Move 1 pixel at a time for smooth visible motion
         }
 
         def scroll_frame(current_time):
@@ -206,8 +208,7 @@ class base:
             if not state:
                 return  # Scroll was cancelled
 
-            # Debug: print scroll position
-            # print(f"Scrolling '{state['text']}' at position {state['position']}")
+            # Draw text at current position using TrueType font
 
             # Draw text at current position using TrueType font
             self.update_message_2(state['text'], fgcolor=state['fgcolor'], bgcolor=state['bgcolor'],

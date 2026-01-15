@@ -70,8 +70,8 @@ class AnimationManager:
                     except ValueError:
                         pass  # Already removed
 
-            # Sleep for a short time to prevent busy waiting
-            time.sleep(0.01)  # 100 FPS animation processing
+            # Sleep to match display refresh rate (20 FPS = 0.05 seconds)
+            time.sleep(0.05)  # 20 FPS animation processing to match display loop
 
 # Global animation manager instance
 _animation_manager = None
