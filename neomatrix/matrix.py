@@ -60,9 +60,6 @@ class matrix():
         
 
     def send_np(self, fgcolor, bgcolor, fill_background=False, write_np=True, dirty_only=True):
-        # Initialize SPI buffer for batching
-        self.spi_buffer = bytearray()
-
         to_remove = set()
 
         if dirty_only:
@@ -71,8 +68,13 @@ class matrix():
                 color = self.scale_color(self.buffer[address], self.brightness)
                 if self.mode == "NP":
                     self.np[pixel_addr] = color
-                else:  # SPI modes
-                    self.spi_buffer += self.construct_data(pixel_addr, color)
+                else:  # SPI modes - send each pixel individually
+                    data = self.construct_data(pixel_addr, color)
+                    if self.mode == "SPI":
+                        self.cs(0)
+                        self.np.write(data)
+                    elif self.mode == "PYSPI":
+                        self.np.xfer3(data, 48_000_000, 0, 8)
                 to_remove.add(address)
         elif not fill_background:
             for k in self.buffer:
@@ -81,8 +83,13 @@ class matrix():
                     color = self.scale_color(self.buffer[k], self.brightness)
                     if self.mode == "NP":
                         self.np[pixel_addr] = color
-                    else:  # SPI modes
-                        self.spi_buffer += self.construct_data(pixel_addr, color)
+                    else:  # SPI modes - send each pixel individually
+                        data = self.construct_data(pixel_addr, color)
+                        if self.mode == "SPI":
+                            self.cs(0)
+                            self.np.write(data)
+                        elif self.mode == "PYSPI":
+                            self.np.xfer3(data, 48_000_000, 0, 8)
         else:
             for y in range(self.height):
                 for x in range(self.width):
@@ -94,18 +101,15 @@ class matrix():
                         color = bgcolor
                     if self.mode == "NP":
                         self.np[pixel_addr] = color
-                    else:  # SPI modes
-                        self.spi_buffer += self.construct_data(pixel_addr, color)
+                    else:  # SPI modes - send each pixel individually
+                        data = self.construct_data(pixel_addr, color)
+                        if self.mode == "SPI":
+                            self.cs(0)
+                            self.np.write(data)
+                        elif self.mode == "PYSPI":
+                            self.np.xfer3(data, 48_000_000, 0, 8)
                     if address in self.dirty_pixels:
                         to_remove.add(address)
-
-        # Send batched SPI data
-        if self.spi_buffer:
-            if self.mode == "SPI":
-                self.cs(0)
-                self.np.write(self.spi_buffer)
-            elif self.mode == "PYSPI":
-                self.np.xfer3(self.spi_buffer, 48_000_000, 0, 8)
 
         # Clean up dirty pixels
         for addr in to_remove:
