@@ -6,10 +6,11 @@ import threading
 import sys
 
 class AnimationManager:
-    def __init__(self):
+    def __init__(self, frame_rate=0.1):
         self.animation_callbacks = []  # List of {'callback': func, 'last_called': timestamp, 'interval': seconds}
         self.running = False
         self.thread = None
+        self.frame_rate = frame_rate
         self.lock = threading.Lock()
 
     def register_animation(self, callback, interval):
@@ -70,8 +71,7 @@ class AnimationManager:
                     except ValueError:
                         pass  # Already removed
 
-            # Sleep to match display refresh rate (20 FPS = 0.05 seconds)
-            time.sleep(0.05)  # 20 FPS animation processing to match display loop
+            time.sleep(self.frame_rate) 
 
 # Global animation manager instance
 _animation_manager = None
