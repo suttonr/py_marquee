@@ -45,22 +45,22 @@ function onConnect() {
     client.subscribe(MQTT_TOPIC_TEST_SUB);
 }
 
-function processPixels(payload) {
-    console.log("processPixels: Start")
+export function processPixels(payload) {
+    //console.log("processPixels: Start")
     const pixels = JSON.parse(payload);
-    console.log("processPixels: Parsed")
     window.pixels = pixels
+    const canvas = document.getElementById('matrix_canvas');
+    const ctx = canvas.getContext('2d');
+    const scale = parseInt(localStorage.getItem('pixel-scale')) || 2; // Default to 2 if not set
     for (const [key, value] of Object.entries(pixels)) {
-        //console.log(`${key}: ${value}`);
         const x = parseInt(key.substring(0,3));
         const y = parseInt(key.substring(3,6));
-        const pixelDiv = document.querySelector(`#pix-${x}-${y}`)
-
-        if ( pixelDiv !== null ) {
-            pixelDiv.style.backgroundColor = `rgb(${value.join(',')})`
-        }
+        let drawX, drawY;
+        drawX = x;
+        drawY = y;
+        ctx.fillStyle = `rgb(${value[0]},${value[1]},${value[2]})`;
+        ctx.fillRect(drawX * scale, drawY * scale, scale, scale);
     }
-    console.log("processPixels: End")
 }
 
 export function reconnect() {
@@ -80,13 +80,6 @@ export function sendTemplate(template) {
     client.send(message);
 }
 
-// Clears the display
-export function sendClear() {
-    const message = new Paho.Message("");
-    message.destinationName = "esp32/test/clear";
-    client.send(message);
-}
-
 // Set brightness of the display
 export function sendBright(brightness) {
     const payload = new Uint8Array([parseInt(brightness)])
@@ -97,13 +90,12 @@ export function sendBright(brightness) {
 
 // Get pixel status
 export function getPixels() {
-    //const payload = new Uint8Array([parseInt(brightness)])
     const message = new Paho.Message("");
     message.destinationName = "marquee/get_pixels";
-    const pixel_divs = document.querySelectorAll('.matrix-cell');
-    pixel_divs.forEach((pix) => {
-        pix.style.backgroundColor = "black"
-    });
+    const canvas = document.getElementById('matrix_canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     client.send(message);
 }
 
@@ -123,3 +115,142 @@ export function sendText(message_text="", size=16, x=0, y=8) {
     client.send(message);
 }
 
+// Send image file (simplified, assuming file upload)
+export function sendImage(file, x_offset=0, y_offset=0, x_start=0, y_start=0, x_end=null, y_end=null, clear=false) {
+    // This would need to process the image, similar to CLI
+    // For now, placeholder
+    console.log("sendImage not implemented yet");
+}
+
+// Clear display
+export function sendClear() {
+    const message = new Paho.Message("");
+    message.destinationName = "esp32/test/clear";
+    client.send(message);
+}
+
+// Set auto template
+export function sendAutoTemplate(arg) {
+    const message = new Paho.Message(arg.toString());
+    message.destinationName = "marquee/auto_template";
+    client.send(message);
+}
+
+// Send box message
+export function sendBox(message, box, side, inning=null, team=null, game=null) {
+    let topic = `marquee/template/gmonster/box/${box}/${side}`;
+    if (box === "inning") {
+        topic += `/${inning || 10}`;
+    }
+    if (team && game) {
+        topic += `/${team}/${game}`;
+    }
+    const msg = new Paho.Message(message);
+    msg.destinationName = topic;
+    client.send(msg);
+}
+
+// Set background color
+export function sendBgColor(r=0, g=0, b=0) {
+    const payload = new Uint8Array([r, g, b]);
+    const message = new Paho.Message(payload);
+    message.destinationName = "esp32/test/bgcolor";
+    client.send(message);
+}
+
+// Set foreground color
+export function sendFgColor(r=0, g=0, b=0) {
+    const payload = new Uint8Array([r, g, b]);
+    const message = new Paho.Message(payload);
+    message.destinationName = "esp32/test/fgcolor";
+    client.send(message);
+}
+
+// Reset display
+export function sendReset() {
+    const message = new Paho.Message("");
+    message.destinationName = "esp32/test/reset";
+    client.send(message);
+}
+
+// Send text to line
+export function sendTextLine(message, line=1) {
+    const msg = new Paho.Message(message);
+    msg.destinationName = `esp32/test/${line}`;
+    client.send(msg);
+}
+
+// Send scrolling text
+export function sendScrollText(message, speed=0.05, direction="left", loop=true, y_offset=0) {
+    const msg = new Paho.Message(message);
+    msg.destinationName = `marquee/template/base/scrolltext/${speed}/${direction}/${loop}/${y_offset}`;
+    client.send(msg);
+}
+
+// Update batter
+export function updateBatter(num) {
+    const msg = new Paho.Message(num.toString());
+    msg.destinationName = "marquee/template/gmonster/batter";
+    client.send(msg);
+}
+
+// Update base
+export function updateBase(base, val) {
+    const msg = new Paho.Message(val.toString());
+    msg.destinationName = `marquee/template/gmonster/bases/${base}`;
+    client.send(msg);
+}
+
+// Update game status
+export function updateGame(status) {
+    const msg = new Paho.Message(status);
+    msg.destinationName = "marquee/template/gmonster/game";
+    client.send(msg);
+}
+
+// Update count
+export function updateCount(name, num) {
+    const msg = new Paho.Message(num.toString());
+    msg.destinationName = `marquee/template/gmonster/count/${name}`;
+    client.send(msg);
+}
+
+// Update inning
+export function updateInning(inning, status) {
+    const msg = new Paho.Message(status);
+    msg.destinationName = `marquee/template/gmonster/inning/${inning}`;
+    client.send(msg);
+}
+
+// Disable win
+export function disableWin(status) {
+    const msg = new Paho.Message(status);
+    msg.destinationName = "marquee/template/gmonster/disable-win";
+    client.send(msg);
+}
+
+// Disable close
+export function disableClose(status) {
+    const msg = new Paho.Message(status);
+    msg.destinationName = "marquee/template/gmonster/disable-close";
+    client.send(msg);
+}
+
+// Send MLB game (placeholder, needs game_pk)
+export function sendMlbGame(gamePk) {
+    console.log(`Send MLB game ${gamePk} - not fully implemented in web`);
+    // Would need to replicate CLI logic, perhaps call a backend
+}
+
+// Similarly for NHL, NFL, Election
+export function sendNhlGame(gamePk) {
+    console.log(`Send NHL game ${gamePk} - not fully implemented in web`);
+}
+
+export function sendNflGame(gamePk) {
+    console.log(`Send NFL game ${gamePk} - not fully implemented in web`);
+}
+
+export function sendElection() {
+    console.log("Send election - not fully implemented in web");
+}

@@ -39,6 +39,10 @@ class base:
             self.marquee.set_brightness(brightness)
             self.marquee.clear()
     def __del__(self):
+        # Cancel any active scroll animation
+        if hasattr(self, '_scroll_callback') and self._scroll_callback:
+            from animation_manager import unregister_animation
+            unregister_animation(self._scroll_callback)
         print("base template destroyed")
 
     def process_raw(self, message):
@@ -49,8 +53,26 @@ class base:
             print("Message error:", message)
 
     def update_message(self, message, anchor=(0,0), fgcolor=bytearray(b'\x00\x00\x00'), bgcolor=None):
-        for x,y,b in font_5x8(bytearray(message, encoding="utf-8"), fgcolor=fgcolor):
-            self.marquee.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
+        # Handle both string and bytearray inputs
+        if isinstance(message, str):
+            message_bytes = bytearray(message, encoding="utf-8")
+        elif isinstance(message, bytearray):
+            message_bytes = message
+        else:
+            message_bytes = bytearray(str(message), encoding="utf-8")
+
+        for x,y,b in font_5x8(message_bytes, fgcolor=fgcolor):
+            # Calculate final coordinates
+            final_x = x + anchor[0]
+            final_y = y + anchor[1]
+
+            # Skip pixels that would be at negative coordinates (off-screen to the left/top)
+            if final_x < 0 or final_y < 0:
+                continue
+
+            # For now, also skip pixels that might be too far right/bottom
+            # The matrix system should handle this, but let's be safe
+            self.marquee.set_pixel( final_x.to_bytes(2,"big") + final_y.to_bytes(1,"big") + b  )
     
     def update_message_2(self, message, fgcolor=bytearray(b'\x00\x00\x00'), bgcolor=None, font_size=16, anchor=(0,0)):
         font = ImageFont.truetype("templates/fonts/BitPotion.ttf",font_size)
@@ -61,8 +83,17 @@ class base:
 
         for y in range(message_bit.size[1]):
             for x in range(message_bit.size[0]):
+                # Calculate final coordinates
+                final_x = x + anchor[0]
+                final_y = y + anchor[1]
+
+                # Skip pixels that would be at negative coordinates (off-screen to the left/top)
+                if final_x < 0 or final_y < 0:
+                    i += 1
+                    continue
+
                 bit_color = fgcolor if message_bit[i] else bgcolor
-                self.marquee.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + bit_color )
+                self.marquee.set_pixel( final_x.to_bytes(2,"big") + final_y.to_bytes(1,"big") + bit_color )
                 i += 1
 
     def draw_box(self, cord, h, w, color):
@@ -86,11 +117,11 @@ class base:
             for x in range(x_start, range_x_end):
                 if sum(im.getpixel((x,y))) > 0:
                     data = bytearray()
-                    data += (x+x_offset).to_bytes(2,"big") + (y+y_offset).to_bytes(1,"big") 
+                    data += (x+x_offset).to_bytes(2,"big") + (y+y_offset).to_bytes(1,"big")
                     data += bytearray(list(im.getpixel((x,y))))
                     self.process_raw(data)
-    
-    def draw_7seg_digit(self, number, x_offset=0, y_offset=0, 
+
+    def draw_7seg_digit(self, number, x_offset=0, y_offset=0,
             fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00')):
         seven_seg = {
             "a" : { "cord" : (x_offset, y_offset), "h" : 1, "w" : 5 },
@@ -119,3 +150,97 @@ class base:
                 c = fgcolor
             self.draw_box(**seven_seg[seg], color=c)
 
+    def scroll_text(self, text, speed=0.05, fgcolor=None, bgcolor=None, direction="left", loop=True, y_offset=0, font_size=16):
+        """Scroll text horizontally across the matrix display using TrueType font.
+
+        Args:
+            text (str): Text to scroll
+            speed (float): Seconds between animation frames (default: 0.05 for ~20 FPS)
+            fgcolor (bytearray): Foreground color (default: class fgcolor)
+            bgcolor (bytearray): Background color (default: class bgcolor)
+            direction (str): "left" or "right" scrolling direction
+            loop (bool): Whether to loop continuously (default: True)
+            y_offset (int): Vertical offset for text position
+            font_size (int): Font size for TrueType rendering (default: 16)
+        """
+        from animation_manager import unregister_animation
+
+        # Cancel any existing scroll timer/animation
+        if hasattr(self, '_scroll_callback') and self._scroll_callback:
+            unregister_animation(self._scroll_callback)
+
+        # Set default colors
+        if fgcolor is None:
+            fgcolor = self.marquee.fgcolor
+        if bgcolor is None:
+            bgcolor = self.marquee.bgcolor
+
+        # Get font for width calculation
+        font = ImageFont.truetype("templates/fonts/BitPotion.ttf", font_size)
+        text_width = font.getbbox(text)[2]  # Get text width using font metrics
+
+        # Get display width (assuming first matrix width, adjust if needed)
+        display_width = 64  # Standard matrix width
+
+        # Initialize scroll state
+        if not hasattr(self, '_scroll_state'):
+            self._scroll_state = {}
+
+        scroll_id = id(text)  # Unique identifier for this scroll instance
+        self._scroll_state[scroll_id] = {
+            'position': display_width if direction == "left" else -text_width,
+            'text': text,  # Store original string for update_message_2
+            'speed': speed,
+            'fgcolor': fgcolor,
+            'bgcolor': bgcolor,
+            'direction': direction,
+            'loop': loop,
+            'y_offset': y_offset,
+            'font_size': font_size,
+            'text_width': text_width,
+            'display_width': display_width,
+            'subpixel_accumulator': 0,  # Accumulate subpixel movement
+            'pixel_step': 1,  # Move 1 pixel at a time for smooth visible motion
+        }
+
+        def scroll_frame(current_time):
+            state = self._scroll_state.get(scroll_id)
+            if not state:
+                return  # Scroll was cancelled
+
+            # Draw text at current position using TrueType font
+
+            # Draw text at current position using TrueType font
+            self.update_message_2(state['text'], fgcolor=state['fgcolor'], bgcolor=state['bgcolor'],
+                                font_size=state['font_size'], anchor=(state['position'], state['y_offset']))
+
+            # Update position
+            if state['direction'] == "left":
+                state['position'] -= 1
+                # Check if text has scrolled completely off screen
+                if state['position'] < -state['text_width']:
+                    if state['loop']:
+                        state['position'] = state['display_width']
+                    else:
+                        # Stop scrolling
+                        if scroll_id in self._scroll_state:
+                            del self._scroll_state[scroll_id]
+                        unregister_animation(scroll_frame)
+                        return
+            else:  # right direction
+                state['position'] += 1
+                # Check if text has scrolled completely off screen
+                if state['position'] > state['display_width']:
+                    if state['loop']:
+                        state['position'] = -state['text_width']
+                    else:
+                        # Stop scrolling
+                        if scroll_id in self._scroll_state:
+                            del self._scroll_state[scroll_id]
+                        unregister_animation(scroll_frame)
+                        return
+
+        # Register with main loop instead of creating Timer thread
+        self._scroll_callback = scroll_frame
+        from animation_manager import register_animation
+        register_animation(scroll_frame, speed)

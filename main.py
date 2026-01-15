@@ -16,6 +16,7 @@ from templates.timer import timer
 from templates.gmonster import gmonster
 from templates.base import base
 from templates.weather import weather
+from animation_manager import start_animation_manager, stop_animation_manager
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
@@ -26,7 +27,7 @@ BGCOLOR=bytearray(b'\x00\x00\x00')
 SETUP_RUN = False
 MAX_PIXELS=512
 NP_PINS = [14,0,2]
-PIXEL_TIME = 1
+PIXEL_TIME = 0.05  # Increased from 1.0 to 0.05 for smoother scrolling (20 FPS)
 
 matrices = []
 board = marquee()
@@ -188,6 +189,38 @@ def new_message(client, userdata, msg):
             elif message.decode().lower() in ( "true", "1", "enable" ):
                 enable_auto_template = True
     
+        if "marquee/template/base/scrolltext" in topic:
+            # Parse scroll parameters from topic: marquee/template/base/scrolltext/speed/direction/loop/y_offset
+            topic_split = topic.split("/")
+            text = message.decode()
+
+            # Default parameters
+            speed = 0.05
+            direction = "left"
+            loop = True
+            y_offset = 0
+
+            # Parse optional parameters from topic (parameters start at index 4)
+            # Topic format: marquee/template/base/scrolltext/speed/direction/loop/y_offset
+            if len(topic_split) > 4:
+                try:
+                    speed = float(topic_split[4])
+                except (ValueError, IndexError):
+                    pass
+            if len(topic_split) > 5:
+                if topic_split[5].lower() in ("left", "right"):
+                    direction = topic_split[5].lower()
+            if len(topic_split) > 6:
+                loop = topic_split[6].lower() not in ("false", "0", "no")
+            if len(topic_split) > 7:
+                try:
+                    y_offset = int(topic_split[7])
+                except (ValueError, IndexError):
+                    pass
+
+            print(f"Scrolling text: '{text}' speed={speed} direction={direction} loop={loop} y_offset={y_offset}")
+            template.scroll_text(text, speed=speed, direction=direction, loop=loop, y_offset=y_offset)
+
         if "marquee/get_pixels" in topic:
             send_pixels(board)
 
@@ -238,7 +271,6 @@ def update_message(message, anchor=(0,0)):
     for x,y,b in font_5x8(message, fgcolor=FGCOLOR):
         board.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
 
-
 def setup():
     global matrices
     global board, template, local_weather
@@ -274,23 +306,27 @@ def setup():
     template =  clock(board, weather=local_weather)
     #template = xmas(board)
     time.sleep(2)
+    # Start animation manager
+    start_animation_manager()
     # Start listening for mqtt
     m.loop_start()
 
 def main():
+    print("Main function called, starting writer thread")
     writer_thread()
 
 def writer_thread():
     global board
     board.send(True, False)
-    full_refresh = 10
+    full_refresh = 100
     while True:
+        # Existing display logic
         if refresh and full_refresh < 0:
             board.send(True, False)
-            full_refresh = 10
+            full_refresh = 100
         elif refresh:
             board.send(True)
-        full_refresh =- 1
+        full_refresh -= 1
         time.sleep(PIXEL_TIME)
 
 if __name__ == '__main__':

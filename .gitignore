@@ -3,5 +3,8 @@ local/*
 *__pycache__**
 secrets.*
 cli/cache/*.json
+cli/*.json
+cli/nfl.py
+web/node_modules
 venv/*
 *.log
