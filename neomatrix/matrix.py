@@ -103,7 +103,7 @@ class matrix():
 
         # Send SPI data in chunks to avoid overwhelming hardware
         if pixel_data:
-            chunk_size = 32  # Send 32 pixels at a time (192 bytes)
+            chunk_size = 16  # Send 16 pixels at a time (96 bytes)
             for i in range(0, len(pixel_data), chunk_size):
                 chunk = pixel_data[i:i + chunk_size]
                 spi_data = b''.join(chunk)
