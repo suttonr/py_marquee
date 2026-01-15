@@ -270,6 +270,21 @@ def update_message(message, anchor=(0,0)):
     for x,y,b in font_5x8(message, fgcolor=FGCOLOR):
         board.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
 
+# Animation registry for main loop callbacks
+animation_callbacks = []  # List of {'callback': func, 'last_called': timestamp, 'interval': seconds}
+
+def register_animation(callback, interval):
+    """Register a callback to be called every 'interval' seconds by the main loop"""
+    animation_callbacks.append({
+        'callback': callback,
+        'last_called': 0,
+        'interval': interval
+    })
+
+def unregister_animation(callback):
+    """Remove a callback from the animation registry"""
+    global animation_callbacks
+    animation_callbacks[:] = [a for a in animation_callbacks if a['callback'] != callback]
 
 def setup():
     global matrices
@@ -317,12 +332,26 @@ def writer_thread():
     board.send(True, False)
     full_refresh = 10
     while True:
+        current_time = time.time()
+
+        # Call registered animation callbacks
+        for animation in animation_callbacks[:]:  # Copy list to avoid modification during iteration
+            if current_time - animation['last_called'] >= animation['interval']:
+                try:
+                    animation['callback'](current_time)
+                    animation['last_called'] = current_time
+                except Exception as e:
+                    print(f"Animation callback error: {e}")
+                    # Remove broken callbacks
+                    animation_callbacks.remove(animation)
+
+        # Existing display logic
         if refresh and full_refresh < 0:
             board.send(True, False)
             full_refresh = 10
         elif refresh:
             board.send(True)
-        full_refresh =- 1
+        full_refresh -= 1
         time.sleep(PIXEL_TIME)
 
 if __name__ == '__main__':
