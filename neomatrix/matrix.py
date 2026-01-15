@@ -20,24 +20,44 @@ class matrix():
         # Precomputed constants for efficiency
         self.header = b'\x0f'
         self.spi_buffer = bytearray()
+        self.brightness_factors = self._precompute_brightness_factors()
+        self.xy2i_cache = {}  # Cache for xy2i calculations
     
     def xy2i(self,x,y):
-        if ( x & 0x01 ):
-            return self.height * (self.width - (x+1)) + (self.height-1-y)
-        else:
-            return self.height * (self.width - x) - (self.height-1-y+1)
+        key = (x, y)
+        if key not in self.xy2i_cache:
+            if ( x & 0x01 ):
+                result = self.height * (self.width - (x+1)) + (self.height-1-y)
+            else:
+                result = self.height * (self.width - x) - (self.height-1-y+1)
+            self.xy2i_cache[key] = result
+        return self.xy2i_cache[key]
 
     def update(self, address, value):
         if address not in self.buffer or self.buffer[address] != value:
             self.buffer.update({address : value})
             self.dirty_pixels.append(address)
 
+    def _precompute_brightness_factors(self):
+        """Precompute brightness scaling factors to avoid sqrt calculations"""
+        factors = {}
+        for brightness in range(101):  # 0.00 to 1.00
+            scale = brightness / 100.0
+            if scale == 1.0:
+                factors[brightness] = None  # No scaling needed
+            else:
+                # Precompute the scaling factor: sqrt(scale/2)
+                factors[brightness] = math.sqrt(scale / 2)
+        return factors
+
     def scale_color(self, color, scale):
-        if scale == 1.0:
+        brightness_key = int(scale * 100)
+        factor = self.brightness_factors.get(brightness_key, self.brightness_factors[100])
+        if factor is None:  # brightness = 1.0
             return color
         ret = bytearray()
         for i in range(len(color)):
-            ret += bytearray([int(math.sqrt(color[i] * color[i] * (scale/2)))])
+            ret += bytearray([int(color[i] * factor)])
         return ret
 
     def construct_data(self, address, color):
