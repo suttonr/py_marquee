@@ -82,8 +82,17 @@ class base:
 
         for y in range(message_bit.size[1]):
             for x in range(message_bit.size[0]):
+                # Calculate final coordinates
+                final_x = x + anchor[0]
+                final_y = y + anchor[1]
+
+                # Skip pixels that would be at negative coordinates (off-screen to the left/top)
+                if final_x < 0 or final_y < 0:
+                    i += 1
+                    continue
+
                 bit_color = fgcolor if message_bit[i] else bgcolor
-                self.marquee.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + bit_color )
+                self.marquee.set_pixel( final_x.to_bytes(2,"big") + final_y.to_bytes(1,"big") + bit_color )
                 i += 1
 
     def draw_box(self, cord, h, w, color):
@@ -140,8 +149,8 @@ class base:
                 c = fgcolor
             self.draw_box(**seven_seg[seg], color=c)
 
-    def scroll_text(self, text, speed=0.05, fgcolor=None, bgcolor=None, direction="left", loop=True, y_offset=0):
-        """Scroll text horizontally across the matrix display.
+    def scroll_text(self, text, speed=0.05, fgcolor=None, bgcolor=None, direction="left", loop=True, y_offset=0, font_size=16):
+        """Scroll text horizontally across the matrix display using TrueType font.
 
         Args:
             text (str): Text to scroll
@@ -151,6 +160,7 @@ class base:
             direction (str): "left" or "right" scrolling direction
             loop (bool): Whether to loop continuously (default: True)
             y_offset (int): Vertical offset for text position
+            font_size (int): Font size for TrueType rendering (default: 16)
         """
         import threading
 
@@ -164,11 +174,9 @@ class base:
         if bgcolor is None:
             bgcolor = self.marquee.bgcolor
 
-        # Convert text to bytearray for font rendering
-        text_bytes = bytearray(text, encoding="utf-8")
-
-        # Calculate text width (6 pixels per character: 5 + 1 spacing)
-        text_width = len(text_bytes) * 6
+        # Get font for width calculation
+        font = ImageFont.truetype("templates/fonts/BitPotion.ttf", font_size)
+        text_width = font.getbbox(text)[2]  # Get text width using font metrics
 
         # Get display width (assuming first matrix width, adjust if needed)
         display_width = 64  # Standard matrix width
@@ -180,13 +188,14 @@ class base:
         scroll_id = id(text)  # Unique identifier for this scroll instance
         self._scroll_state[scroll_id] = {
             'position': display_width if direction == "left" else -text_width,
-            'text': text_bytes,
+            'text': text,  # Store original string for update_message_2
             'speed': speed,
             'fgcolor': fgcolor,
             'bgcolor': bgcolor,
             'direction': direction,
             'loop': loop,
             'y_offset': y_offset,
+            'font_size': font_size,
             'text_width': text_width,
             'display_width': display_width
         }
@@ -200,9 +209,9 @@ class base:
             # Note: This is a simple clear - in production you might want more sophisticated clearing
             # For now, we'll rely on the text overwriting previous positions
 
-            # Draw text at current position
-            self.update_message(state['text'], anchor=(state['position'], state['y_offset']),
-                              fgcolor=state['fgcolor'], bgcolor=state['bgcolor'])
+            # Draw text at current position using TrueType font
+            self.update_message_2(state['text'], fgcolor=state['fgcolor'], bgcolor=state['bgcolor'],
+                                font_size=state['font_size'], anchor=(state['position'], state['y_offset']))
 
             # Update position
             if state['direction'] == "left":
