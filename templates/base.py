@@ -61,7 +61,17 @@ class base:
             message_bytes = bytearray(str(message), encoding="utf-8")
 
         for x,y,b in font_5x8(message_bytes, fgcolor=fgcolor):
-            self.marquee.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
+            # Calculate final coordinates
+            final_x = x + anchor[0]
+            final_y = y + anchor[1]
+
+            # Skip pixels that would be at negative coordinates (off-screen to the left/top)
+            if final_x < 0 or final_y < 0:
+                continue
+
+            # For now, also skip pixels that might be too far right/bottom
+            # The matrix system should handle this, but let's be safe
+            self.marquee.set_pixel( final_x.to_bytes(2,"big") + final_y.to_bytes(1,"big") + b  )
     
     def update_message_2(self, message, fgcolor=bytearray(b'\x00\x00\x00'), bgcolor=None, font_size=16, anchor=(0,0)):
         font = ImageFont.truetype("templates/fonts/BitPotion.ttf",font_size)
