@@ -338,7 +338,9 @@ def writer_thread():
 
         # Call registered animation callbacks
         for animation in animation_callbacks[:]:  # Copy list to avoid modification during iteration
-            if current_time - animation['last_called'] >= animation['interval']:
+            time_since_last = current_time - animation['last_called']
+            print(f"Animation check: time_since_last={time_since_last:.3f}, interval={animation['interval']}, should_call={time_since_last >= animation['interval']}")
+            if time_since_last >= animation['interval']:
                 try:
                     print(f"Calling animation callback, interval: {animation['interval']}")
                     animation['callback'](current_time)
