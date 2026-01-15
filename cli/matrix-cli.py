@@ -207,6 +207,18 @@ def text(appctx, message="", x=0, y=0, b=None, r=0, s=16,  offset=0, clear_box=F
             f"{appctx.mqtt_topic}/text/{s}", payload=payload
         ).wait_for_publish()
 
+@cli.command()
+@click.option('--speed', default=0.05, type=float, help='Animation speed in seconds per frame')
+@click.option('--direction', default='left', type=click.Choice(['left', 'right']), help='Scroll direction')
+@click.option('--loop/--no-loop', default=True, help='Enable/disable continuous looping')
+@click.option('--y-offset', default=0, type=int, help='Vertical offset for text position')
+@click.argument('message')
+@pass_appctx
+def scroll_text(appctx, message, speed, direction, loop, y_offset):
+    """Sends scrolling text to the display"""
+    topic = f"marquee/template/base/scrolltext/{speed}/{direction}/{loop}/{y_offset}"
+    appctx.mqttc.publish(topic, payload=message).wait_for_publish()
+
 #####
 # Hockey Commands
 #####

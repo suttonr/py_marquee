@@ -188,6 +188,37 @@ def new_message(client, userdata, msg):
             elif message.decode().lower() in ( "true", "1", "enable" ):
                 enable_auto_template = True
     
+        if "marquee/template/base/scrolltext" in topic:
+            # Parse scroll parameters from topic: marquee/template/base/scrolltext/speed/direction/loop/y_offset
+            topic_split = topic.split("/")
+            text = message.decode()
+
+            # Default parameters
+            speed = 0.05
+            direction = "left"
+            loop = True
+            y_offset = 0
+
+            # Parse optional parameters from topic
+            if len(topic_split) > 5:
+                try:
+                    speed = float(topic_split[5])
+                except (ValueError, IndexError):
+                    pass
+            if len(topic_split) > 6:
+                if topic_split[6].lower() in ("left", "right"):
+                    direction = topic_split[6].lower()
+            if len(topic_split) > 7:
+                loop = topic_split[7].lower() not in ("false", "0", "no")
+            if len(topic_split) > 8:
+                try:
+                    y_offset = int(topic_split[8])
+                except (ValueError, IndexError):
+                    pass
+
+            print(f"Scrolling text: '{text}' speed={speed} direction={direction} loop={loop} y_offset={y_offset}")
+            template.scroll_text(text, speed=speed, direction=direction, loop=loop, y_offset=y_offset)
+
         if "marquee/get_pixels" in topic:
             send_pixels(board)
 

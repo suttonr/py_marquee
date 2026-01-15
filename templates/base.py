@@ -39,6 +39,9 @@ class base:
             self.marquee.set_brightness(brightness)
             self.marquee.clear()
     def __del__(self):
+        # Cancel any active scroll timer
+        if hasattr(self, '_scroll_timer') and self._scroll_timer:
+            self._scroll_timer.cancel()
         print("base template destroyed")
 
     def process_raw(self, message):
@@ -86,11 +89,11 @@ class base:
             for x in range(x_start, range_x_end):
                 if sum(im.getpixel((x,y))) > 0:
                     data = bytearray()
-                    data += (x+x_offset).to_bytes(2,"big") + (y+y_offset).to_bytes(1,"big") 
+                    data += (x+x_offset).to_bytes(2,"big") + (y+y_offset).to_bytes(1,"big")
                     data += bytearray(list(im.getpixel((x,y))))
                     self.process_raw(data)
-    
-    def draw_7seg_digit(self, number, x_offset=0, y_offset=0, 
+
+    def draw_7seg_digit(self, number, x_offset=0, y_offset=0,
             fgcolor=bytearray(b'\xba\x99\x10'), bgcolor=bytearray(b'\x00\x00\x00')):
         seven_seg = {
             "a" : { "cord" : (x_offset, y_offset), "h" : 1, "w" : 5 },
@@ -119,3 +122,97 @@ class base:
                 c = fgcolor
             self.draw_box(**seven_seg[seg], color=c)
 
+    def scroll_text(self, text, speed=0.05, fgcolor=None, bgcolor=None, direction="left", loop=True, y_offset=0):
+        """Scroll text horizontally across the matrix display.
+
+        Args:
+            text (str): Text to scroll
+            speed (float): Seconds between animation frames (default: 0.05 for ~20 FPS)
+            fgcolor (bytearray): Foreground color (default: class fgcolor)
+            bgcolor (bytearray): Background color (default: class bgcolor)
+            direction (str): "left" or "right" scrolling direction
+            loop (bool): Whether to loop continuously (default: True)
+            y_offset (int): Vertical offset for text position
+        """
+        import threading
+
+        # Cancel any existing scroll timer
+        if hasattr(self, '_scroll_timer') and self._scroll_timer:
+            self._scroll_timer.cancel()
+
+        # Set default colors
+        if fgcolor is None:
+            fgcolor = self.marquee.fgcolor
+        if bgcolor is None:
+            bgcolor = self.marquee.bgcolor
+
+        # Convert text to bytearray for font rendering
+        text_bytes = bytearray(text, encoding="utf-8")
+
+        # Calculate text width (6 pixels per character: 5 + 1 spacing)
+        text_width = len(text_bytes) * 6
+
+        # Get display width (assuming first matrix width, adjust if needed)
+        display_width = 64  # Standard matrix width
+
+        # Initialize scroll state
+        if not hasattr(self, '_scroll_state'):
+            self._scroll_state = {}
+
+        scroll_id = id(text)  # Unique identifier for this scroll instance
+        self._scroll_state[scroll_id] = {
+            'position': display_width if direction == "left" else -text_width,
+            'text': text_bytes,
+            'speed': speed,
+            'fgcolor': fgcolor,
+            'bgcolor': bgcolor,
+            'direction': direction,
+            'loop': loop,
+            'y_offset': y_offset,
+            'text_width': text_width,
+            'display_width': display_width
+        }
+
+        def scroll_frame():
+            state = self._scroll_state.get(scroll_id)
+            if not state:
+                return  # Scroll was cancelled
+
+            # Clear the display area for this scroll
+            # Note: This is a simple clear - in production you might want more sophisticated clearing
+            # For now, we'll rely on the text overwriting previous positions
+
+            # Draw text at current position
+            self.update_message(state['text'], anchor=(state['position'], state['y_offset']),
+                              fgcolor=state['fgcolor'], bgcolor=state['bgcolor'])
+
+            # Update position
+            if state['direction'] == "left":
+                state['position'] -= 1
+                # Check if text has scrolled completely off screen
+                if state['position'] < -state['text_width']:
+                    if state['loop']:
+                        state['position'] = state['display_width']
+                    else:
+                        # Stop scrolling
+                        if scroll_id in self._scroll_state:
+                            del self._scroll_state[scroll_id]
+                        return
+            else:  # right direction
+                state['position'] += 1
+                # Check if text has scrolled completely off screen
+                if state['position'] > state['display_width']:
+                    if state['loop']:
+                        state['position'] = -state['text_width']
+                    else:
+                        # Stop scrolling
+                        if scroll_id in self._scroll_state:
+                            del self._scroll_state[scroll_id]
+                        return
+
+            # Schedule next frame
+            self._scroll_timer = threading.Timer(state['speed'], scroll_frame)
+            self._scroll_timer.start()
+
+        # Start the scrolling animation
+        scroll_frame()

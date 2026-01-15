@@ -180,6 +180,13 @@ export function sendTextLine(message, line=1) {
     client.send(msg);
 }
 
+// Send scrolling text
+export function sendScrollText(message, speed=0.05, direction="left", loop=true, y_offset=0) {
+    const msg = new Paho.Message(message);
+    msg.destinationName = `marquee/template/base/scrolltext/${speed}/${direction}/${loop}/${y_offset}`;
+    client.send(msg);
+}
+
 // Update batter
 export function updateBatter(num) {
     const msg = new Paho.Message(num.toString());
