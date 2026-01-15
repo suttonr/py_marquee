@@ -332,27 +332,15 @@ def main():
 
 def writer_thread():
     global board
-    print("Writer thread started")
-    try:
-        board.send(True, False)
-        print("Initial board.send() completed")
-    except Exception as e:
-        print(f"Error in initial board.send(): {e}")
-        return
+    board.send(True, False)
     full_refresh = 10
-    loop_count = 0
     while True:
-        loop_count += 1
         current_time = time.time()
-        print(f"Main loop iteration {loop_count}, time={current_time:.1f}, registered_animations={len(animation_callbacks)}")
 
         # Call registered animation callbacks
         for animation in animation_callbacks[:]:  # Copy list to avoid modification during iteration
-            time_since_last = current_time - animation['last_called']
-            print(f"Animation check: time_since_last={time_since_last:.3f}, interval={animation['interval']}, should_call={time_since_last >= animation['interval']}")
-            if time_since_last >= animation['interval']:
+            if current_time - animation['last_called'] >= animation['interval']:
                 try:
-                    print(f"Calling animation callback, interval: {animation['interval']}")
                     animation['callback'](current_time)
                     animation['last_called'] = current_time
                 except Exception as e:
@@ -367,7 +355,6 @@ def writer_thread():
         elif refresh:
             board.send(True)
         full_refresh -= 1
-        print(f"Sleeping for {PIXEL_TIME} seconds")
         time.sleep(PIXEL_TIME)
 
 if __name__ == '__main__':
