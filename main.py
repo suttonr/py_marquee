@@ -26,7 +26,7 @@ BGCOLOR=bytearray(b'\x00\x00\x00')
 SETUP_RUN = False
 MAX_PIXELS=512
 NP_PINS = [14,0,2]
-PIXEL_TIME = 1
+PIXEL_TIME = 0.05  # Increased from 1.0 to 0.05 for smoother scrolling (20 FPS)
 
 matrices = []
 board = marquee()
