@@ -51,9 +51,7 @@ class marquee:
 
     def send(self, fill_background=False, dirty_only=True):
         for i in range(len(self.matrices)):
-            self.matrices[i].send_np(self.fgcolor, self.bgcolor, fill_background, False, dirty_only=True)
-            if not dirty_only:
-                self.matrices[i].send_np(self.fgcolor, self.bgcolor, fill_background, False, dirty_only=dirty_only)
+            self.matrices[i].send_np(self.fgcolor, self.bgcolor, fill_background, False, dirty_only=dirty_only)
 
     def write(self):
         for i in range(len(self.matrices)):
