@@ -49,8 +49,22 @@ class marquee:
             self.matrices[index].buffer={}
         print("done",len(self.matrices))
 
+    def dirty_matrices(self, refresh=False):
+        ret = []
+        for i in range(len(self.matrices)):
+            if self.matrices[i].is_dirty():
+                ret.append(i)
+                if refresh:
+                    self.matrices[i].send_np(
+                        self.fgcolor, self.bgcolor, fill_background, False, dirty_only=True
+                    )
+        return ret
+
+
     def send(self, fill_background=False, dirty_only=True):
         for i in range(len(self.matrices)):
+            if dirty_only == False:
+                self.dirty_matrices(refresh=True)
             self.matrices[i].send_np(self.fgcolor, self.bgcolor, fill_background, False, dirty_only=dirty_only)
 
     def write(self):

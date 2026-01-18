@@ -24,6 +24,9 @@ class matrix():
         self.brightness_factors = self._precompute_brightness_factors()
         self.xy2i_cache = {}  # Cache for xy2i calculations
     
+    def is_dirty(self):
+        return True if len(self.dirty_pixels) > 0 else False
+    
     def xy2i(self,x,y):
         key = (x, y)
         if key not in self.xy2i_cache:
