@@ -102,9 +102,8 @@ class matrix():
         to_remove = set()
         chunk_data = bytearray()
         chunk_count = 0
-        # Use larger chunks for full refresh to reduce SPI transaction overhead
-        chunk_size = 32 if fill_background else 16  # Larger chunks for full refresh
-
+        chunk_size = 16 
+        
         def send_chunk():
             nonlocal chunk_data, chunk_count
             if chunk_data:

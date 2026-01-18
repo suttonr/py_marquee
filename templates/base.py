@@ -76,6 +76,7 @@ class base:
     
     def update_message_2(self, message, fgcolor=bytearray(b'\x00\x00\x00'), bgcolor=None, font_size=16, anchor=(0,0)):
         font = ImageFont.truetype("templates/fonts/BitPotion.ttf",font_size)
+        print("Message2", message, fgcolor, bgcolor)
         message_bit = font.getmask(message)
         i=0
         if bgcolor == None:
@@ -87,7 +88,7 @@ class base:
                 final_x = x + anchor[0]
                 final_y = y + anchor[1]
 
-                # Skip pixels that would be at negative coordinates (off-screen to the left/top)
+                # Skip pixels that would be at negative coordinates
                 if final_x < 0 or final_y < 0:
                     i += 1
                     continue
@@ -207,9 +208,7 @@ class base:
             state = self._scroll_state.get(scroll_id)
             if not state:
                 return  # Scroll was cancelled
-
-            # Draw text at current position using TrueType font
-
+            
             # Draw text at current position using TrueType font
             self.update_message_2(state['text'], fgcolor=state['fgcolor'], bgcolor=state['bgcolor'],
                                 font_size=state['font_size'], anchor=(state['position'], state['y_offset']))
