@@ -76,7 +76,7 @@ class base:
     
     def update_message_2(self, message, fgcolor=bytearray(b'\x00\x00\x00'), bgcolor=None, font_size=16, anchor=(0,0)):
         font = ImageFont.truetype("templates/fonts/BitPotion.ttf",font_size)
-        print("Message2", message, fgcolor, bgcolor)
+        # print("Message2", message, fgcolor, bgcolor)
         message_bit = font.getmask(message)
         i=0
         if bgcolor == None:
