@@ -27,6 +27,10 @@ class matrix():
     def is_dirty(self):
         return True if len(self.dirty_pixels) > 0 else False
     
+    def clear(self):
+        self.dirty_pixels = []
+        self.buffer = {}
+    
     def xy2i(self,x,y):
         key = (x, y)
         if key not in self.xy2i_cache:

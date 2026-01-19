@@ -44,11 +44,9 @@ class marquee:
         if index == None:
             for i in range(len(self.matrices)):
                 print("clearing",i)
-                self.matrices[i].buffer={}
-                self.matrices[i].dirty_pixels=[]
+                self.matrices[i].clear()
         else:
-            self.matrices[index].buffer={}
-            self.matrices[index].dirty_pixels=[]
+            self.matrices[index].clear
         print("done",len(self.matrices))
 
     def dirty_matrices(self, refresh=False):
