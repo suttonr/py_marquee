@@ -128,7 +128,7 @@ class matrix():
                     pixel_addr = self.xy2i(int(address[:3]), int(address[3:]))
                     color = self.scale_color(self.buffer[address], self.brightness)
                 except KeyError:
-                    print("Pixel cleared", address)
+                    pass # print("Pixel cleared", address)
                 if self.mode == "NP":
                     self.np[pixel_addr] = color
                 else:  # SPI modes - send in chunks
@@ -180,7 +180,7 @@ class matrix():
                 try:
                     self.dirty_pixels.remove(addr)
                 except ValueError:
-                    print("dirty pixel is clean", addr)
+                    pass #print("dirty pixel is clean", addr)
 
         if write_np and self.mode == "NP":
             self.np.write()
