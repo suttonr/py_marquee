@@ -58,7 +58,7 @@ class marquee:
                 ret.append(i)
                 if refresh:
                     self.matrices[i].send_np(
-                        self.fgcolor, self.bgcolor, fill_background, False, dirty_only=True
+                        self.fgcolor, self.bgcolor, False, False, dirty_only=True
                     )
         return ret
 
