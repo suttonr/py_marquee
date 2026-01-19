@@ -219,7 +219,10 @@ def new_message(client, userdata, msg):
                     pass
 
             print(f"Scrolling text: '{text}' speed={speed} direction={direction} loop={loop} y_offset={y_offset}")
-            template.scroll_text(text, speed=speed, direction=direction, loop=loop, y_offset=y_offset)
+            template.scroll_text(
+                text, speed=speed, direction=direction, loop=loop, y_offset=y_offset, 
+                fgcolor=FGCOLOR, bgcolor=BGCOLOR
+            )
 
         if "marquee/get_pixels" in topic:
             send_pixels(board)

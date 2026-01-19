@@ -4,13 +4,14 @@ import math
 def foo():
     pass
 class matrix():
-    def __init__(self, width, height, np=None, mode="NP", cs=None, xoffset=0, yoffset=0):
+    def __init__(self, width, height, np=None, mode="NP", cs=None, xoffset=0, yoffset=0, color_format="RGB565"):
         self.width = width
         self.height = height
         self.np = np
         self.brightness = 1
         self.mode = mode
         self.cs = cs
+        self.color_format = color_format
 
         self.buffer = {}
         self.dirty_pixels = []
@@ -18,10 +19,17 @@ class matrix():
         self.yoffset = yoffset
 
         # Precomputed constants for efficiency
-        self.header = b'\x0f'
+        self.header = b'\x0f' if color_format == "RGB888" else b'\x0e'
         self.spi_buffer = bytearray()
         self.brightness_factors = self._precompute_brightness_factors()
         self.xy2i_cache = {}  # Cache for xy2i calculations
+    
+    def is_dirty(self):
+        return True if len(self.dirty_pixels) > 0 else False
+    
+    def clear(self):
+        self.dirty_pixels = []
+        self.buffer = {}
     
     def xy2i(self,x,y):
         key = (x, y)
@@ -63,7 +71,15 @@ class matrix():
     def construct_data(self, address, color):
         port = self.yoffset + (self.xoffset * 3)
         addr_part = ((port << 9) | address).to_bytes(2, "big")
-        color_part = color[1:2] + color[0:1] + color[2:3]
+        if self.color_format == "RGB565":
+            # Pack RGB888 to RGB565: R:5 G:6 B:5
+            r5 = (color[0] >> 3) & 0x1F
+            g6 = (color[1] >> 2) & 0x3F
+            b5 = (color[2] >> 3) & 0x1F
+            packed = (r5 << 11) | (g6 << 5) | b5
+            color_part = packed.to_bytes(2, "big")
+        else:  # RGB888
+            color_part = color[1:2] + color[0:1] + color[2:3]  # G B R
         return self.header + addr_part + color_part
     
     def write_pixel(self, address, color):
@@ -71,7 +87,17 @@ class matrix():
             self.np[address] = color
         elif self.mode == "SPI" or self.mode == "PYSPI":
             port = self.yoffset + ( self.xoffset * 3 )
-            data_to_send = int(15).to_bytes(1,"big") + ((port << 9) | address).to_bytes(2,"big") + color[1:2] + color[0:1] + color[2:3]
+            addr_part = ((port << 9) | address).to_bytes(2, "big")
+            if self.color_format == "RGB565":
+                # Pack RGB888 to RGB565: R:5 G:6 B:5
+                r5 = (color[0] >> 3) & 0x1F
+                g6 = (color[1] >> 2) & 0x3F
+                b5 = (color[2] >> 3) & 0x1F
+                packed = (r5 << 11) | (g6 << 5) | b5
+                color_part = packed.to_bytes(2, "big")
+            else:  # RGB888
+                color_part = color[1:2] + color[0:1] + color[2:3]  # G B R
+            data_to_send = self.header + addr_part + color_part
             if self.mode == "SPI":
                 self.cs(0)
                 self.np.write( data_to_send )
@@ -83,9 +109,8 @@ class matrix():
         to_remove = set()
         chunk_data = bytearray()
         chunk_count = 0
-        # Use larger chunks for full refresh to reduce SPI transaction overhead
-        chunk_size = 32 if fill_background else 16  # Larger chunks for full refresh
-
+        chunk_size = 16 
+        
         def send_chunk():
             nonlocal chunk_data, chunk_count
             if chunk_data:
@@ -99,8 +124,11 @@ class matrix():
 
         if dirty_only:
             for address in self.dirty_pixels:
-                pixel_addr = self.xy2i(int(address[:3]), int(address[3:]))
-                color = self.scale_color(self.buffer[address], self.brightness)
+                try:
+                    pixel_addr = self.xy2i(int(address[:3]), int(address[3:]))
+                    color = self.scale_color(self.buffer[address], self.brightness)
+                except KeyError:
+                    pass # print("Pixel cleared", address)
                 if self.mode == "NP":
                     self.np[pixel_addr] = color
                 else:  # SPI modes - send in chunks
@@ -149,7 +177,10 @@ class matrix():
         # Clean up dirty pixels
         for addr in to_remove:
             if addr in self.dirty_pixels:
-                self.dirty_pixels.remove(addr)
+                try:
+                    self.dirty_pixels.remove(addr)
+                except ValueError:
+                    pass #print("dirty pixel is clean", addr)
 
         if write_np and self.mode == "NP":
             self.np.write()
