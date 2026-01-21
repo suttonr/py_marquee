@@ -76,9 +76,6 @@ flowchart TD
     Driver -- "Ports 18,19,20" --> Col7
 ```
 
-![image](doc/img/matrix_diagram.png)
-*Note: The Micropython modules shown in the legacy diagram above have been replaced by a single Raspberry Pi Zero 2W. The system drives 21 independent matrix segments organized in 7 columns.*
-
 ## Software Structure
 
 - `neomatrix/`: Core matrix logic, including coordinate mapping (`xy2i`) and SPI packet construction.
