@@ -111,7 +111,7 @@ def new_message(client, userdata, msg):
         matched_pattern = ""
         for pattern, handler in handlers.items():
             if topic.startswith(pattern):
-                if len(pattern) > matched_pattern:
+                if len(pattern) > len(matched_pattern):
                     matched_pattern = pattern
 
         if matched_pattern in handlers:
