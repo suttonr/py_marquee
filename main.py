@@ -133,13 +133,16 @@ def writer_thread():
     full_refresh = 100
     while True:
         # Existing display logic
+        start_ts = time.time()
         if refresh and full_refresh < 0:
             board.send(True, False)
             full_refresh = 100
         elif refresh:
             board.send(True)
         full_refresh -= 1
-        time.sleep(PIXEL_TIME)
+        end_ts = time.time()
+        sleep_time = max(0, PIXEL_TIME - (start_ts-end_ts))
+        time.sleep(sleep_time)
 
 if __name__ == '__main__':
     setup()
