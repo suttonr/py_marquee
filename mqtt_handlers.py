@@ -90,7 +90,6 @@ def new_message(client, userdata, msg):
             "esp32/test/clear": handle_clear,
             "esp32/test/bright": handle_bright,
             "esp32/test/reset": handle_reset,
-            "marquee/template": handle_template,
             "marquee/template/timer/duration": handle_timer_duration,
             "marquee/template/gmonster/box/": handle_gmonster_box,
             "marquee/template/gmonster/count/": handle_gmonster_count,
@@ -104,6 +103,7 @@ def new_message(client, userdata, msg):
             "marquee/template/base/scrolltext": handle_scrolltext,
             "marquee/get_pixels": handle_get_pixels,
             "hello/push/Backyard Garage/temperature/value": handle_temperature,
+            "marquee/template": handle_template,
         }
 
         # Find and execute matching handler
