@@ -24,8 +24,11 @@ def cli(ctx, debug):
 @click.option('-l', '--launch', default=False, is_flag=True, help='launch game when found')
 @click.pass_context
 def find_games(ctx, f, sleep, launch):
+    logger.setLevel(logging.DEBUG)
     while True:
+        logger.debug("find_games: Itteration Start")
         ctx.invoke(get_schedule, f=f, launch=launch)
+        logger.debug("find_games: Sleeping")
         time.sleep(sleep * 60)
 
 @cli.command()
