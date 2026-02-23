@@ -47,7 +47,7 @@ def get_schedule(ctx, f, d, launch):
     for game in sch.get_games(f):
         game_dt = datetime.fromisoformat(game.get("gameDate"))
         delta_to_game = game_dt - now
-        print(f'{game.get("gameDate")}  {game.get("gamePk")}  {game.get("awayTeam")} vs {game.get("homeTeam")} in {delta_to_game}')
+        logger.info(f'{game.get("gameDate")}  {game.get("gamePk")}  {game.get("awayTeam")} vs {game.get("homeTeam")} in {delta_to_game}')
         if (launch and game_dt > now and delta_to_game < timedelta(hours=1)):
             ctx.invoke(watch_mlb_game, game_pk=game.get("gamePk") )
 
@@ -65,7 +65,7 @@ def watch_mlb_game(ctx, game_pk, interval):
         result = subprocess.run(["python3", "matrix-cli.py", "send-mlb-game", "-g", str(game_pk)], capture_output=True, text=True)
         retcode = int(result.returncode)
         sleep_time = interval
-        print("result:", retcode)
+        logger.debug("result:", retcode)
         for line in result.stdout.split('\n'):
             logger.info(line)
         for line in result.stderr.split("\n"):
