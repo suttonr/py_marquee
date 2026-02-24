@@ -65,7 +65,7 @@ def watch_mlb_game(ctx, game_pk, interval):
         result = subprocess.run(["python3", "matrix-cli.py", "send-mlb-game", "-g", str(game_pk)], capture_output=True, text=True)
         retcode = int(result.returncode)
         sleep_time = interval
-        logger.debug("result:", retcode)
+        logger.debug(f"result: {retcode}")
         for line in result.stdout.split('\n'):
             logger.info(line)
         for line in result.stderr.split("\n"):
