@@ -10,7 +10,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 COPY . .
 
 RUN mkdir -p /etc/service/marquee
-RUN echo '#!/bin/sh\nexec python -u ./marquee_launcher.py find-games -f "Red Sox" --launch' > /etc/service/marquee/run
+RUN echo '#!/bin/sh\ncd /usr/src/app\nexec python -u ./marquee_launcher.py find-games -f "Red Sox" --launch' > /etc/service/marquee/run
 RUN chmod +x /etc/service/marquee/run
 
 CMD ["runsvdir", "/etc/service"]
