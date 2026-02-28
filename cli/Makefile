@@ -14,7 +14,7 @@ start:
 	systemctl --user start $(SERVICE_NAME) || true
 
 status:
-	systemctl --user status $(SERVICE_NAME)
+	systemctl --no-pager --user status $(SERVICE_NAME)
 	$(CONTAINER_BIN) logs mlb-game-watcher | tail
 
 remove: stop
