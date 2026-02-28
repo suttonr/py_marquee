@@ -25,9 +25,9 @@ create: build
 
 install: create
 	mkdir -p ~/.config/systemd/user/
-	$(CONTAINER_BIN) generate systemd --name $(CONTAINER_NAME) > ~/.config/systemd/user/$(SERVICE_NAME).service
+	$(CONTAINER_BIN) generate systemd --name $(CONTAINER_NAME) > ~/.config/systemd/user/$(SERVICE_NAME)
 	systemctl --user daemon-reload
-	systemctl --user enable $(SERVICE_NAME).service
+	systemctl --user enable $(SERVICE_NAME)
 
 run: remove install start status
 	echo "Done"
