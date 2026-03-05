@@ -535,6 +535,10 @@ def send_mlb_game(ctx, game_pk, backfill, dry_run):
         ctx.invoke(send_box, message=f"{m_split[0][:25].upper()}", box="message", side="away")
         if len(m_split) > 1:
             ctx.invoke(send_box, message=f"{m_split[1][:25].upper()}", box="message", side="home")
+    elif game_status in ("MJ"):
+        m_split = game_status_detail.split(":")
+        if len(m_split) > 1:
+            ctx.invoke(send_box, message=f"Challange {m_split[1][:15].upper()}", box="message", side=p_team)
 
     # Write bases
     positiions = g.get_bases()

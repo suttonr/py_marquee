@@ -6,7 +6,7 @@ CONTAINER_OPTS = --publish 4000:4000 --env PORT=4000 --env DEBUG=true
 .PHONY: package_cli build start stop status remove create install run shell
 
 package_cli:
-	tar -cvzf cli.tar.gz -C .. --exclude=cli/cache cli
+	tar -cvzf cli.tar.gz -C .. --exclude=cli/cache --exclude=cli/examples cli
 
 build: package_cli
 	$(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
