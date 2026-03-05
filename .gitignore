@@ -7,4 +7,5 @@ cli/*.json
 cli/nfl.py
 web/node_modules
 venv/*
+launcher/cli*
 *.log

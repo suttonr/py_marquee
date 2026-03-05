@@ -1,0 +1,8 @@
+click
+paho-mqtt
+pillow
+requests
+blinker==1.7.0
+selenium-wire
+flask
+flask-cors
