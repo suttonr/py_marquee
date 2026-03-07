@@ -1,6 +1,7 @@
 click
 paho-mqtt
 pillow
+pytest
 requests
 #RPi.GPIO
 #spidev

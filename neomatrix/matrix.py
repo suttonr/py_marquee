@@ -109,7 +109,7 @@ class matrix():
         to_remove = set()
         chunk_data = bytearray()
         chunk_count = 0
-        chunk_size = 16 
+        chunk_size = 24 
         
         def send_chunk():
             nonlocal chunk_data, chunk_count
