@@ -159,7 +159,7 @@ def find_games():
         finder_counter += 1
         finder_id = finder_counter
 
-        thread = threading.Thread(target=finder_thread, args=(finder_id, team_filter, sleep_minutes, auto_launch, priority), daemon=True)
+        thread = threading.Thread(target=finder_thread, args=(str(team_filter), team_filter, sleep_minutes, auto_launch, priority), daemon=True)
         active_finders[finder_id] = {
             'thread': thread,
             'team_filter': team_filter,
