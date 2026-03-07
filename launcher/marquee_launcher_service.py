@@ -455,7 +455,7 @@ if __name__ == '__main__':
     # Start default finder if WATCH_TEAM is set
     watch_team = os.environ.get('WATCH_TEAM', 'Red Sox')
     if watch_team:
-        finder_id = str(watch_team)
+        finder_id = 0
         sleep_minutes = 30
         auto_launch = True
         priority = 5  # Default priority for startup finder
