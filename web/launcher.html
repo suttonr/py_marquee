@@ -319,7 +319,7 @@
                             ${findersList.map(finder => `
                                 <div class="finder-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; margin-bottom: 0.5rem; background: var(--card-bg);">
                                     <div>
-                                        <strong>Finder ${finder.finder_id}</strong><br>
+                                        <strong>Finder ${finder.team_filter}</strong><br>
                                         <small>Team: ${finder.team_filter || 'All'} | Interval: ${finder.sleep_minutes}min | Priority: ${finder.priority || 0} | Auto-launch: ${finder.auto_launch ? 'Yes' : 'No'}<br>
                                         Next Game: ${formatTimeUntil(finder.time_until_next_game)} | Running: ${Math.floor(finder.runtime_seconds / 60)}m ${Math.floor(finder.runtime_seconds % 60)}s</small>
                                     </div>
