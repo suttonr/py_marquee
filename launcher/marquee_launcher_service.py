@@ -458,9 +458,13 @@ if __name__ == '__main__':
         finder_id = str(watch_team)
         sleep_minutes = 30
         auto_launch = True
-        priority = 0  # Default priority for startup finder
+        priority = 5  # Default priority for startup finder
         with finder_lock:
-            thread = threading.Thread(target=finder_thread, args=(finder_id, watch_team, sleep_minutes, auto_launch, priority), daemon=True)
+            thread = threading.Thread(
+                target=finder_thread, 
+                args=(finder_id, watch_team, sleep_minutes, auto_launch, priority), 
+                daemon=True
+            )
             active_finders[finder_id] = {
                 'thread': thread,
                 'team_filter': watch_team,
