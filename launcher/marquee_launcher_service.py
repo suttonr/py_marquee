@@ -32,13 +32,13 @@ app = Flask(__name__)
 CORS(app)
 
 # Global variables for background tasks
-active_watchers = {}  # game_pk -> thread
-active_finders = {}   # finder_id -> {'thread': thread, 'team_filter': filter, 'sleep_minutes': minutes, 'auto_launch': bool, 'start_time': datetime}
+active_watchers = {}  # game_pk -> {'thread': thread, 'priority': int}
+active_finders = {}   # finder_id -> {'thread': thread, 'team_filter': filter, 'sleep_minutes': minutes, 'auto_launch': bool, 'priority': int, 'start_time': datetime}
 watcher_lock = threading.Lock()
 finder_lock = threading.Lock()
 finder_counter = 0
 
-def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch):
+def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
     """Background thread to find and optionally watch games"""
     try:
         while True:
@@ -54,6 +54,8 @@ def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch):
             sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
             games = sch.get_games(team_filter)
 
+            # Find the next upcoming game and update time_until_next_game
+            min_delta = None
             for game in games:
                 # Check if this finder was stopped
                 with finder_lock:
@@ -64,8 +66,21 @@ def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch):
                 delta_to_game = game_dt - now
                 logger.info(f'Finder {finder_id}: {game.get("gameDate")} {game.get("gamePk")} {game.get("awayTeam")} vs {game.get("homeTeam")} in {delta_to_game}')
 
+                # Track the minimum time until next game
+                if game_dt > now:
+                    if min_delta is None or delta_to_game < min_delta:
+                        min_delta = delta_to_game
+
                 if auto_launch and game_dt > now and delta_to_game < timedelta(hours=1):
-                    watch_game_thread(game.get("gamePk"), 20)
+                    watch_game_thread(game.get("gamePk"), 20, priority)
+
+            # Update time_until_next_game in finder info
+            with finder_lock:
+                if finder_id in active_finders:
+                    if min_delta is not None:
+                        active_finders[finder_id]['time_until_next_game'] = min_delta.total_seconds()
+                    else:
+                        active_finders[finder_id]['time_until_next_game'] = None
 
             # Check if this finder was stopped before sleeping
             with finder_lock:
@@ -130,12 +145,13 @@ def get_schedule():
 def find_games():
     """
     Start background task to find and watch games
-    Body: {"team_filter": "BOS", "sleep_minutes": 30, "auto_launch": true}
+    Body: {"team_filter": "BOS", "sleep_minutes": 30, "auto_launch": true, "priority": 10}
     """
     data = request.get_json() or {}
     team_filter = data.get('team_filter')
     sleep_minutes = data.get('sleep_minutes', 30)
     auto_launch = data.get('auto_launch', False)
+    priority = data.get('priority', 0)
 
     global finder_counter
 
@@ -143,12 +159,13 @@ def find_games():
         finder_counter += 1
         finder_id = finder_counter
 
-        thread = threading.Thread(target=finder_thread, args=(finder_id, team_filter, sleep_minutes, auto_launch), daemon=True)
+        thread = threading.Thread(target=finder_thread, args=(finder_id, team_filter, sleep_minutes, auto_launch, priority), daemon=True)
         active_finders[finder_id] = {
             'thread': thread,
             'team_filter': team_filter,
             'sleep_minutes': sleep_minutes,
             'auto_launch': auto_launch,
+            'priority': priority,
             'start_time': datetime.now(ZoneInfo("America/New_York"))
         }
         thread.start()
@@ -158,26 +175,24 @@ def find_games():
         "finder_id": finder_id,
         "team_filter": team_filter,
         "sleep_minutes": sleep_minutes,
-        "auto_launch": auto_launch
+        "auto_launch": auto_launch,
+        "priority": priority
     })
 
 @app.route('/games/<int:game_pk>/watch', methods=['POST'])
 def start_watching_game(game_pk):
     """
     Start watching a specific MLB game
-    Body: {"interval": 20}
+    Body: {"interval": 20, "priority": 10}
     """
     data = request.get_json() or {}
     interval = data.get('interval', 20)
+    priority = data.get('priority', 0)
 
-    with watcher_lock:
-        if active_watchers:
-            return jsonify({"error": "Already watching a game"}), 400
+    thread = threading.Thread(target=watch_game_thread, args=(game_pk, interval, priority), daemon=True)
+    thread.start()
 
-        thread = threading.Thread(target=watch_game_thread, args=(game_pk, interval), daemon=True)
-        thread.start()
-
-    return jsonify({"message": f"Started watching game {game_pk}"})
+    return jsonify({"message": f"Started watching game {game_pk}", "priority": priority})
 
 @app.route('/games/<int:game_pk>/stop', methods=['POST'])
 def stop_watching_game(game_pk):
@@ -207,16 +222,41 @@ def list_active_finders():
         finders = []
         for finder_id, finder_info in active_finders.items():
             runtime = datetime.now(ZoneInfo("America/New_York")) - finder_info['start_time']
-            finders.append({
+            finder_data = {
                 "finder_id": finder_id,
                 "team_filter": finder_info['team_filter'],
                 "sleep_minutes": finder_info['sleep_minutes'],
                 "auto_launch": finder_info['auto_launch'],
+                "priority": finder_info.get('priority', 0),
                 "start_time": finder_info['start_time'].isoformat(),
-                "runtime_seconds": runtime.total_seconds()
-            })
+                "runtime_seconds": runtime.total_seconds(),
+                "time_until_next_game": finder_info.get('time_until_next_game')
+            }
+            finders.append(finder_data)
 
     return jsonify({"active_finders": finders})
+
+@app.route('/games/finders/<int:finder_id>', methods=['GET'])
+def get_finder(finder_id):
+    """Get a specific game finder by ID"""
+    with finder_lock:
+        if finder_id not in active_finders:
+            return jsonify({"error": f"Finder {finder_id} not found"}), 404
+
+        finder_info = active_finders[finder_id]
+        runtime = datetime.now(ZoneInfo("America/New_York")) - finder_info['start_time']
+        finder_data = {
+            "finder_id": finder_id,
+            "team_filter": finder_info['team_filter'],
+            "sleep_minutes": finder_info['sleep_minutes'],
+            "auto_launch": finder_info['auto_launch'],
+            "priority": finder_info.get('priority', 0),
+            "start_time": finder_info['start_time'].isoformat(),
+            "runtime_seconds": runtime.total_seconds(),
+            "time_until_next_game": finder_info.get('time_until_next_game')
+        }
+
+    return jsonify(finder_data)
 
 @app.route('/games/finders/<finder_id>/stop', methods=['POST'])
 def stop_finder(finder_id):
@@ -261,13 +301,40 @@ def backfill_game():
         return jsonify({"error": str(e)}), 500
     return jsonify({"message": "backfill success"})
 
-def watch_game_thread(game_pk, interval):
-    """Background thread to watch a game"""
+def watch_game_thread(game_pk, interval, priority=0):
+    """Background thread to watch a game
+    
+    Args:
+        game_pk: The MLB game primary key
+        interval: Polling interval in seconds
+        priority: Priority level (higher number = higher priority)
+    """
+    # Check for existing watcher and handle priority comparison
     with watcher_lock:
+        existing_game_pk = None
+        existing_priority = None
+        
         if active_watchers:
-            logger.info(f"Already watching a game, not starting watch for {game_pk}")
-            return
-        active_watchers[game_pk] = threading.current_thread()
+            # Get the existing game pk and its priority
+            for existing_pk, watcher_info in active_watchers.items():
+                existing_game_pk = existing_pk
+                existing_priority = watcher_info.get('priority', 0)
+                break
+            
+            if priority < existing_priority:
+                # New thread has lower priority, exit
+                logger.info(f"Game {game_pk} has lower priority ({priority}) than existing watcher ({existing_priority}), not starting")
+                return
+            elif priority > existing_priority:
+                # New thread has higher priority, stop existing and start new
+                logger.info(f"Game {game_pk} has higher priority ({priority}) than existing watcher ({existing_priority}), stopping old and starting new")
+                # Remove existing watcher - it will stop on its next iteration check
+                active_watchers.clear()
+        
+        active_watchers[game_pk] = {
+            'thread': threading.current_thread(),
+            'priority': priority
+        }
 
     logger.info(f"Started watching game {game_pk}")
 
@@ -391,13 +458,15 @@ if __name__ == '__main__':
         finder_id = str(watch_team)
         sleep_minutes = 30
         auto_launch = True
+        priority = 0  # Default priority for startup finder
         with finder_lock:
-            thread = threading.Thread(target=finder_thread, args=(finder_id, watch_team, sleep_minutes, auto_launch), daemon=True)
+            thread = threading.Thread(target=finder_thread, args=(finder_id, watch_team, sleep_minutes, auto_launch, priority), daemon=True)
             active_finders[finder_id] = {
                 'thread': thread,
                 'team_filter': watch_team,
                 'sleep_minutes': sleep_minutes,
                 'auto_launch': auto_launch,
+                'priority': priority,
                 'start_time': datetime.now(ZoneInfo("America/New_York"))
             }
             thread.start()
