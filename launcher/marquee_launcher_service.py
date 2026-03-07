@@ -258,11 +258,11 @@ def get_finder(finder_id):
 
     return jsonify(finder_data)
 
-@app.route('/games/finders/<finder_id>/stop', methods=['POST'])
+@app.route('/games/finders/<int:finder_id>/stop', methods=['POST'])
 def stop_finder(finder_id):
     """Stop a specific game finder"""
     with finder_lock:
-        if finder_id not in active_finders:
+        if finder_id >= len(active_finders) or finder_id < 0:
             return jsonify({"error": f"Finder {finder_id} not found"}), 404
 
         # Remove from active finders - the thread will detect this and stop
