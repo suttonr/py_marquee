@@ -141,7 +141,7 @@ def writer_thread():
             board.send(True)
         full_refresh -= 1
         end_ts = time.time()
-        sleep_time = max(0, PIXEL_TIME - (start_ts-end_ts))
+        sleep_time = max(0, PIXEL_TIME - (end_ts-start_ts))
         time.sleep(sleep_time)
 
 if __name__ == '__main__':

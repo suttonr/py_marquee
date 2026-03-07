@@ -1,0 +1,481 @@
+#!/usr/bin/env python3
+"""
+Marquee Launcher Service - REST API version of marquee_launcher.py
+Runs as a web service exposing endpoints for MLB game management.
+"""
+
+import os
+import sys
+import time
+import threading
+import logging
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import subprocess
+
+# Import existing modules
+import cli.mlb as mlb
+import cli.secrets as secrets
+
+# Configure logging
+logging.basicConfig(
+    stream=sys.stdout,
+    format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Flask app
+app = Flask(__name__)
+CORS(app)
+
+# Global variables for background tasks
+active_watchers = {}  # game_pk -> {'thread': thread, 'priority': int}
+active_finders = {}   # finder_id -> {'thread': thread, 'team_filter': filter, 'sleep_minutes': minutes, 'auto_launch': bool, 'priority': int, 'start_time': datetime}
+watcher_lock = threading.Lock()
+finder_lock = threading.Lock()
+finder_counter = 0
+
+def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
+    """Background thread to find and optionally watch games"""
+    try:
+        while True:
+            # Check if this finder was stopped
+            with finder_lock:
+                if finder_id not in active_finders:
+                    break
+
+            logger.info(f"Finder {finder_id}: Finding games iteration")
+            now = datetime.now(ZoneInfo("America/New_York"))
+            date_str = now.strftime("%Y-%m-%d")
+
+            sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
+            games = sch.get_games(team_filter)
+
+            # Find the next upcoming game and update time_until_next_game
+            min_delta = None
+            for game in games:
+                # Check if this finder was stopped
+                with finder_lock:
+                    if finder_id not in active_finders:
+                        break
+
+                game_dt = datetime.fromisoformat(game.get("gameDate"))
+                delta_to_game = game_dt - now
+                logger.info(f'Finder {finder_id}: {game.get("gameDate")} {game.get("gamePk")} {game.get("awayTeam")} vs {game.get("homeTeam")} in {delta_to_game}')
+
+                # Track the minimum time until next game
+                if game_dt > now:
+                    if min_delta is None or delta_to_game < min_delta:
+                        min_delta = delta_to_game
+
+                if auto_launch and game_dt > now and delta_to_game < timedelta(hours=1):
+                    watch_game_thread(game.get("gamePk"), 20, priority)
+
+            # Update time_until_next_game in finder info
+            with finder_lock:
+                if finder_id in active_finders:
+                    if min_delta is not None:
+                        active_finders[finder_id]['time_until_next_game'] = min_delta.total_seconds()
+                    else:
+                        active_finders[finder_id]['time_until_next_game'] = None
+
+            # Check if this finder was stopped before sleeping
+            with finder_lock:
+                if finder_id not in active_finders:
+                    break
+
+            time.sleep(sleep_minutes * 60)
+    except Exception as e:
+        logger.error(f"Error in finder thread {finder_id}: {e}")
+    finally:
+        with finder_lock:
+            if finder_id in active_finders:
+                del active_finders[finder_id]
+        logger.info(f"Finder {finder_id} stopped")
+
+@app.route('/health', methods=['GET'])
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "active_watchers": len(active_watchers),
+        "active_finders": len(active_finders)
+    })
+
+@app.route('/schedule', methods=['GET'])
+def get_schedule():
+    """
+    Get MLB schedule for a date with optional team filter
+    Query params: date (YYYY-MM-DD), team_filter
+    """
+    try:
+        date_str = request.args.get('date')
+        team_filter = request.args.get('team_filter')
+
+        now = datetime.now(ZoneInfo("America/New_York"))
+        if not date_str:
+            date_str = now.strftime("%Y-%m-%d")
+
+        sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
+        games = sch.get_games(team_filter)
+
+        result = []
+        for game in games:
+            game_dt = datetime.fromisoformat(game.get("gameDate"))
+            delta_to_game = game_dt - now
+            result.append({
+                "gameDate": game.get("gameDate"),
+                "gamePk": game.get("gamePk"),
+                "awayTeam": game.get("awayTeam"),
+                "homeTeam": game.get("homeTeam"),
+                "hoursUntil": delta_to_game.total_seconds() / 3600,
+                "isStartingSoon": delta_to_game < timedelta(hours=1) and game_dt > now
+            })
+
+        return jsonify({"games": result})
+
+    except Exception as e:
+        logger.error(f"Failed to get schedule: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/games/find', methods=['POST'])
+def find_games():
+    """
+    Start background task to find and watch games
+    Body: {"team_filter": "BOS", "sleep_minutes": 30, "auto_launch": true, "priority": 10}
+    """
+    data = request.get_json() or {}
+    team_filter = data.get('team_filter')
+    sleep_minutes = data.get('sleep_minutes', 30)
+    auto_launch = data.get('auto_launch', False)
+    priority = data.get('priority', 0)
+
+    global finder_counter
+
+    with finder_lock:
+        finder_counter += 1
+        finder_id = finder_counter
+
+        thread = threading.Thread(target=finder_thread, args=(finder_id, team_filter, sleep_minutes, auto_launch, priority), daemon=True)
+        active_finders[finder_id] = {
+            'thread': thread,
+            'team_filter': team_filter,
+            'sleep_minutes': sleep_minutes,
+            'auto_launch': auto_launch,
+            'priority': priority,
+            'start_time': datetime.now(ZoneInfo("America/New_York"))
+        }
+        thread.start()
+
+    return jsonify({
+        "message": f"Game finder {finder_id} started",
+        "finder_id": finder_id,
+        "team_filter": team_filter,
+        "sleep_minutes": sleep_minutes,
+        "auto_launch": auto_launch,
+        "priority": priority
+    })
+
+@app.route('/games/<int:game_pk>/watch', methods=['POST'])
+def start_watching_game(game_pk):
+    """
+    Start watching a specific MLB game
+    Body: {"interval": 20, "priority": 10}
+    """
+    data = request.get_json() or {}
+    interval = data.get('interval', 20)
+    priority = data.get('priority', 0)
+
+    thread = threading.Thread(target=watch_game_thread, args=(game_pk, interval, priority), daemon=True)
+    thread.start()
+
+    return jsonify({"message": f"Started watching game {game_pk}", "priority": priority})
+
+@app.route('/games/<int:game_pk>/stop', methods=['POST'])
+def stop_watching_game(game_pk):
+    """Stop watching a specific game"""
+    with watcher_lock:
+        if game_pk not in active_watchers:
+            return jsonify({"error": f"Not watching game {game_pk}"}), 400
+
+        # Note: Daemon threads will be terminated when main process exits
+        # For proper cleanup, we'd need a more sophisticated approach
+        del active_watchers[game_pk]
+
+    return jsonify({"message": f"Stopped watching game {game_pk}"})
+
+@app.route('/games/watching', methods=['GET'])
+def list_watching_games():
+    """List currently watched games"""
+    with watcher_lock:
+        watching = list(active_watchers.keys())
+
+    return jsonify({"watching_games": watching})
+
+@app.route('/games/finders', methods=['GET'])
+def list_active_finders():
+    """List currently active game finders"""
+    with finder_lock:
+        finders = []
+        for finder_id, finder_info in active_finders.items():
+            runtime = datetime.now(ZoneInfo("America/New_York")) - finder_info['start_time']
+            finder_data = {
+                "finder_id": finder_id,
+                "team_filter": finder_info['team_filter'],
+                "sleep_minutes": finder_info['sleep_minutes'],
+                "auto_launch": finder_info['auto_launch'],
+                "priority": finder_info.get('priority', 0),
+                "start_time": finder_info['start_time'].isoformat(),
+                "runtime_seconds": runtime.total_seconds(),
+                "time_until_next_game": finder_info.get('time_until_next_game')
+            }
+            finders.append(finder_data)
+
+    return jsonify({"active_finders": finders})
+
+@app.route('/games/finders/<int:finder_id>', methods=['GET'])
+def get_finder(finder_id):
+    """Get a specific game finder by ID"""
+    with finder_lock:
+        if finder_id not in active_finders:
+            return jsonify({"error": f"Finder {finder_id} not found"}), 404
+
+        finder_info = active_finders[finder_id]
+        runtime = datetime.now(ZoneInfo("America/New_York")) - finder_info['start_time']
+        finder_data = {
+            "finder_id": finder_id,
+            "team_filter": finder_info['team_filter'],
+            "sleep_minutes": finder_info['sleep_minutes'],
+            "auto_launch": finder_info['auto_launch'],
+            "priority": finder_info.get('priority', 0),
+            "start_time": finder_info['start_time'].isoformat(),
+            "runtime_seconds": runtime.total_seconds(),
+            "time_until_next_game": finder_info.get('time_until_next_game')
+        }
+
+    return jsonify(finder_data)
+
+@app.route('/games/finders/<int:finder_id>/stop', methods=['POST'])
+def stop_finder(finder_id):
+    """Stop a specific game finder"""
+    with finder_lock:
+        if finder_id >= len(active_finders) or finder_id < 0:
+            return jsonify({"error": f"Finder {finder_id} not found"}), 404
+
+        # Remove from active finders - the thread will detect this and stop
+        del active_finders[finder_id]
+
+    return jsonify({"message": f"Stopped finder {finder_id}"})
+
+@app.route('/games/finders/stop-all', methods=['POST'])
+def stop_all_finders():
+    """Stop all active game finders"""
+    with finder_lock:
+        finder_ids = list(active_finders.keys())
+        active_finders.clear()
+
+    return jsonify({"message": f"Stopped {len(finder_ids)} finders", "stopped_finders": finder_ids})
+
+@app.route('/backfill', methods=['POST'])
+def backfill_game():
+    """Backfill the currently watched game"""
+    with watcher_lock:
+        if not active_watchers:
+            return jsonify({"error": "No game currently being watched"}), 400
+
+        game_pk = list(active_watchers.keys())[0]  # Assuming only one game watched at a time
+
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "send-mlb-game", "-g", str(game_pk), "--backfill"
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode not in [0, 80, 81, 89, 98]:
+            logger.error(f"Backfill failed for game {game_pk}: {result.stderr}")
+            return jsonify({"error": f"Backfill failed: {result.stderr}"}), 500
+    except Exception as e:
+        logger.error(f"Error during backfill for game {game_pk}: {e}")
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"message": "backfill success"})
+
+def watch_game_thread(game_pk, interval, priority=0):
+    """Background thread to watch a game
+    
+    Args:
+        game_pk: The MLB game primary key
+        interval: Polling interval in seconds
+        priority: Priority level (higher number = higher priority)
+    """
+    # Check for existing watcher and handle priority comparison
+    with watcher_lock:
+        existing_game_pk = None
+        existing_priority = None
+        
+        if active_watchers:
+            # Get the existing game pk and its priority
+            for existing_pk, watcher_info in active_watchers.items():
+                existing_game_pk = existing_pk
+                existing_priority = watcher_info.get('priority', 0)
+                break
+            
+            if priority < existing_priority:
+                # New thread has lower priority, exit
+                logger.info(f"Game {game_pk} has lower priority ({priority}) than existing watcher ({existing_priority}), not starting")
+                return
+            elif priority > existing_priority:
+                # New thread has higher priority, stop existing and start new
+                logger.info(f"Game {game_pk} has higher priority ({priority}) than existing watcher ({existing_priority}), stopping old and starting new")
+                # Remove existing watcher - it will stop on its next iteration check
+                active_watchers.clear()
+        
+        active_watchers[game_pk] = {
+            'thread': threading.current_thread(),
+            'priority': priority
+        }
+
+    logger.info(f"Started watching game {game_pk}")
+
+    retcode = 0
+    sweet_caroline = False
+    dirty_water = False
+
+    try:
+        while retcode == 0 or retcode in [80, 81, 89, 98]:
+            result = subprocess.run([
+                sys.executable, "cli/matrix-cli.py", "send-mlb-game", "-g", str(game_pk)
+            ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+            retcode = result.returncode
+            sleep_time = interval
+
+            logger.debug(f"Game {game_pk} result: {retcode}")
+
+            for line in result.stdout.split('\n'):
+                if line.strip():
+                    logger.info(f"Game {game_pk}: {line}")
+
+            for line in result.stderr.split("\n"):
+                if line.strip():
+                    logger.error(f"Game {game_pk}: {line}")
+
+            if retcode == 0:
+                logger.debug(f"Game {game_pk}: active")
+            elif retcode == 80:
+                logger.debug(f"Game {game_pk}: active (Sweet Caroline)")
+                if not sweet_caroline:
+                    trigger_webhook("http://192.168.2.178/apps/api/493/trigger?access_token=cd3abd09-23eb-4e75-acca-f0ecbbab11d0")
+                    sweet_caroline = True
+            elif retcode == 81:
+                logger.debug(f"Game {game_pk}: active (Dirty Water)")
+                if not dirty_water:
+                    trigger_webhook("http://192.168.2.178/apps/api/489/trigger?access_token=d45b8e96-30a9-4987-9fea-0936c4af7a28")
+                    dirty_water = True
+            elif retcode == 98:
+                logger.info(f"Game {game_pk}: pregame, longer sleep")
+                sleep_time *= 10
+            elif retcode == 99:
+                logger.info(f"Game {game_pk}: ended")
+                break
+            else:
+                logger.error(f"Game {game_pk}: error sending")
+
+            time.sleep(sleep_time)
+
+    except Exception as e:
+        logger.error(f"Error watching game {game_pk}: {e}")
+    finally:
+        with watcher_lock:
+            if game_pk in active_watchers:
+                del active_watchers[game_pk]
+
+def trigger_webhook(url):
+    """Trigger a webhook URL"""
+    try:
+        result = subprocess.run(["/usr/bin/curl", url], capture_output=True, text=True)
+        logger.info(f"Webhook triggered: {url}")
+    except Exception as e:
+        logger.error(f"Failed to trigger webhook {url}: {e}")
+
+@app.route('/display/clear', methods=['POST'])
+def clear_display():
+    """Clear the marquee display"""
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "clear"
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": "Display cleared"})
+        else:
+            return jsonify({"error": "Failed to clear display"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/display/text', methods=['POST'])
+def send_text():
+    """Send text to display"""
+    data = request.get_json() or {}
+    message = data.get('message', '')
+    line = data.get('line', 1)
+
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "text-line", "--line", str(line), message
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": f"Text sent: {message}"})
+        else:
+            return jsonify({"error": "Failed to send text"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/display/brightness/<int:brightness>', methods=['POST'])
+def set_brightness(brightness):
+    """Set display brightness (0-255)"""
+    if not 0 <= brightness <= 255:
+        return jsonify({"error": "Brightness must be 0-255"}), 400
+
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "brightness", str(brightness)
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": f"Brightness set to {brightness}"})
+        else:
+            return jsonify({"error": "Failed to set brightness"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    # Start default finder if WATCH_TEAM is set
+    watch_team = os.environ.get('WATCH_TEAM', 'Red Sox')
+    if watch_team:
+        finder_id = 0
+        sleep_minutes = 30
+        auto_launch = True
+        priority = 5  # Default priority for startup finder
+        with finder_lock:
+            thread = threading.Thread(
+                target=finder_thread, 
+                args=(finder_id, watch_team, sleep_minutes, auto_launch, priority), 
+                daemon=True
+            )
+            active_finders[finder_id] = {
+                'thread': thread,
+                'team_filter': watch_team,
+                'sleep_minutes': sleep_minutes,
+                'auto_launch': auto_launch,
+                'priority': priority,
+                'start_time': datetime.now(ZoneInfo("America/New_York"))
+            }
+            thread.start()
+        logger.info(f"Started startup finder for team: {watch_team}")
+
+    port = int(os.environ.get('PORT', 4000))
+    debug_mode = os.environ.get('DEBUG', 'false').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
