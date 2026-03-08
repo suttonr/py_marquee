@@ -1,3 +1,5 @@
+import requests
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -81,6 +83,12 @@ class gmonster(base):
                 "away" : box(lookup_box(i,0)),
                 "home" : box(lookup_box(i,1))
             }) 
+
+        # Try to backfill on template load incase its mid-game
+        try:
+            response = requests.get('http://192.168.2.184:4000/backfill')
+        except:
+            pass
         self.display_mask()
     
     def __del__(self):

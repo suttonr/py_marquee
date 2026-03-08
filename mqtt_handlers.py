@@ -230,7 +230,9 @@ def handle_gmonster_game(msg):
     global template, local_weather, board
     game_status = msg.payload.decode()
     # Only auto-switch to clock if we're currently showing gmonster template AND game ends
-    if (isinstance(template, gmonster) and not template.disable_close and game_status in ("F", "FT", "UR")):
+    if (isinstance(template, gmonster) and 
+        not template.disable_close and 
+        game_status in ("F", "FT", "FR", "UR")):
         template.__del__()
         update_template(clock(board, weather=local_weather))
         print("Game ended, automatically switched to clock template")
