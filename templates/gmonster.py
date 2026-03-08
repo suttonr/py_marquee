@@ -86,7 +86,7 @@ class gmonster(base):
 
         # Try to backfill on template load incase its mid-game
         try:
-            response = requests.get('http://192.168.2.184:4000/backfill')
+            response = requests.post('http://192.168.2.184:4000/backfill')
         except:
             pass
         self.display_mask()
