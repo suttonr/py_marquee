@@ -2,6 +2,10 @@
 local/*
 *__pycache__**
 secrets.*
+.env
+web/.env
+web/__pycache__
+web/*.pyc
 cli/cache/*.json
 cli/*.json
 cli/nfl.py
