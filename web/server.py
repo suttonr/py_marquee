@@ -10,7 +10,7 @@ import requests
 # Launcher configuration
 LAUNCHER_HOST = os.environ.get('LAUNCHER_HOST', 'localhost')
 LAUNCHER_PORT = int(os.environ.get('LAUNCHER_PORT', 4000))
-LAUNCHER_API_KEY = os.environ.get('LAUNCHER_API_KEY', 'demokey')
+LAUNCHER_API_KEY = os.environ.get('LAUNCHER_API_KEY', '')
 
 # Build the launcher base URL
 LAUNCHER_BASE_URL = f"http://{LAUNCHER_HOST}:{LAUNCHER_PORT}"
