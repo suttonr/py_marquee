@@ -1,8 +1,7 @@
 CONTAINER_BIN = podman
 CONTAINER_NAME = marquee-web
 SERVICE_NAME = container-$(CONTAINER_NAME).service
-CONTAINER_OPTS = --publish 8888:8888
-
+CONTAINER_OPTS = --publish 8888:8888 --env-file .env
 .PHONY: build start stop status remove create install run shell
 
 build:

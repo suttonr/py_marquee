@@ -9,6 +9,7 @@ import sys
 import time
 import threading
 import logging
+from functools import wraps
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify
@@ -17,13 +18,15 @@ import subprocess
 
 # Import existing modules
 import cli.mlb as mlb
-import cli.secrets as secrets
+import cli.secrets
+import local_secrets as local_secrets
+
 
 # Configure logging
 logging.basicConfig(
     stream=sys.stdout,
     format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,43 @@ watcher_lock = threading.Lock()
 finder_lock = threading.Lock()
 finder_counter = 0
 
+
+def require_api_key(f):
+    """Decorator to require valid API key for endpoint access.
+    Supports both 'Authorization: Bearer <key>' and 'X-API-Key: <key>' headers.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = None
+        
+        # Check Authorization header for Bearer token
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            if auth_header.startswith('Bearer '):
+                api_key = auth_header[7:]  # Extract token after "Bearer "
+        
+        # If no Bearer token, check X-API-Key header
+        if not api_key:
+            api_key = request.headers.get('X-API-Key')
+        
+        if not api_key:
+            logger.warning("Request missing API key")
+            logger.debug(f"Headers: {request.headers}")
+            logger.debug(f"X-API-Key: {request.headers.get('X-API-Key')}")
+            logger.debug(f"Key: {api_key}")
+            return jsonify({
+                "error": "API key required. Use 'Authorization: Bearer <key>' or 'X-API-Key: <key>' header."
+            }), 401
+        
+        # Check if API key is valid
+        if api_key not in local_secrets.API_KEYS:
+            logger.warning(f"Invalid API key attempt: {api_key[:8]}...")
+            return jsonify({"error": "Invalid API key"}), 401
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
     """Background thread to find and optionally watch games"""
     try:
@@ -51,7 +91,7 @@ def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
             now = datetime.now(ZoneInfo("America/New_York"))
             date_str = now.strftime("%Y-%m-%d")
 
-            sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
+            sch = mlb.schedule(date_str, cli.secrets.MLB_SCHEDULE_URL)
             games = sch.get_games(team_filter)
 
             # Find the next upcoming game and update time_until_next_game
@@ -106,6 +146,7 @@ def health():
     })
 
 @app.route('/schedule', methods=['GET'])
+@require_api_key
 def get_schedule():
     """
     Get MLB schedule for a date with optional team filter
@@ -119,7 +160,7 @@ def get_schedule():
         if not date_str:
             date_str = now.strftime("%Y-%m-%d")
 
-        sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
+        sch = mlb.schedule(date_str, cli.secrets.MLB_SCHEDULE_URL)
         games = sch.get_games(team_filter)
 
         result = []
@@ -142,6 +183,7 @@ def get_schedule():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/games/find', methods=['POST'])
+@require_api_key
 def find_games():
     """
     Start background task to find and watch games
@@ -180,6 +222,7 @@ def find_games():
     })
 
 @app.route('/games/<int:game_pk>/watch', methods=['POST'])
+@require_api_key
 def start_watching_game(game_pk):
     """
     Start watching a specific MLB game
@@ -195,6 +238,7 @@ def start_watching_game(game_pk):
     return jsonify({"message": f"Started watching game {game_pk}", "priority": priority})
 
 @app.route('/games/<int:game_pk>/stop', methods=['POST'])
+@require_api_key
 def stop_watching_game(game_pk):
     """Stop watching a specific game"""
     with watcher_lock:
@@ -208,6 +252,7 @@ def stop_watching_game(game_pk):
     return jsonify({"message": f"Stopped watching game {game_pk}"})
 
 @app.route('/games/watching', methods=['GET'])
+@require_api_key
 def list_watching_games():
     """List currently watched games"""
     with watcher_lock:
@@ -216,6 +261,7 @@ def list_watching_games():
     return jsonify({"watching_games": watching})
 
 @app.route('/games/finders', methods=['GET'])
+@require_api_key
 def list_active_finders():
     """List currently active game finders"""
     with finder_lock:
@@ -237,6 +283,7 @@ def list_active_finders():
     return jsonify({"active_finders": finders})
 
 @app.route('/games/finders/<int:finder_id>', methods=['GET'])
+@require_api_key
 def get_finder(finder_id):
     """Get a specific game finder by ID"""
     with finder_lock:
@@ -259,6 +306,7 @@ def get_finder(finder_id):
     return jsonify(finder_data)
 
 @app.route('/games/finders/<int:finder_id>/stop', methods=['POST'])
+@require_api_key
 def stop_finder(finder_id):
     """Stop a specific game finder"""
     with finder_lock:
@@ -271,6 +319,7 @@ def stop_finder(finder_id):
     return jsonify({"message": f"Stopped finder {finder_id}"})
 
 @app.route('/games/finders/stop-all', methods=['POST'])
+@require_api_key
 def stop_all_finders():
     """Stop all active game finders"""
     with finder_lock:
@@ -280,6 +329,7 @@ def stop_all_finders():
     return jsonify({"message": f"Stopped {len(finder_ids)} finders", "stopped_finders": finder_ids})
 
 @app.route('/backfill', methods=['POST'])
+@require_api_key
 def backfill_game():
     """Backfill the currently watched game"""
     with watcher_lock:
@@ -300,6 +350,61 @@ def backfill_game():
         logger.error(f"Error during backfill for game {game_pk}: {e}")
         return jsonify({"error": str(e)}), 500
     return jsonify({"message": "backfill success"})
+
+@app.route('/display/clear', methods=['POST'])
+@require_api_key
+def clear_display():
+    """Clear the marquee display"""
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "clear"
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": "Display cleared"})
+        else:
+            return jsonify({"error": "Failed to clear display"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/display/text', methods=['POST'])
+@require_api_key
+def send_text():
+    """Send text to display"""
+    data = request.get_json() or {}
+    message = data.get('message', '')
+    line = data.get('line', 1)
+
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "text-line", "--line", str(line), message
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": f"Text sent: {message}"})
+        else:
+            return jsonify({"error": "Failed to send text"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/display/brightness/<int:brightness>', methods=['POST'])
+@require_api_key
+def set_brightness(brightness):
+    """Set display brightness (0-255)"""
+    if not 0 <= brightness <= 255:
+        return jsonify({"error": "Brightness must be 0-255"}), 400
+
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "brightness", str(brightness)
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": f"Brightness set to {brightness}"})
+        else:
+            return jsonify({"error": "Failed to set brightness"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 def watch_game_thread(game_pk, interval, priority=0):
     """Background thread to watch a game
@@ -398,58 +503,6 @@ def trigger_webhook(url):
         logger.info(f"Webhook triggered: {url}")
     except Exception as e:
         logger.error(f"Failed to trigger webhook {url}: {e}")
-
-@app.route('/display/clear', methods=['POST'])
-def clear_display():
-    """Clear the marquee display"""
-    try:
-        result = subprocess.run([
-            sys.executable, "cli/matrix-cli.py", "clear"
-        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
-
-        if result.returncode == 0:
-            return jsonify({"message": "Display cleared"})
-        else:
-            return jsonify({"error": "Failed to clear display"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/display/text', methods=['POST'])
-def send_text():
-    """Send text to display"""
-    data = request.get_json() or {}
-    message = data.get('message', '')
-    line = data.get('line', 1)
-
-    try:
-        result = subprocess.run([
-            sys.executable, "cli/matrix-cli.py", "text-line", "--line", str(line), message
-        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
-
-        if result.returncode == 0:
-            return jsonify({"message": f"Text sent: {message}"})
-        else:
-            return jsonify({"error": "Failed to send text"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/display/brightness/<int:brightness>', methods=['POST'])
-def set_brightness(brightness):
-    """Set display brightness (0-255)"""
-    if not 0 <= brightness <= 255:
-        return jsonify({"error": "Brightness must be 0-255"}), 400
-
-    try:
-        result = subprocess.run([
-            sys.executable, "cli/matrix-cli.py", "brightness", str(brightness)
-        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
-
-        if result.returncode == 0:
-            return jsonify({"message": f"Brightness set to {brightness}"})
-        else:
-            return jsonify({"error": "Failed to set brightness"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     # Start default finder if WATCH_TEAM is set

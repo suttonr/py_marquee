@@ -192,8 +192,8 @@
     </div>
 
     <script>
-        // Configuration
-        const LAUNCHER_API_BASE = 'http://' + window.location.hostname + ':4000';
+        // Configuration - use API proxy through the web server
+        const LAUNCHER_API_BASE = 'http://' + window.location.hostname + ':' + window.location.port  + '/api/launcher';
 
         // Tab switching
         document.querySelectorAll('.tab-button').forEach(button => {
