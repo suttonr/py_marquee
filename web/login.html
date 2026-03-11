@@ -136,6 +136,38 @@
             margin-right: 8px;
         }
 
+        .btn-secondary {
+            background-color: var(--text-secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--text-color);
+        }
+
+        .btn-secondary i {
+            margin-right: 8px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .divider span {
+            padding: 0 10px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
         .alert {
             padding: 12px 16px;
             border-radius: 8px;
@@ -216,19 +248,40 @@
                     <input type="text" id="username" name="username" required autocomplete="username" autofocus>
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="password-toggle">
-                        <input type="password" id="password" name="password" required autocomplete="current-password">
-                        <button type="button" class="toggle-btn" onclick="togglePassword()">
-                            <i class="fas fa-eye" id="toggleIcon"></i>
-                        </button>
-                    </div>
+                <!-- OTP Input Field (hidden initially) -->
+                <div class="form-group" id="otpGroup" style="display: none;">
+                    <label for="otp">Registration OTP</label>
+                    <input type="password" id="otp" name="otp" autocomplete="one-time-code">
                 </div>
 
-                <button type="submit" class="btn btn-primary">
+                <!-- Initial Login Button -->
+                <button type="button" class="btn btn-primary" id="initialLogin">
                     <i class="fas fa-sign-in-alt"></i>
-                    Sign In
+                    Login
+                </button>
+
+                <!-- Verify OTP Button -->
+                <button type="button" class="btn btn-primary" id="verifyOtp" style="display: none; margin-top: 10px;">
+                    <i class="fas fa-check"></i>
+                    Verify OTP
+                </button>
+
+                <!-- WebAuthn Login Button -->
+                <button type="button" class="btn btn-primary" id="webauthnLogin" style="display: none; margin-top: 10px;">
+                    <i class="fas fa-fingerprint"></i>
+                    Sign In with Passkey
+                </button>
+
+                <!-- WebAuthn Register Button -->
+                <button type="button" class="btn btn-secondary" id="webauthnRegister" style="display: none; margin-top: 10px;">
+                    <i class="fas fa-user-plus"></i>
+                    Register New Passkey
+                </button>
+
+                <!-- Back Button -->
+                <button type="button" class="btn btn-secondary" id="backBtn" style="display: none; margin-top: 10px;">
+                    <i class="fas fa-arrow-left"></i>
+                    Back
                 </button>
             </form>
 
@@ -239,27 +292,330 @@
     </div>
 
     <script>
-        // Password visibility toggle
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleIcon.classList.remove('fa-eye');
-                toggleIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                toggleIcon.classList.remove('fa-eye-slash');
-                toggleIcon.classList.add('fa-eye');
+        // Check if WebAuthn is supported
+        const webAuthnSupported = typeof PublicKeyCredential !== 'undefined';
+
+        // DOM Elements
+        const usernameInput = document.getElementById('username');
+        const initialLoginBtn = document.getElementById('initialLogin');
+        const verifyOtpBtn = document.getElementById('verifyOtp');
+        const webauthnLoginBtn = document.getElementById('webauthnLogin');
+        const webauthnRegisterBtn = document.getElementById('webauthnRegister');
+        const backBtn = document.getElementById('backBtn');
+        const otpGroup = document.getElementById('otpGroup');
+        const otpInput = document.getElementById('otp');
+
+        // State management
+        let currentStep = 'initial'; // 'initial', 'otp', 'passkey_login', 'passkey_register'
+
+        // Reset to initial state
+        function resetToInitial() {
+            currentStep = 'initial';
+            initialLoginBtn.style.display = 'inline-flex';
+            verifyOtpBtn.style.display = 'none';
+            webauthnLoginBtn.style.display = 'none';
+            webauthnRegisterBtn.style.display = 'none';
+            backBtn.style.display = 'none';
+            otpGroup.style.display = 'none';
+            otpInput.value = '';
+        }
+
+        // Initial login button handler
+        initialLoginBtn.addEventListener('click', async () => {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                showAlert('Please enter a username', 'error');
+                return;
             }
+
+            try {
+                // Check if user has credentials registered
+                const response = await fetch(`/api/webauthn/has-credentials?username=${encodeURIComponent(username)}`);
+                const data = await response.json();
+
+                if (data.has_credentials) {
+                    // User has passkey - show login and register options
+                    currentStep = 'passkey_options';
+                    initialLoginBtn.style.display = 'none';
+                    webauthnLoginBtn.style.display = 'inline-flex';
+                    webauthnRegisterBtn.style.display = 'inline-flex';
+                    backBtn.style.display = 'inline-flex';
+                } else {
+                    // User doesn't have passkey - show OTP input for registration
+                    currentStep = 'otp';
+                    initialLoginBtn.style.display = 'none';
+                    otpGroup.style.display = 'block';
+                    verifyOtpBtn.style.display = 'inline-flex';
+                    backBtn.style.display = 'inline-flex';
+                    otpInput.focus();
+                }
+            } catch (e) {
+                console.error('Error checking credentials:', e);
+                showAlert('Error checking user credentials', 'error');
+            }
+        });
+
+        // Verify OTP button handler
+        verifyOtpBtn.addEventListener('click', async () => {
+            const username = usernameInput.value.trim();
+            const otp = otpInput.value.trim();
+
+            if (!otp) {
+                showAlert('Please enter the registration OTP', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/webauthn/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, otp })
+                });
+
+                if (response.ok) {
+                    // OTP verified - show register button
+                    currentStep = 'passkey_register';
+                    otpGroup.style.display = 'none';
+                    verifyOtpBtn.style.display = 'none';
+                    webauthnRegisterBtn.style.display = 'inline-flex';
+                    showAlert('OTP verified successfully. You can now register your passkey.', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Invalid OTP', 'error');
+                }
+            } catch (e) {
+                console.error('Error verifying OTP:', e);
+                showAlert('Error verifying OTP', 'error');
+            }
+        });
+
+        // Back button handler
+        backBtn.addEventListener('click', () => {
+            resetToInitial();
+        });
+
+        // Username change handler - reset state
+        usernameInput.addEventListener('input', () => {
+            if (currentStep !== 'initial') {
+                resetToInitial();
+            }
+        });
+
+        // WebAuthn Login
+        webauthnLoginBtn.addEventListener('click', async () => {
+            const username = usernameInput.value || 'admin';
+            
+            try {
+                // Get authentication options
+                const optionsResponse = await fetch('/api/webauthn/authenticate/options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                if (!optionsResponse.ok) {
+                    const error = await optionsResponse.json();
+                    showAlert(error.error || 'Failed to get authentication options', 'error');
+                    return;
+                }
+
+                const responseData = await optionsResponse.json();
+                console.log('Authentication options response:', responseData);
+                
+                // Handle both camelCase and snake_case from fido2 library
+                const options = responseData.publicKey || responseData.public_key || responseData;
+                console.log('Parsed options:', options);
+                
+                if (!options.challenge) {
+                    throw new Error('Challenge is missing from server response');
+                }
+                
+                // Convert challenge from base64
+                options.challenge = base64ToBuffer(options.challenge);
+                
+                // Convert credentials from base64
+                if (options.allowCredentials) {
+                    options.allowCredentials = options.allowCredentials.map(cred => ({
+                        ...cred,
+                        id: base64ToBuffer(cred.id)
+                    }));
+                }
+
+                console.log('Options ready for get():', options);
+
+                // Create credential
+                const credential = await navigator.credentials.get({
+                    publicKey: options
+                });
+
+                // Convert response to JSON-friendly format
+                const authData = {
+                    credentialId: bufferToBase64(credential.rawId),
+                    authenticatorResponse: {
+                        clientDataJSON: bufferToBase64(credential.response.clientDataJSON),
+                        authenticatorData: bufferToBase64(credential.response.authenticatorData),
+                        signature: bufferToBase64(credential.response.signature),
+                        userHandle: credential.response.userHandle ? bufferToBase64(credential.response.userHandle) : null
+                    }
+                };
+
+                // Verify authentication
+                const verifyResponse = await fetch('/api/webauthn/authenticate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        credentialId: authData.credentialId,
+                        authenticatorResponse: authData.authenticatorResponse
+                    })
+                });
+
+                if (verifyResponse.ok) {
+                    showAlert('Successfully authenticated with passkey!', 'success');
+                    // Redirect to main page
+                    window.location.href = '/';
+                } else {
+                    const error = await verifyResponse.json();
+                    showAlert(error.error || 'Authentication failed', 'error');
+                }
+            } catch (e) {
+                console.error('WebAuthn error:', e);
+                showAlert('WebAuthn authentication failed: ' + e.message, 'error');
+            }
+        });
+
+        // WebAuthn Registration
+        webauthnRegisterBtn.addEventListener('click', async () => {
+            const username = usernameInput.value || 'admin';
+
+            // If we're in passkey_options state, user wants to register a new passkey
+            // Show OTP verification first
+            if (currentStep === 'passkey_options') {
+                currentStep = 'otp';
+                webauthnLoginBtn.style.display = 'none';
+                webauthnRegisterBtn.style.display = 'none';
+                otpGroup.style.display = 'block';
+                verifyOtpBtn.style.display = 'inline-flex';
+                otpInput.focus();
+                return;
+            }
+
+            // If we're in passkey_register state (OTP verified), proceed with registration
+            if (currentStep === 'passkey_register') {
+                try {
+                    // Get registration options
+                    const optionsResponse = await fetch('/api/webauthn/register/options', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+
+                    if (!optionsResponse.ok) {
+                        const error = await optionsResponse.json();
+                        showAlert(error.error || 'Failed to get registration options', 'error');
+                        return;
+                    }
+
+                    const responseData = await optionsResponse.json();
+                    console.log('Registration options response:', responseData);
+
+                    // Handle both camelCase and snake_case from fido2 library
+                    const options = responseData.publicKey || responseData.public_key || responseData;
+                    console.log('Parsed options:', options);
+
+                    if (!options.challenge) {
+                        throw new Error('Challenge is missing from server response');
+                    }
+
+                    // Convert challenge from base64
+                    options.challenge = base64ToBuffer(options.challenge);
+
+                    // Convert user ID from base64
+                    if (options.user && options.user.id) {
+                        options.user.id = base64ToBuffer(options.user.id);
+                    }
+
+                    console.log('Options ready for create():', options);
+
+                    // Create credential
+                    const credential = await navigator.credentials.create({
+                        publicKey: options
+                    });
+
+                    // Convert response to JSON-friendly format
+                    const regData = {
+                        attestationResponse: {
+                            id: credential.id,
+                            rawId: bufferToBase64(credential.rawId),
+                            type: credential.type,
+                            response: {
+                                attestationObject: bufferToBase64(credential.response.attestationObject),
+                                clientDataJSON: bufferToBase64(credential.response.clientDataJSON)
+                            }
+                        }
+                    };
+
+                    // Verify registration
+                    const verifyResponse = await fetch('/api/webauthn/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username,
+                            attestationResponse: regData.attestationResponse
+                        })
+                    });
+
+                    if (verifyResponse.ok) {
+                        showAlert('Passkey registered successfully!', 'success');
+                        // Reset to show both login and register options
+                        currentStep = 'passkey_options';
+                        webauthnLoginBtn.style.display = 'inline-flex';
+                        webauthnRegisterBtn.style.display = 'inline-flex';
+                        otpGroup.style.display = 'none';
+                        verifyOtpBtn.style.display = 'none';
+                        otpInput.value = '';
+                    } else {
+                        const error = await verifyResponse.json();
+                        showAlert(error.error || 'Registration failed', 'error');
+                    }
+                } catch (e) {
+                    console.error('WebAuthn registration error:', e);
+                    showAlert('Passkey registration failed: ' + e.message, 'error');
+                }
+            }
+        });
+
+        // Utility functions for base64 conversion
+        function base64ToBuffer(base64) {
+            // Handle base64url format and add padding if needed
+            let b64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+            while (b64.length % 4) {
+                b64 += '=';
+            }
+            
+            const binaryString = atob(b64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        function bufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            // Return base64url format without padding
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
         }
 
         // Check for flash messages in URL (passed as query params after redirect)
         const urlParams = new URLSearchParams(window.location.search);
         const error = urlParams.get('error');
         const success = urlParams.get('success');
-        
+
         if (error) {
             showAlert(error, 'error');
         }
@@ -273,7 +629,7 @@
             alertDiv.className = `alert alert-${type}`;
             alertDiv.textContent = message;
             alertContainer.appendChild(alertDiv);
-            
+
             // Auto-hide after 5 seconds
             setTimeout(() => {
                 alertDiv.remove();
