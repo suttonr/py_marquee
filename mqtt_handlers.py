@@ -7,6 +7,7 @@ Handlers are organized by topic patterns for better maintainability and extensib
 
 import time
 import traceback
+import secrets
 from templates.clock import clock
 from templates.timer import timer
 from templates.gmonster import gmonster
@@ -182,7 +183,7 @@ def handle_template(msg):
     print("template:", msg.topic, message)
     if message == bytearray(b"gmonster"):
         refresh = False
-        check_template(gmonster, force=True)
+        check_template(gmonster, launcher_key=secrets.LAUNCHER_KEY, force=True)
         refresh = True
         print("gmonster template set")
     elif message == bytearray(b"clock"):
