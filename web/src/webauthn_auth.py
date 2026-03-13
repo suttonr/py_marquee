@@ -13,40 +13,54 @@ import base64
 
 class WebAuthnManager:
     """Manages WebAuthn/FIDO2 authentication"""
-    
-    def __init__(self, rp_id, rp_name, rp_host, credentials_file):
+
+    def __init__(self, rp_id, rp_name, rp_host, auth_dir):
         self.rp_id = rp_id
         self.rp_name = rp_name
         self.rp_host = rp_host
-        self.credentials_file = credentials_file
-        self.credentials = self._load_credentials()
-        
+        self.auth_dir = auth_dir
+        # Ensure auth directory exists
+        os.makedirs(self.auth_dir, exist_ok=True)
+
         # Create FIDO2 server
         self.server = Fido2Server(
             rp={"id": rp_id, "name": rp_name},
             attestation="none",
         )
-        
+
         # Generate challenge
         self.challenge = secrets.token_bytes(32)
     
-    def _load_credentials(self):
-        """Load stored WebAuthn credentials"""
+    def _load_user_data(self, username):
+        """Load user data from JSON file"""
+        user_file = os.path.join(self.auth_dir, f'{username}.json')
         try:
-            if os.path.exists(self.credentials_file):
-                with open(self.credentials_file, 'r') as f:
+            if os.path.exists(user_file):
+                with open(user_file, 'r') as f:
                     return json.load(f)
         except Exception as e:
-            print(f"Error loading credentials: {e}")
+            print(f"Error loading user data for {username}: {e}")
         return {}
-    
-    def _save_credentials(self):
-        """Save WebAuthn credentials to file"""
+
+    def _save_user_data(self, username, user_data):
+        """Save user data to JSON file"""
+        user_file = os.path.join(self.auth_dir, f'{username}.json')
         try:
-            with open(self.credentials_file, 'w') as f:
-                json.dump(self.credentials, f)
+            with open(user_file, 'w') as f:
+                json.dump(user_data, f, indent=2)
         except Exception as e:
-            print(f"Error saving credentials: {e}")
+            print(f"Error saving user data for {username}: {e}")
+
+    def _get_user_credentials(self, username):
+        """Get WebAuthn credentials for a user"""
+        user_data = self._load_user_data(username)
+        return user_data.get('passkey', [])
+
+    def _set_user_credentials(self, username, credentials):
+        """Set WebAuthn credentials for a user"""
+        user_data = self._load_user_data(username)
+        user_data['passkey'] = credentials
+        self._save_user_data(username, user_data)
     
     def _serialize_options(self, obj):
         """Convert fido2 options to JSON-serializable dictionary"""
@@ -75,7 +89,7 @@ class WebAuthnManager:
             session['webauthn_username'] = username
             
             # Get existing credentials for this user to exclude
-            user_credentials = self.credentials.get(username, [])
+            user_credentials = self._get_user_credentials(username)
             
             # Build user entity
             user = {
@@ -140,17 +154,16 @@ class WebAuthnManager:
                 'credential_id': base64.urlsafe_b64encode(auth_data.credential_data.credential_id).decode('utf-8').rstrip('='),
                 'credential_data': base64.b64encode(bytes(auth_data.credential_data)).decode('utf-8'),
             }
-            
-            if username not in self.credentials:
-                self.credentials[username] = []
-            
+
+            user_credentials = self._get_user_credentials(username)
+
             # Check if credential already exists
-            for cred in self.credentials[username]:
+            for cred in user_credentials:
                 if cred['credential_id'] == credential_data['credential_id']:
                     return jsonify({'error': 'Credential already registered'}), 400
-            
-            self.credentials[username].append(credential_data)
-            self._save_credentials()
+
+            user_credentials.append(credential_data)
+            self._set_user_credentials(username, user_credentials)
             
             # Clear session
             session.pop('webauthn_challenge', None)
@@ -173,7 +186,7 @@ class WebAuthnManager:
             session['webauthn_username'] = username
             
             # Get credentials for this user
-            user_credentials = self.credentials.get(username, [])
+            user_credentials = self._get_user_credentials(username)
             
             if not user_credentials:
                 return jsonify({'error': 'No credentials found for user'}), 404
@@ -224,7 +237,7 @@ class WebAuthnManager:
                 return jsonify({'error': 'Invalid state'}), 400
 
             # Get user credentials
-            user_credentials = self.credentials.get(username, [])
+            user_credentials = self._get_user_credentials(username)
 
             if not user_credentials:
                 return jsonify({'error': 'No credentials found for user'}), 404
@@ -291,25 +304,33 @@ class WebAuthnManager:
     
     def has_credentials(self, username):
         """Check if user has WebAuthn credentials registered"""
-        return username in self.credentials and len(self.credentials[username]) > 0
+        user_credentials = self._get_user_credentials(username)
+        return len(user_credentials) > 0
     
     def remove_credentials(self, username):
         """Remove all credentials for a user"""
-        if username in self.credentials:
-            del self.credentials[username]
-            self._save_credentials()
+        user_data = self._load_user_data(username)
+        if 'passkey' in user_data:
+            user_data['passkey'] = []
+            self._save_user_data(username, user_data)
             return True
         return False
 
     def get_users(self):
         """Get list of registered users with their credential counts"""
         users = []
-        for username, credentials in self.credentials.items():
-            users.append({
-                'username': username,
-                'credential_count': len(credentials),
-                'has_credentials': len(credentials) > 0
-            })
+        try:
+            for filename in os.listdir(self.auth_dir):
+                if filename.endswith('.json'):
+                    username = filename[:-5]  # Remove .json
+                    user_credentials = self._get_user_credentials(username)
+                    users.append({
+                        'username': username,
+                        'credential_count': len(user_credentials),
+                        'has_credentials': len(user_credentials) > 0
+                    })
+        except Exception as e:
+            print(f"Error listing users: {e}")
         return users
 
     def get_rp_config(self):

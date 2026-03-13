@@ -5,8 +5,8 @@ import pytest
 import sys
 import os
 
-# Add the web directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'web'))
+# Add the web/src directory to the path
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'web', 'src'))
 
 from server import app, limiter
 

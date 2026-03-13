@@ -30,6 +30,10 @@ LAUNCHER_BASE_URL = f"http://{LAUNCHER_HOST}:{LAUNCHER_PORT}"
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'marquee123')
 
+# Auth directory for user JSON files
+AUTH_DIR = os.environ.get('AUTH_DIR', '/auth')
+WEB_RATE = os.environ.get('WEB_RATE', '4')
+
 # Registration OTP for new passkey registration
 REGISTRATION_OTP = os.environ.get('REGISTRATION_OTP',
                                   'changeme')
@@ -41,9 +45,8 @@ REGISTRATION_ENABLED = os.environ.get('REGISTRATION_ENABLED', 'true').lower() ==
 webauthn_rp_id = os.environ.get('WEBAUTHN_RP_ID', 'localhost')
 webauthn_rp_name = os.environ.get('WEBAUTHN_RP_NAME', 'Marquee Control')
 webauthn_rp_host = os.environ.get('WEBAUTHN_RP_HOST', 'http://localhost:8888')
-webauthn_cred_file = os.environ.get('WEBAUTHN_CRED_FILE', 'webauthn_credentials.json')
-webauthn_manager = WebAuthnManager(webauthn_rp_id, webauthn_rp_name, 
-                                   webauthn_rp_host, webauthn_cred_file)
+webauthn_manager = WebAuthnManager(webauthn_rp_id, webauthn_rp_name,
+                                   webauthn_rp_host, AUTH_DIR)
 
 # Static folder configuration
 STATIC_FOLDER = os.path.join(os.path.dirname(__file__), '')
@@ -132,15 +135,31 @@ def login_post():
     """Handle login form submission"""
     username = request.form.get('username', '')
     password = request.form.get('password', '')
-    
+
+    # Check hardcoded admin credentials for backward compatibility
     if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
         session['logged_in'] = True
         session['username'] = username
         flash('Successfully logged in!', 'success')
         return redirect(url_for('index'))
-    else:
-        flash('Invalid username or password', 'error')
-        return redirect(url_for('login'))
+
+    # Check user file for password
+    user_file = os.path.join(AUTH_DIR, f'{username}.json')
+    if os.path.exists(user_file):
+        try:
+            with open(user_file, 'r') as f:
+                user_data = json.load(f)
+            stored_password = user_data.get('password')
+            if stored_password and password == stored_password:
+                session['logged_in'] = True
+                session['username'] = username
+                flash('Successfully logged in!', 'success')
+                return redirect(url_for('index'))
+        except Exception as e:
+            print(f"Error loading user data for {username}: {e}")
+
+    flash('Invalid username or password', 'error')
+    return redirect(url_for('login'))
 
 
 # WebAuthn API Routes
@@ -218,7 +237,7 @@ def webauthn_authenticate():
 
 
 @app.route('/api/webauthn/has-credentials', methods=['GET'])
-@limiter.limit("2 per minute")
+@limiter.limit(f"{WEB_RATE} per minute")
 def webauthn_has_credentials():
     """Check if user has WebAuthn credentials"""
     username = request.args.get('username', ADMIN_USERNAME)
@@ -226,7 +245,7 @@ def webauthn_has_credentials():
     return jsonify({'has_credentials': has_creds})
 
 @app.route('/api/webauthn/verify-otp', methods=['POST'])
-@limiter.limit("1 per minute")
+@limiter.limit("{WEB_RATE} per minute")
 def webauthn_verify_otp():
     """Verify registration OTP for new passkey registration"""
     data = request.get_json()

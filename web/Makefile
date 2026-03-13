@@ -2,7 +2,7 @@ CONTAINER_BIN = podman
 CONTAINER_NAME = marquee-web
 SERVICE_NAME = container-$(CONTAINER_NAME).service
 CONTAINER_OPTS = --publish 8888:8888 --env-file .env
-CONTAINER_VOLUMES = --volume $(shell pwd)/../auth/:/auth
+CONTAINER_VOLUMES = --volume $(shell pwd)/auth/:/auth
 
 .PHONY: build start stop status remove create install run shell
 
