@@ -23,7 +23,8 @@ remove: stop
 	$(CONTAINER_BIN) rm -f $(CONTAINER_NAME) || true
 
 create: remove build
-	mkdir -p $(shell pwd)/../auth/
+	mkdir -p $(shell pwd)/auth/
+	touch $(shell pwd)/auth/admin.json
 	$(CONTAINER_BIN) create --name $(CONTAINER_NAME) \
 		$(CONTAINER_OPTS) \
 		$(CONTAINER_VOLUMES) \

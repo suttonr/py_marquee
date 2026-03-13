@@ -7,6 +7,7 @@ local_secrets.*
 web/.env
 web/__pycache__
 web/*.pyc
+web/auth/*
 cli/cache/*.json
 cli/*.json
 cli/nfl.py

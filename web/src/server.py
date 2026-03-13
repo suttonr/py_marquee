@@ -36,8 +36,10 @@ WEB_RATE = os.environ.get('WEB_RATE', '4')
 REGISTRATION_OTP = os.environ.get('REGISTRATION_OTP',
                                   'changeme')
 
-# Registration enabled/disabled setting
-REGISTRATION_ENABLED = os.environ.get('REGISTRATION_ENABLED', 'true').lower() == 'true'
+# Static folder configuration
+STATIC_FOLDER = os.path.join(os.path.dirname(__file__), '')
+# Auth directory for user JSON files
+AUTH_DIR = os.environ.get('AUTH_DIR', '/auth')
 
 # Initialize WebAuthn manager with RP config from environment
 webauthn_rp_id = os.environ.get('WEBAUTHN_RP_ID', 'localhost')
@@ -46,10 +48,10 @@ webauthn_rp_host = os.environ.get('WEBAUTHN_RP_HOST', 'http://localhost:8888')
 webauthn_manager = WebAuthnManager(webauthn_rp_id, webauthn_rp_name,
                                    webauthn_rp_host, AUTH_DIR)
 
-# Static folder configuration
-STATIC_FOLDER = os.path.join(os.path.dirname(__file__), '')
-# Auth directory for user JSON files
-AUTH_DIR = os.environ.get('AUTH_DIR', '/auth')
+# Registration enabled/disabled setting
+REGISTRATION_ENABLED = os.environ.get(
+        'REGISTRATION_ENABLED', str(not webauthn_manager.has_credentials("admin"))
+    ).lower() == 'true'
 
 def login_required(f):
     """Decorator to require login for routes"""
