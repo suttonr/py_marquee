@@ -31,8 +31,11 @@ ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'marquee123')
 
 # Registration OTP for new passkey registration
-REGISTRATION_OTP = os.environ.get('REGISTRATION_OTP', 
+REGISTRATION_OTP = os.environ.get('REGISTRATION_OTP',
                                   'changeme')
+
+# Registration enabled/disabled setting
+REGISTRATION_ENABLED = os.environ.get('REGISTRATION_ENABLED', 'true').lower() == 'true'
 
 # Initialize WebAuthn manager with RP config from environment
 webauthn_rp_id = os.environ.get('WEBAUTHN_RP_ID', 'localhost')
@@ -163,6 +166,8 @@ def webauthn_register():
 
     if not username:
         return jsonify({'error': 'Username required'}), 400
+    if not REGISTRATION_ENABLED:
+        return jsonify({'error': 'New registrations are currently disabled'}), 403
 
     # Check if OTP has been verified for this user
     if not session.get('otp_verified') or session.get('otp_verified_username') != username:
@@ -234,6 +239,9 @@ def webauthn_verify_otp():
     if not otp:
         return jsonify({'error': 'OTP required'}), 400
 
+    if not REGISTRATION_ENABLED:
+        return jsonify({'error': 'New registrations are currently disabled'}), 403
+
     if not REGISTRATION_OTP:
         return jsonify({'error': 'Registration OTP not configured'}), 500
 
@@ -244,6 +252,39 @@ def webauthn_verify_otp():
         return jsonify({'status': 'ok', 'message': 'OTP verified successfully'}), 200
     else:
         return jsonify({'error': 'Invalid OTP'}), 401
+
+
+@app.route('/admin')
+@login_required
+def admin():
+    """Administration page"""
+    return send_from_directory('.', 'admin.html')
+
+
+@app.route('/api/admin/registration-status', methods=['GET'])
+@app.route('/registration-status', methods=['GET'])
+def get_registration_status():
+    """Get current registration status"""
+    return jsonify({'enabled': REGISTRATION_ENABLED})
+
+
+@app.route('/api/admin/registration-status', methods=['POST'])
+@login_required
+def set_registration_status():
+    """Set registration status"""
+    global REGISTRATION_ENABLED
+    data = request.get_json()
+    enabled = data.get('enabled', True)
+    REGISTRATION_ENABLED = bool(enabled)
+    return jsonify({'enabled': REGISTRATION_ENABLED})
+
+
+@app.route('/api/admin/users', methods=['GET'])
+@login_required
+def get_users():
+    """Get list of registered users"""
+    users = webauthn_manager.get_users()
+    return jsonify({'users': users})
 
 
 @app.route('/logout')

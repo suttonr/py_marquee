@@ -301,6 +301,17 @@ class WebAuthnManager:
             return True
         return False
 
+    def get_users(self):
+        """Get list of registered users with their credential counts"""
+        users = []
+        for username, credentials in self.credentials.items():
+            users.append({
+                'username': username,
+                'credential_count': len(credentials),
+                'has_credentials': len(credentials) > 0
+            })
+        return users
+
     def get_rp_config(self):
         """Get the relying party configuration"""
         return {

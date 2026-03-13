@@ -2,6 +2,8 @@ CONTAINER_BIN = podman
 CONTAINER_NAME = marquee-web
 SERVICE_NAME = container-$(CONTAINER_NAME).service
 CONTAINER_OPTS = --publish 8888:8888 --env-file .env
+CONTAINER_VOLUMES = --volume $(shell pwd)/../auth/:/auth
+
 .PHONY: build start stop status remove create install run shell
 
 build:
@@ -21,9 +23,10 @@ remove: stop
 	$(CONTAINER_BIN) rm -f $(CONTAINER_NAME) || true
 
 create: remove build
+	mkdir -p $(shell pwd)/../auth/
 	$(CONTAINER_BIN) create --name $(CONTAINER_NAME) \
 		$(CONTAINER_OPTS) \
-		--volume $(shell pwd)/../:/app/parent \
+		$(CONTAINER_VOLUMES) \
 		localhost/$(CONTAINER_NAME):latest
 
 install: create
@@ -43,4 +46,4 @@ logs:
 	$(CONTAINER_BIN) logs -f $(CONTAINER_NAME)
 
 run-debug: create
-	$(CONTAINER_BIN) run $(CONTAINER_OPTS) $(CONTAINER_NAME)
+	$(CONTAINER_BIN) run $(CONTAINER_OPTS) $(CONTAINER_VOLUMES) $(CONTAINER_NAME)

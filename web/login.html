@@ -341,13 +341,22 @@
                     webauthnRegisterBtn.style.display = 'inline-flex';
                     backBtn.style.display = 'inline-flex';
                 } else {
-                    // User doesn't have passkey - show OTP input for registration
-                    currentStep = 'otp';
-                    initialLoginBtn.style.display = 'none';
-                    otpGroup.style.display = 'block';
-                    verifyOtpBtn.style.display = 'inline-flex';
-                    backBtn.style.display = 'inline-flex';
-                    otpInput.focus();
+                    // Check if registrations are enabled
+                    const regResponse = await fetch('/registration-status');
+                    const regData = await regResponse.json();
+
+                    if (regData.enabled) {
+                        // User doesn't have passkey and registrations are enabled - show OTP input for registration
+                        currentStep = 'otp';
+                        initialLoginBtn.style.display = 'none';
+                        otpGroup.style.display = 'block';
+                        verifyOtpBtn.style.display = 'inline-flex';
+                        backBtn.style.display = 'inline-flex';
+                        otpInput.focus();
+                    } else {
+                        // Registrations are disabled - show message
+                        showAlert('New user registrations are currently disabled. Please contact an administrator.', 'info');
+                    }
                 }
             } catch (e) {
                 console.error('Error checking credentials:', e);
