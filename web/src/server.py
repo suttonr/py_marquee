@@ -30,8 +30,6 @@ LAUNCHER_BASE_URL = f"http://{LAUNCHER_HOST}:{LAUNCHER_PORT}"
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'marquee123')
 
-# Auth directory for user JSON files
-AUTH_DIR = os.environ.get('AUTH_DIR', '/auth')
 WEB_RATE = os.environ.get('WEB_RATE', '4')
 
 # Registration OTP for new passkey registration
@@ -50,7 +48,8 @@ webauthn_manager = WebAuthnManager(webauthn_rp_id, webauthn_rp_name,
 
 # Static folder configuration
 STATIC_FOLDER = os.path.join(os.path.dirname(__file__), '')
-
+# Auth directory for user JSON files
+AUTH_DIR = os.environ.get('AUTH_DIR', '/auth')
 
 def login_required(f):
     """Decorator to require login for routes"""
@@ -61,6 +60,15 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def check_user_data(username):
+    """Check user JSON file"""
+    user_file = os.path.join(AUTH_DIR, f'{username}.json')
+    try:
+        if os.path.exists(user_file):
+            return True
+    except Exception as e:
+        print(f"No user file for {username}: {e}")
+    return False
 
 @app.route('/api/launcher/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
@@ -185,6 +193,8 @@ def webauthn_register():
 
     if not username:
         return jsonify({'error': 'Username required'}), 400
+    if not check_user_data(username):
+        return jsonify({'error': 'Access Denied or Not Found'}), 404
     if not REGISTRATION_ENABLED:
         return jsonify({'error': 'New registrations are currently disabled'}), 403
 
@@ -254,13 +264,12 @@ def webauthn_verify_otp():
 
     if not username:
         return jsonify({'error': 'Username required'}), 400
-
     if not otp:
         return jsonify({'error': 'OTP required'}), 400
-
+    if not check_user_data(username):
+        return jsonify({'error': 'Access Denied or Not Found'}), 404
     if not REGISTRATION_ENABLED:
         return jsonify({'error': 'New registrations are currently disabled'}), 403
-
     if not REGISTRATION_OTP:
         return jsonify({'error': 'Registration OTP not configured'}), 500
 
