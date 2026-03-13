@@ -248,16 +248,33 @@
                     <input type="text" id="username" name="username" required autocomplete="username" autofocus>
                 </div>
 
+                <!-- Password Input Field (shown if static passwords allowed) -->
+                <div class="form-group" id="passwordGroup" style="display: none;">
+                    <label for="password">Password</label>
+                    <div class="password-toggle">
+                        <input type="password" id="password" name="password" autocomplete="current-password">
+                        <button type="button" class="toggle-btn" id="passwordToggle">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- OTP Input Field (hidden initially) -->
                 <div class="form-group" id="otpGroup" style="display: none;">
                     <label for="otp">Registration OTP</label>
                     <input type="password" id="otp" name="otp" autocomplete="one-time-code">
                 </div>
 
-                <!-- Initial Login Button -->
+                <!-- Password Login Button (shown if static passwords allowed) -->
+                <button type="submit" class="btn btn-primary" id="passwordLogin" style="display: none;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login with Password
+                </button>
+
+                <!-- Initial Login Button (for WebAuthn flow) -->
                 <button type="button" class="btn btn-primary" id="initialLogin">
                     <i class="fas fa-sign-in-alt"></i>
-                    Login
+                    Continue
                 </button>
 
                 <!-- Verify OTP Button -->
@@ -297,6 +314,10 @@
 
         // DOM Elements
         const usernameInput = document.getElementById('username');
+        const passwordGroup = document.getElementById('passwordGroup');
+        const passwordInput = document.getElementById('password');
+        const passwordToggle = document.getElementById('passwordToggle');
+        const passwordLoginBtn = document.getElementById('passwordLogin');
         const initialLoginBtn = document.getElementById('initialLogin');
         const verifyOtpBtn = document.getElementById('verifyOtp');
         const webauthnLoginBtn = document.getElementById('webauthnLogin');
@@ -305,8 +326,38 @@
         const otpGroup = document.getElementById('otpGroup');
         const otpInput = document.getElementById('otp');
 
+        // Auth configuration
+        let authConfig = { allow_static_passwords: false, registration_enabled: false };
+
         // State management
         let currentStep = 'initial'; // 'initial', 'otp', 'passkey_login', 'passkey_register'
+
+        // Initialize auth configuration
+        async function initAuthConfig() {
+            try {
+                const response = await fetch('/api/auth/config');
+                if (response.ok) {
+                    authConfig = await response.json();
+                    // Show password fields if static passwords are allowed
+                    if (authConfig.allow_static_passwords) {
+                        passwordGroup.style.display = 'block';
+                        passwordLoginBtn.style.display = 'inline-flex';
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load auth config:', e);
+            }
+        }
+
+        // Password toggle functionality
+        passwordToggle.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            passwordToggle.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+
+        // Initialize on page load
+        initAuthConfig();
 
         // Reset to initial state
         function resetToInitial() {

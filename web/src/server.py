@@ -32,6 +32,9 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'marquee123')
 
 WEB_RATE = os.environ.get('WEB_RATE', '4')
 
+# Allow static password authentication
+ALLOW_STATIC_PASSWORDS = os.environ.get('ALLOW_STATIC_PASSWORDS', 'false').lower() == 'true'
+
 # Registration OTP for new passkey registration
 REGISTRATION_OTP = os.environ.get('REGISTRATION_OTP',
                                   'changeme')
@@ -143,8 +146,16 @@ def login_html():
 @app.route('/login', methods=['POST'])
 def login_post():
     """Handle login form submission"""
+    if not ALLOW_STATIC_PASSWORDS:
+        flash('Password authentication is disabled', 'error')
+        return redirect(url_for('login'))
+
     username = request.form.get('username', '')
     password = request.form.get('password', '')
+
+    if not password:
+        flash('Password is required', 'error')
+        return redirect(url_for('login'))
 
     # Check hardcoded admin credentials for backward compatibility
     if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
@@ -315,6 +326,15 @@ def get_users():
     """Get list of registered users"""
     users = webauthn_manager.get_users()
     return jsonify({'users': users})
+
+
+@app.route('/api/auth/config', methods=['GET'])
+def get_auth_config():
+    """Get authentication configuration"""
+    return jsonify({
+        'allow_static_passwords': ALLOW_STATIC_PASSWORDS,
+        'registration_enabled': REGISTRATION_ENABLED
+    })
 
 
 @app.route('/logout')
