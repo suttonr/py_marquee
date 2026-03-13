@@ -449,6 +449,11 @@ def watch_game_thread(game_pk, interval, priority=0):
 
     try:
         while retcode == 0 or retcode in [80, 81, 89, 98]:
+            # Check if this watcher was stopped
+            with watcher_lock:
+                if game_pk not in active_watchers:
+                    break
+
             result = subprocess.run([
                 sys.executable, "cli/matrix-cli.py", "send-mlb-game", "-g", str(game_pk)
             ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
