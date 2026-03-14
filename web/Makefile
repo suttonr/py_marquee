@@ -25,7 +25,7 @@ package:
 
 publish: package
 	scp ../py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz $(PUBLISH_HOST):$(PUBLISH_PATH)
-#	ssh $(PUBLISH_HOST) "mkdir -p $(PUBLISH_PATH)/web; tar -xvzf $(PUBLISH_PATH)/py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz -C $(PUBLISH_PATH)/web/"
+	ssh $(PUBLISH_HOST) "mkdir -p $(PUBLISH_PATH)/web; tar -xvzf $(PUBLISH_PATH)/py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz -C $(PUBLISH_PATH)/web/"
 	ssh $(PUBLISH_HOST) "bash -c 'cd $(PUBLISH_PATH)/web; export SYSTEM_UNIT=true; make install'"
 
 
