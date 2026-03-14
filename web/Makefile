@@ -67,7 +67,7 @@ shell:
 	$(SUDO) $(CONTAINER_BIN) exec -it $(CONTAINER_NAME) /bin/sh
 
 logs:
-	$(CONTAINER_BIN) logs -f $(CONTAINER_NAME)
+	$(SUDO) $(CONTAINER_BIN) logs -f $(CONTAINER_NAME)
 
 run-debug: create
 	$(CONTAINER_BIN) run $(CONTAINER_OPTS) $(CONTAINER_VOLUMES) $(CONTAINER_NAME)
