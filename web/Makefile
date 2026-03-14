@@ -2,7 +2,7 @@ CONTAINER_BIN = podman
 CONTAINER_NAME = marquee-web
 SERVICE_NAME = container-$(CONTAINER_NAME).service
 CONTAINER_OPTS = --publish 8888:8888 --env-file .env
-CONTAINER_VOLUMES = --volume $(shell pwd)/auth/:/auth
+CONTAINER_VOLUMES = --volume $(shell pwd)/auth/:/auth:Z
 PUBLISH_HOST = web.ryanmsutton.com
 PUBLISH_PATH = /home/opc
 
@@ -26,7 +26,7 @@ package:
 publish: package
 	scp ../py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz $(PUBLISH_HOST):$(PUBLISH_PATH)
 	ssh $(PUBLISH_HOST) "mkdir -p $(PUBLISH_PATH)/web; tar -xvzf $(PUBLISH_PATH)/py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz -C $(PUBLISH_PATH)/web/"
-	ssh $(PUBLISH_HOST) "bash -c 'cd $(PUBLISH_PATH)/web; export SYSTEM_UNIT=true; make run'"
+	ssh $(PUBLISH_HOST) "bash -l -c 'cd $(PUBLISH_PATH)/web; export SYSTEM_UNIT=true; make run'"
 
 
 build:
