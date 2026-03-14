@@ -15,7 +15,10 @@ SYSTEMCTL_CMD = systemctl
 MKDIR_CMD = mkdir
 endif
 
-.PHONY: package_cli build start stop status remove create install run shell
+.PHONY: package_cli package build start stop status remove create install run shell
+
+package:
+	cd .. && git archive --format=tar.gz --output=py_marquee-launcher-$(shell git rev-parse --short HEAD).tar.gz HEAD:launcher/
 
 package_cli:
 	tar -cvzf cli.tar.gz -C .. --exclude=cli/cache --exclude=cli/examples --exclude cli/__pycache__ cli

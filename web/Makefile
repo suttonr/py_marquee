@@ -16,7 +16,10 @@ SYSTEMCTL_CMD = systemctl
 MKDIR_CMD = mkdir
 endif
 
-.PHONY: build start stop status remove create install run shell
+.PHONY: build start stop status remove create install run shell package
+
+package:
+	cd .. && git archive --format=tar.gz --output=py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz HEAD:web/
 
 build:
 	$(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
@@ -60,3 +63,4 @@ logs:
 
 run-debug: create
 	$(CONTAINER_BIN) run $(CONTAINER_OPTS) $(CONTAINER_VOLUMES) $(CONTAINER_NAME)
+
