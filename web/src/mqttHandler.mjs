@@ -1,5 +1,5 @@
 // mqttHandler.js
-import { MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD } from './secrets.mjs';
+import { MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, MQTT_USE_SSL } from './secrets.mjs';
 // MQTT Broker details
 const MQTT_TOPIC_TEMPLATE = "marquee/template";
 const MQTT_TOPIC_PIXELS = "marquee/pixels";
@@ -35,7 +35,7 @@ client.connect({
     onSuccess: onConnect,
     userName: MQTT_USERNAME,
     password: MQTT_PASSWORD,
-    useSSL: false
+    useSSL: MQTT_USE_SSL
 });
 
 // Called when the client connects
@@ -68,7 +68,7 @@ export function reconnect() {
         onSuccess: onConnect,
         userName: MQTT_USERNAME,
         password: MQTT_PASSWORD,
-        useSSL: false
+        useSSL: MQTT_USE_SSL
     });
 }
 

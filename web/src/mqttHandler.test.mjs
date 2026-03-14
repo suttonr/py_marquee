@@ -5,7 +5,8 @@ jest.mock('./secrets.mjs', () => ({
   MQTT_BROKER: 'test-broker',
   MQTT_PORT: 1883,
   MQTT_USERNAME: 'test-user',
-  MQTT_PASSWORD: 'test-pass'
+  MQTT_PASSWORD: 'test-pass',
+  MQTT_USE_SSL: false
 }));
 
 // Mock Paho MQTT client
