@@ -46,8 +46,8 @@ remove: stop
 	$(SUDO) $(CONTAINER_BIN) rm -f $(CONTAINER_NAME) || true
 
 create: remove build
-	mkdir -p $(shell pwd)/auth/
-	touch $(shell pwd)/auth/admin.json
+	mkdir -p $(shell pwd)/auth/ || true
+	touch $(shell pwd)/auth/admin.json  || true
 	$(SUDO) $(CONTAINER_BIN) create --name $(CONTAINER_NAME) \
 		$(CONTAINER_OPTS) \
 		$(CONTAINER_VOLUMES) \
