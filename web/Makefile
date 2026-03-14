@@ -3,23 +3,31 @@ CONTAINER_NAME = marquee-web
 SERVICE_NAME = container-$(CONTAINER_NAME).service
 CONTAINER_OPTS = --publish 8888:8888 --env-file .env
 CONTAINER_VOLUMES = --volume $(shell pwd)/auth/:/auth
+PUBLISH_HOST = web.ryanmsutton.com
+PUBLISH_PATH = /home/opc
 
 ifdef SYSTEM_UNIT
 SYSTEMD_USER_FLAG =
-SYSTEMD_DIR = /etc/systemd/system/
+SYSTEMD_DIR = /etc/systemd/system
 SYSTEMCTL_CMD = sudo systemctl
-MKDIR_CMD = sudo mkdir
+SUDO = sudo
 else
 SYSTEMD_USER_FLAG = --user
 SYSTEMD_DIR = ~/.config/systemd/user/
 SYSTEMCTL_CMD = systemctl
-MKDIR_CMD = mkdir
+SUDO = 
 endif
 
 .PHONY: build start stop status remove create install run shell package
 
 package:
 	cd .. && git archive --format=tar.gz --output=py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz HEAD:web/
+
+publish: package
+	scp ../py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz $(PUBLISH_HOST):$(PUBLISH_PATH)
+#	ssh $(PUBLISH_HOST) "mkdir -p $(PUBLISH_PATH)/web; tar -xvzf $(PUBLISH_PATH)/py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz -C $(PUBLISH_PATH)/web/"
+	ssh $(PUBLISH_HOST) "bash -c 'cd $(PUBLISH_PATH)/web; export SYSTEM_UNIT=true; make install'"
+
 
 build:
 	$(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
@@ -46,8 +54,8 @@ create: remove build
 		localhost/$(CONTAINER_NAME):latest
 
 install: create
-	$(MKDIR_CMD) -p $(SYSTEMD_DIR)
-	$(CONTAINER_BIN) generate systemd --name $(CONTAINER_NAME) > $(SYSTEMD_DIR)/$(SERVICE_NAME)
+	$(SUDO) mkdir -p $(SYSTEMD_DIR)
+	$(SUDO) $(CONTAINER_BIN) generate systemd --name $(CONTAINER_NAME) | $(SUDO) tee $(SYSTEMD_DIR)/$(SERVICE_NAME)
 	$(SYSTEMCTL_CMD) daemon-reload
 	$(SYSTEMCTL_CMD) enable $(SERVICE_NAME)
 
