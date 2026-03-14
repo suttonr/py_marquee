@@ -30,20 +30,20 @@ publish: package
 
 
 build:
-	$(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
+	$(SUDO) $(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
 
 stop:
-	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) stop $(SERVICE_NAME) || true
+	$(SUDO) $(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) stop $(SERVICE_NAME) || true
 
 start:
-	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) start $(SERVICE_NAME) || true
+	$(SUDO) $(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) start $(SERVICE_NAME) || true
 
 status:
-	$(SYSTEMCTL_CMD) --no-pager $(SYSTEMD_USER_FLAG) status $(SERVICE_NAME)
+	$(SUDO) $(SYSTEMCTL_CMD) --no-pager $(SYSTEMD_USER_FLAG) status $(SERVICE_NAME)
 	$(CONTAINER_BIN) logs $(CONTAINER_NAME) | tail -20
 
 remove: stop
-	$(CONTAINER_BIN) rm -f $(CONTAINER_NAME) || true
+	$(SUDO) $(CONTAINER_BIN) rm -f $(CONTAINER_NAME) || true
 
 create: remove build
 	mkdir -p $(shell pwd)/auth/
@@ -56,15 +56,15 @@ create: remove build
 install: create
 	$(SUDO) mkdir -p $(SYSTEMD_DIR)
 	$(SUDO) $(CONTAINER_BIN) generate systemd --name $(CONTAINER_NAME) | $(SUDO) tee $(SYSTEMD_DIR)/$(SERVICE_NAME)
-	$(SYSTEMCTL_CMD) daemon-reload
-	$(SYSTEMCTL_CMD) enable $(SERVICE_NAME)
+	$(SUDO) $(SYSTEMCTL_CMD) daemon-reload
+	$(SUDO) $(SYSTEMCTL_CMD) enable $(SERVICE_NAME)
 
 run: remove install start status
 	@echo "Marquee Web Interface is now running as a systemd service"
 	@echo "Web interface available at: http://localhost:8888"
 
 shell:
-	$(CONTAINER_BIN) exec -it $(CONTAINER_NAME) /bin/sh
+	$(SUDO) $(CONTAINER_BIN) exec -it $(CONTAINER_NAME) /bin/sh
 
 logs:
 	$(CONTAINER_BIN) logs -f $(CONTAINER_NAME)
