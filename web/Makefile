@@ -26,7 +26,7 @@ package:
 publish: package
 	scp ../py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz $(PUBLISH_HOST):$(PUBLISH_PATH)
 	ssh $(PUBLISH_HOST) "mkdir -p $(PUBLISH_PATH)/web; tar -xvzf $(PUBLISH_PATH)/py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz -C $(PUBLISH_PATH)/web/"
-	ssh $(PUBLISH_HOST) "bash -c 'cd $(PUBLISH_PATH)/web; export SYSTEM_UNIT=true; make install'"
+	ssh $(PUBLISH_HOST) "bash -c 'cd $(PUBLISH_PATH)/web; export SYSTEM_UNIT=true; make run'"
 
 
 build:
@@ -48,7 +48,7 @@ remove: stop
 create: remove build
 	mkdir -p $(shell pwd)/auth/
 	touch $(shell pwd)/auth/admin.json
-	$(CONTAINER_BIN) create --name $(CONTAINER_NAME) \
+	$(SUDO) $(CONTAINER_BIN) create --name $(CONTAINER_NAME) \
 		$(CONTAINER_OPTS) \
 		$(CONTAINER_VOLUMES) \
 		localhost/$(CONTAINER_NAME):latest
