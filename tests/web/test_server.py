@@ -1,14 +1,29 @@
 """
-Tests for the Flask web server authentication
+Tests for the Flask web server authentication and MQTT WebSocket proxy
 """
 import pytest
 import sys
 import os
+import json
+import tempfile
+from unittest.mock import Mock, MagicMock, patch
+
+# Set AUTH_DIR to a writable temp directory before importing server
+TEST_AUTH_DIR = tempfile.mkdtemp()
+os.environ['AUTH_DIR'] = TEST_AUTH_DIR
 
 # Add the web/src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'web', 'src'))
 
-from server import app, limiter
+from server import app, limiter, socketio, mqtt_proxy
+
+
+def create_test_user_file(username):
+    """Create a test user file in the AUTH_DIR"""
+    user_file = os.path.join(TEST_AUTH_DIR, f'{username}.json')
+    os.makedirs(TEST_AUTH_DIR, exist_ok=True)
+    with open(user_file, 'w') as f:
+        json.dump({'username': username}, f)
 
 
 @pytest.fixture
@@ -16,6 +31,12 @@ def client():
     """Create a test client for the Flask app"""
     app.config['TESTING'] = True
     limiter.enabled = False  # Disable rate limiting in tests
+    
+    # Create test user files
+    create_test_user_file('testuser')
+    create_test_user_file('user1')
+    create_test_user_file('user2')
+    
     with app.test_client() as client:
         yield client
 
@@ -262,6 +283,146 @@ class TestRateLimiting:
         # Third request should be rate limited
         response3 = client_with_rate_limiting.get('/api/webauthn/has-credentials?username=testuser')
         assert response3.status_code == 429
+
+
+class TestWebSocketHandlers:
+    """Tests for WebSocket MQTT proxy handlers"""
+    
+    @patch.object(mqtt_proxy, 'publish')
+    def test_mqtt_publish_handler(self, mock_publish):
+        """Test WebSocket mqtt_publish handler"""
+        mock_publish.return_value = (True, None)
+        
+        # Create a test client for SocketIO
+        test_client = socketio.test_client(app)
+        
+        # Emit mqtt_publish event
+        test_client.emit('mqtt_publish', {
+            'topic': 'test/topic',
+            'payload': 'test message'
+        })
+        
+        # Verify publish was called
+        mock_publish.assert_called_once_with('test/topic', 'test message')
+        
+        # Check for success response
+        received = test_client.get_received()
+        assert len(received) > 0
+        assert any(msg['name'] == 'mqtt_publish_success' for msg in received)
+        
+        test_client.disconnect()
+    
+    @patch.object(mqtt_proxy, 'publish')
+    def test_mqtt_publish_handler_failure(self, mock_publish):
+        """Test WebSocket mqtt_publish handler with failure"""
+        mock_publish.return_value = (False, 'Connection error')
+        
+        test_client = socketio.test_client(app)
+        
+        # Emit mqtt_publish event
+        test_client.emit('mqtt_publish', {
+            'topic': 'test/topic',
+            'payload': 'test message'
+        })
+        
+        # Check for error response
+        received = test_client.get_received()
+        assert len(received) > 0
+        error_msgs = [msg for msg in received if msg['name'] == 'mqtt_error']
+        assert len(error_msgs) > 0
+        assert error_msgs[0]['args'][0]['error'] == 'Connection error'
+        
+        test_client.disconnect()
+    
+    def test_mqtt_publish_handler_missing_topic(self):
+        """Test WebSocket mqtt_publish handler with missing topic"""
+        test_client = socketio.test_client(app)
+        
+        # Emit mqtt_publish event without topic
+        test_client.emit('mqtt_publish', {
+            'payload': 'test message'
+        })
+        
+        # Check for error response
+        received = test_client.get_received()
+        assert len(received) > 0
+        error_msgs = [msg for msg in received if msg['name'] == 'mqtt_error']
+        assert len(error_msgs) > 0
+        assert 'Topic is required' in error_msgs[0]['args'][0]['error']
+        
+        test_client.disconnect()
+    
+    @patch.object(mqtt_proxy, 'subscribe')
+    def test_mqtt_subscribe_handler(self, mock_subscribe):
+        """Test WebSocket mqtt_subscribe handler"""
+        mock_subscribe.return_value = (True, None)
+        
+        test_client = socketio.test_client(app)
+        
+        # Emit mqtt_subscribe event
+        test_client.emit('mqtt_subscribe', {
+            'topic': 'test/topic/#'
+        })
+        
+        # Verify subscribe was called
+        mock_subscribe.assert_called_once_with('test/topic/#')
+        
+        # Check for success response
+        received = test_client.get_received()
+        assert len(received) > 0
+        assert any(msg['name'] == 'mqtt_subscribe_success' for msg in received)
+        
+        test_client.disconnect()
+    
+    @patch.object(mqtt_proxy, 'subscribe')
+    def test_mqtt_subscribe_handler_failure(self, mock_subscribe):
+        """Test WebSocket mqtt_subscribe handler with failure"""
+        mock_subscribe.return_value = (False, 'Subscription error')
+        
+        test_client = socketio.test_client(app)
+        
+        # Emit mqtt_subscribe event
+        test_client.emit('mqtt_subscribe', {
+            'topic': 'test/topic/#'
+        })
+        
+        # Check for error response
+        received = test_client.get_received()
+        assert len(received) > 0
+        error_msgs = [msg for msg in received if msg['name'] == 'mqtt_error']
+        assert len(error_msgs) > 0
+        assert error_msgs[0]['args'][0]['error'] == 'Subscription error'
+        
+        test_client.disconnect()
+    
+    def test_mqtt_subscribe_handler_missing_topic(self):
+        """Test WebSocket mqtt_subscribe handler with missing topic"""
+        test_client = socketio.test_client(app)
+        
+        # Emit mqtt_subscribe event without topic
+        test_client.emit('mqtt_subscribe', {})
+        
+        # Check for error response
+        received = test_client.get_received()
+        assert len(received) > 0
+        error_msgs = [msg for msg in received if msg['name'] == 'mqtt_error']
+        assert len(error_msgs) > 0
+        assert 'Topic is required' in error_msgs[0]['args'][0]['error']
+        
+        test_client.disconnect()
+    
+    def test_websocket_connect_disconnect(self):
+        """Test WebSocket connection and disconnection"""
+        test_client = socketio.test_client(app)
+        
+        # Verify connection
+        assert test_client.is_connected()
+        
+        # Disconnect
+        test_client.disconnect()
+        
+        # Verify disconnection
+        assert not test_client.is_connected()
 
 
 if __name__ == '__main__':

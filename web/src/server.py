@@ -6,18 +6,28 @@ import os
 import json
 import secrets as stdlib_secrets
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash, jsonify
+from flask_socketio import SocketIO, emit
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
 import requests
 
 from webauthn_auth import WebAuthnManager
+from mqtt_proxy import MQTTProxy
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 limiter = Limiter(get_remote_address, app=app)
 
 # Configuration
 app.secret_key = os.environ.get('SECRET_KEY', stdlib_secrets.token_hex(32))
+
+# MQTT Configuration
+MQTT_BROKER = os.environ.get('MQTT_BROKER', 'mqtt.ryanmsutton.com')
+MQTT_PORT = int(os.environ.get('MQTT_PORT', 1883))
+MQTT_USERNAME = os.environ.get('MQTT_USERNAME', 'py_marquee')
+MQTT_PASSWORD = os.environ.get('MQTT_PASSWORD', '')
+MQTT_KEEPALIVE = int(os.environ.get('MQTT_KEEPALIVE', 60))
 
 # Launcher configuration
 LAUNCHER_HOST = os.environ.get('LAUNCHER_HOST', 'localhost')
@@ -56,6 +66,17 @@ REGISTRATION_ENABLED = os.environ.get(
         'REGISTRATION_ENABLED', str(not webauthn_manager.has_credentials("admin"))
     ).lower() == 'true'
 
+# Initialize MQTT Proxy
+mqtt_proxy = MQTTProxy(
+    broker=MQTT_BROKER,
+    port=MQTT_PORT,
+    username=MQTT_USERNAME,
+    password=MQTT_PASSWORD,
+    keepalive=MQTT_KEEPALIVE
+)
+mqtt_proxy.set_socketio(socketio)
+mqtt_proxy.connect()
+
 def login_required(f):
     """Decorator to require login for routes"""
     @wraps(f)
@@ -74,6 +95,53 @@ def check_user_data(username):
     except Exception as e:
         print(f"No user file for {username}: {e}")
     return False
+
+# WebSocket Event Handlers
+@socketio.on('connect')
+@login_required
+def handle_connect():
+    """Handle WebSocket client connection"""
+    print(f"WebSocket client connected: {request.sid}")
+
+@socketio.on('disconnect')
+@login_required
+def handle_disconnect():
+    """Handle WebSocket client disconnection"""
+    print(f"WebSocket client disconnected: {request.sid}")
+
+@socketio.on('mqtt_publish')
+@login_required
+def handle_mqtt_publish(data):
+    """Handle MQTT publish request from WebSocket client"""
+    topic = data.get('topic')
+    payload = data.get('payload', '')
+    
+    if not topic:
+        emit('mqtt_error', {'error': 'Topic is required'})
+        return
+    
+    success, error = mqtt_proxy.publish(topic, payload)
+    if success:
+        emit('mqtt_publish_success', {'topic': topic})
+    else:
+        emit('mqtt_error', {'error': error})
+
+@socketio.on('mqtt_subscribe')
+@login_required
+def handle_mqtt_subscribe(data):
+    """Handle MQTT subscribe request from WebSocket client"""
+    topic = data.get('topic')
+    if not topic:
+        emit('mqtt_error', {'error': 'Topic is required'})
+        return
+    
+    success, error = mqtt_proxy.subscribe(topic)
+    if success:
+        emit('mqtt_subscribe_success', {'topic': topic})
+    else:
+        emit('mqtt_error', {'error': error})
+
+
 
 @app.route('/api/launcher/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
@@ -118,6 +186,52 @@ def proxy_to_launcher(path):
 def proxy_to_launcher_root():
     """Proxy API requests to the launcher service (root endpoint)"""
     return proxy_to_launcher('')
+
+
+@app.route('/grafana/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'])
+@app.route('/grafana/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'])
+@login_required
+def proxy_to_grafana(path):
+    """Proxy requests to Grafana running on localhost:3000"""
+    # Build the target URL
+    grafana_url = f"http://localhost:3000/{path}"
+    
+    # Forward the request method and headers (except host)
+    method = request.method
+    headers = {key: value for key, value in request.headers if key.lower() not in ['host', 'connection']}
+    
+    # Add the logged-in username to the headers
+    if 'username' in session:
+        headers['X-WEBAUTH-USER'] = session['username']
+    
+    # Prepare request data
+    data = request.get_data() if method in ['POST', 'PUT', 'PATCH'] else None
+    
+    try:
+        response = requests.request(
+            method=method,
+            url=grafana_url,
+            headers=headers,
+            data=data,
+            params=request.args,
+            timeout=30,
+            allow_redirects=False,
+            stream=True
+        )
+        
+        # Build response headers, excluding certain headers that shouldn't be forwarded
+        excluded_headers = ['connection', 'keep-alive', 'transfer-encoding', 'content-encoding', 'content-length']
+        response_headers = [(name, value) for (name, value) in response.headers.items() 
+                           if name.lower() not in excluded_headers]
+        
+        # Return the response from Grafana
+        return response.content, response.status_code, response_headers
+    except requests.exceptions.ConnectionError:
+        return jsonify({'error': 'Unable to connect to Grafana service on localhost:3000'}), 502
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Grafana service request timed out'}), 504
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/')
@@ -378,5 +492,6 @@ if __name__ == '__main__':
     print(f"Change credentials using ADMIN_USERNAME and ADMIN_PASSWORD environment variables")
     print(f"Launcher proxy configured: {LAUNCHER_BASE_URL}")
     print(f"Launcher API Key: {'Set' if LAUNCHER_API_KEY else 'Not set (optional)'}")
+    print(f"MQTT proxy configured: {MQTT_BROKER}:{MQTT_PORT}")
     
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    socketio.run(app, host='0.0.0.0', port=port, debug=debug, allow_unsafe_werkzeug=True)
