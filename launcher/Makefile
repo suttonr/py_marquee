@@ -49,7 +49,7 @@ install: create
 	$(MKDIR_CMD) -p $(SYSTEMD_DIR)
 	$(CONTAINER_BIN) generate systemd --name $(CONTAINER_NAME) > $(SYSTEMD_DIR)/$(SERVICE_NAME)
 	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) daemon-reload
-	$(SYSTEMCTL_CMD) enable $(SERVICE_NAME)
+	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) enable $(SERVICE_NAME)
 
 run: remove install start status
 	@echo "Marquee Launcher Service is now running as a systemd service"
