@@ -29,6 +29,10 @@ MQTT_USERNAME = os.environ.get('MQTT_USERNAME', 'py_marquee')
 MQTT_PASSWORD = os.environ.get('MQTT_PASSWORD', '')
 MQTT_KEEPALIVE = int(os.environ.get('MQTT_KEEPALIVE', 60))
 
+# Grafana Configuration
+GRAFANA_HOST = os.environ.get('GRAFANA_HOST', 'localhost')
+GRAFANA_PORT = int(os.environ.get('GRAFANA_PORT', 3000))
+
 # Launcher configuration
 LAUNCHER_HOST = os.environ.get('LAUNCHER_HOST', 'localhost')
 LAUNCHER_PORT = int(os.environ.get('LAUNCHER_PORT', 4000))
@@ -194,7 +198,7 @@ def proxy_to_launcher_root():
 def proxy_to_grafana(path):
     """Proxy requests to Grafana running on localhost:3000"""
     # Build the target URL
-    grafana_url = f"http://localhost:3000/{path}"
+    grafana_url = f"http://{GRAFANA_HOST}:{GRAFANA_PORT}/{path}"
     
     # Forward the request method and headers (except host)
     method = request.method
