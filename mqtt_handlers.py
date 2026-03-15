@@ -183,7 +183,7 @@ def handle_template(msg):
     print("template:", msg.topic, message)
     if message == bytearray(b"gmonster"):
         refresh = False
-        check_template(gmonster, launcher_key=secrets.LAUNCHER_KEY, force=True)
+        check_template(gmonster, force=True)
         refresh = True
         print("gmonster template set")
     elif message == bytearray(b"clock"):
@@ -335,7 +335,10 @@ def check_template(in_template, force=False, **kwargs):
     if force or (enable_auto_template and not isinstance(template, in_template)):
         if template is not None:
             template.__del__()
-        template = in_template(board, **kwargs)
+        if template is gmonster:
+            template = in_template(board, launcher_key=secrets.LAUNCHER_KEY, **kwargs)
+        else:
+            template = in_template(board, **kwargs)
         # Update shared state
         if shared_state is not None:
             shared_state['template'] = template
