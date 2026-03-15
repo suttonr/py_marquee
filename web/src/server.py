@@ -224,7 +224,7 @@ def proxy_to_grafana(path):
         )
         
         # Build response headers, excluding certain headers that shouldn't be forwarded
-        excluded_headers = ['connection', 'keep-alive', 'transfer-encoding', 'content-encoding', 'content-length']
+        excluded_headers = ['connection', 'keep-alive', 'transfer-encoding', 'content-encoding', 'content-length', 'x-frame-options']
         response_headers = [(name, value) for (name, value) in response.headers.items() 
                            if name.lower() not in excluded_headers]
         
