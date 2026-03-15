@@ -7,6 +7,10 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 sys.path.insert(0, project_root)
 
+# Mock local_secrets before importing the launcher module
+sys.modules['local_secrets'] = MagicMock()
+sys.modules['local_secrets'].API_KEYS = ['test-api-key']
+
 # Import the launcher module - need to ensure we get the parent launcher, not tests/launcher
 import launcher.marquee_launcher_service as launcher
 
@@ -15,8 +19,13 @@ import launcher.marquee_launcher_service as launcher
 def app_client():
     """Create a test client for the Flask app."""
     launcher.app.config['TESTING'] = True
-    with launcher.app.test_client() as client:
-        yield client
+    
+    # Mock the API_KEYS to include a test key
+    with patch.object(launcher.local_secrets, 'API_KEYS', ['test-api-key']):
+        with launcher.app.test_client() as client:
+            # Set default headers for all requests
+            client.environ_base['HTTP_X_API_KEY'] = 'test-api-key'
+            yield client
 
 
 @pytest.fixture

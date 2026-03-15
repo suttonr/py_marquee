@@ -112,7 +112,36 @@ def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
                         min_delta = delta_to_game
 
                 if auto_launch and game_dt > now and delta_to_game < timedelta(hours=1):
-                    watch_game_thread(game.get("gamePk"), 20, priority)
+                    game_pk_to_watch = game.get("gamePk")
+                    interval = 20
+                    
+                    # Check if we should start watching this game
+                    should_watch = False
+                    with watcher_lock:
+                        if not active_watchers:
+                            should_watch = True
+                        else:
+                            # Check priority of existing watcher
+                            for existing_pk, watcher_info in active_watchers.items():
+                                existing_priority = watcher_info.get('priority', 0)
+                                if priority > existing_priority:
+                                    logger.info(f"Auto-launch: Game {game_pk_to_watch} has higher priority ({priority}) than existing watcher ({existing_priority})")
+                                    active_watchers.clear()
+                                    should_watch = True
+                                elif priority == existing_priority and existing_pk != game_pk_to_watch:
+                                    # Same priority, allow if it's a different game
+                                    should_watch = True
+                                break
+                    
+                    if should_watch:
+                        thread = threading.Thread(target=watch_game_thread, args=(game_pk_to_watch, interval, priority), daemon=True)
+                        with watcher_lock:
+                            active_watchers[game_pk_to_watch] = {
+                                'thread': thread,
+                                'priority': priority
+                            }
+                        thread.start()
+                        logger.info(f"Auto-launched watcher for game {game_pk_to_watch}")
 
             # Update time_until_next_game in finder info
             with finder_lock:
@@ -232,7 +261,30 @@ def start_watching_game(game_pk):
     interval = data.get('interval', 20)
     priority = data.get('priority', 0)
 
+    # Check for existing watchers and handle priority
+    with watcher_lock:
+        if active_watchers:
+            # Get existing watcher info
+            for existing_pk, watcher_info in active_watchers.items():
+                existing_priority = watcher_info.get('priority', 0)
+                
+                if priority < existing_priority:
+                    logger.info(f"Game {game_pk} has lower priority ({priority}) than existing watcher ({existing_priority}), not starting")
+                    return jsonify({"error": f"Existing watcher has higher priority ({existing_priority})"}), 409
+                elif priority > existing_priority:
+                    logger.info(f"Game {game_pk} has higher priority ({priority}) than existing watcher ({existing_priority}), stopping old and starting new")
+                    active_watchers.clear()
+                break
+
     thread = threading.Thread(target=watch_game_thread, args=(game_pk, interval, priority), daemon=True)
+    
+    # Add to active watchers before starting the thread to avoid race condition
+    with watcher_lock:
+        active_watchers[game_pk] = {
+            'thread': thread,
+            'priority': priority
+        }
+    
     thread.start()
 
     return jsonify({"message": f"Started watching game {game_pk}", "priority": priority})
@@ -413,35 +465,10 @@ def watch_game_thread(game_pk, interval, priority=0):
         game_pk: The MLB game primary key
         interval: Polling interval in seconds
         priority: Priority level (higher number = higher priority)
+    
+    Note: The watcher should already be added to active_watchers before this thread starts
     """
-    # Check for existing watcher and handle priority comparison
-    with watcher_lock:
-        existing_game_pk = None
-        existing_priority = None
-        
-        if active_watchers:
-            # Get the existing game pk and its priority
-            for existing_pk, watcher_info in active_watchers.items():
-                existing_game_pk = existing_pk
-                existing_priority = watcher_info.get('priority', 0)
-                break
-            
-            if priority < existing_priority:
-                # New thread has lower priority, exit
-                logger.info(f"Game {game_pk} has lower priority ({priority}) than existing watcher ({existing_priority}), not starting")
-                return
-            elif priority > existing_priority:
-                # New thread has higher priority, stop existing and start new
-                logger.info(f"Game {game_pk} has higher priority ({priority}) than existing watcher ({existing_priority}), stopping old and starting new")
-                # Remove existing watcher - it will stop on its next iteration check
-                active_watchers.clear()
-        
-        active_watchers[game_pk] = {
-            'thread': threading.current_thread(),
-            'priority': priority
-        }
-
-    logger.info(f"Started watching game {game_pk}")
+    logger.info(f"Watch thread started for game {game_pk} with priority {priority}")
 
     retcode = 0
     sweet_caroline = False
