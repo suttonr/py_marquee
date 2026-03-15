@@ -18,6 +18,10 @@ import requests
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Access logger for request logs
+access_logger = logging.getLogger('access_logger')
+access_logger.setLevel(logging.INFO)
+
 from webauthn_auth import WebAuthnManager
 from mqtt_proxy import MQTTProxy
 
@@ -88,12 +92,12 @@ mqtt_proxy.set_socketio(socketio)
 mqtt_proxy.connect()
 
 
-@app.before_request
-def log_request_ip():
-    """Log the X-Real-IP header for all requests"""
-    real_ip = request.headers.get('X-Real-IP')
-    if real_ip:
-        logger.info(f"Request from X-Real-IP: {real_ip}")
+@app.after_request
+def log_request(response):
+    """Log request details including X-Real-IP"""
+    real_ip = request.headers.get('X-Real-IP', request.remote_addr or '-')
+    access_logger.info(f"{request.method} {request.path} - {response.status_code} - X-Real-IP: {real_ip}")
+    return response
 
 
 def login_required(f):
