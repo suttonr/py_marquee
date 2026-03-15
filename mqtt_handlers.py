@@ -335,7 +335,7 @@ def check_template(in_template, force=False, **kwargs):
     if force or (enable_auto_template and not isinstance(template, in_template)):
         if template is not None:
             template.__del__()
-        if template is gmonster:
+        if in_template is "gmonster":
             template = in_template(board, launcher_key=secrets.LAUNCHER_KEY, **kwargs)
         else:
             template = in_template(board, **kwargs)
