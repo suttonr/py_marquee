@@ -34,6 +34,15 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
+
+@app.before_request
+def log_request_ip():
+    """Log the X-Real-IP header for all requests"""
+    real_ip = request.headers.get('X-Real-IP')
+    if real_ip:
+        logger.info(f"Request from X-Real-IP: {real_ip}")
+
+
 # Global variables for background tasks
 active_watchers = {}  # game_pk -> {'thread': thread, 'priority': int}
 active_finders = {}   # finder_id -> {'thread': thread, 'team_filter': filter, 'sleep_minutes': minutes, 'auto_launch': bool, 'priority': int, 'start_time': datetime}

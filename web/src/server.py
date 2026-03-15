@@ -6,12 +6,17 @@ import os
 import json
 import secrets as stdlib_secrets
 import ipaddress
+import logging
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash, jsonify
 from flask_socketio import SocketIO, emit
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
 import requests
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from webauthn_auth import WebAuthnManager
 from mqtt_proxy import MQTTProxy
@@ -81,6 +86,15 @@ mqtt_proxy = MQTTProxy(
 )
 mqtt_proxy.set_socketio(socketio)
 mqtt_proxy.connect()
+
+
+@app.before_request
+def log_request_ip():
+    """Log the X-Real-IP header for all requests"""
+    real_ip = request.headers.get('X-Real-IP')
+    if real_ip:
+        logger.info(f"Request from X-Real-IP: {real_ip}")
+
 
 def login_required(f):
     """Decorator to require login for routes"""
