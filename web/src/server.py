@@ -5,6 +5,7 @@ Supports both password and FIDO2/WebAuthn authentication
 import os
 import json
 import secrets as stdlib_secrets
+import ipaddress
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash, jsonify
 from flask_socketio import SocketIO, emit
 from flask_limiter import Limiter
@@ -444,6 +445,92 @@ def get_users():
     """Get list of registered users"""
     users = webauthn_manager.get_users()
     return jsonify({'users': users})
+
+
+@app.route('/api/admin/mqtt-allowlist', methods=['GET'])
+@login_required
+def get_mqtt_allowlist():
+    """Get current user's MQTT IP allowlist"""
+    username = session.get('username')
+    if not username:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_file = os.path.join(AUTH_DIR, f'{username}.json')
+    try:
+        if os.path.exists(user_file):
+            with open(user_file, 'r') as f:
+                user_data = json.load(f)
+            allowlist = user_data.get('mqtt_allowlist', [])
+            return jsonify({'mqtt_allowlist': allowlist})
+        else:
+            return jsonify({'mqtt_allowlist': []})
+    except Exception as e:
+        print(f"Error loading mqtt_allowlist for {username}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/mqtt-allowlist', methods=['POST'])
+@login_required
+def update_mqtt_allowlist():
+    """Update current user's MQTT IP allowlist"""
+    username = session.get('username')
+    if not username:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    action = data.get('action')
+    ip_address = data.get('ip_address', '').strip()
+    
+    if not action or action not in ['add', 'remove']:
+        return jsonify({'error': 'Invalid action. Must be "add" or "remove"'}), 400
+    
+    if action == 'add' and not ip_address:
+        return jsonify({'error': 'IP address is required for add action'}), 400
+    
+    user_file = os.path.join(AUTH_DIR, f'{username}.json')
+    try:
+        # Load existing user data
+        user_data = {}
+        if os.path.exists(user_file):
+            with open(user_file, 'r') as f:
+                user_data = json.load(f)
+        
+        # Initialize mqtt_allowlist if not present
+        if 'mqtt_allowlist' not in user_data:
+            user_data['mqtt_allowlist'] = []
+        
+        allowlist = user_data['mqtt_allowlist']
+        
+        if action == 'add':
+            # Validate IP address format using Python's ipaddress module
+            try:
+                # This will validate both IPv4 and IPv6 addresses
+                ipaddress.ip_address(ip_address)
+            except ValueError:
+                return jsonify({'error': 'Invalid IP address format'}), 400
+            
+            # Check if already in allowlist
+            if ip_address not in allowlist:
+                allowlist.append(ip_address)
+                user_data['mqtt_allowlist'] = allowlist
+            else:
+                return jsonify({'error': 'IP address already in allowlist'}), 400
+        elif action == 'remove':
+            if ip_address in allowlist:
+                allowlist.remove(ip_address)
+                user_data['mqtt_allowlist'] = allowlist
+            else:
+                return jsonify({'error': 'IP address not in allowlist'}), 404
+        
+        # Save updated user data
+        with open(user_file, 'w') as f:
+            json.dump(user_data, f, indent=2)
+        
+        return jsonify({'mqtt_allowlist': allowlist})
+    except Exception as e:
+        print(f"Error updating mqtt_allowlist for {username}: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/api/auth/config', methods=['GET'])

@@ -73,8 +73,26 @@
                     <p>Loading users...</p>
                 </div>
             </div>
+
+            <div class="card">
+                <h3><i class="fas fa-network-wired"></i> MQTT IP Allowlist</h3>
+                <p>Manage IP addresses allowed to connect to MQTT</p>
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="mqtt-ip-input" placeholder="Enter IP address (e.g., 192.168.1.100)" 
+                            style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-color);">
+                        <button onclick="addIpAddress()" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div id="mqtt-allowlist" style="max-height: 200px; overflow-y: auto;">
+                        <p style="color: var(--text-secondary);">Loading...</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
 
     <script>
         // Load current registration status
@@ -214,9 +232,109 @@
             usersListEl.innerHTML = usersHtml;
         }
 
+        // Load MQTT allowlist
+        async function loadMqttAllowlist() {
+            try {
+                const response = await fetch('/api/admin/mqtt-allowlist');
+                const data = await response.json();
+                displayMqttAllowlist(data.mqtt_allowlist || []);
+            } catch (e) {
+                console.error('Error loading MQTT allowlist:', e);
+                document.getElementById('mqtt-allowlist').innerHTML = '<p style="color: var(--error-color);">Error loading allowlist</p>';
+            }
+        }
+
+        // Display MQTT allowlist in the UI
+        function displayMqttAllowlist(allowlist) {
+            const allowlistEl = document.getElementById('mqtt-allowlist');
+
+            if (allowlist.length === 0) {
+                allowlistEl.innerHTML = '<p style="color: var(--text-secondary);">No IP addresses in allowlist</p>';
+                return;
+            }
+
+            const allowlistHtml = allowlist.map(ip => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.375rem; margin-bottom: 0.5rem; background: var(--card-bg);">
+                    <div>
+                        <i class="fas fa-desktop" style="margin-right: 8px; color: var(--primary-color);"></i>
+                        <strong>${ip}</strong>
+                    </div>
+                    <button onclick="removeIpAddress('${ip}')" style="padding: 6px 12px; background: transparent; color: var(--error-color); border: 1px solid var(--error-color); border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            `).join('');
+
+            allowlistEl.innerHTML = allowlistHtml;
+        }
+
+        // Add IP address to allowlist
+        async function addIpAddress() {
+            const ipInput = document.getElementById('mqtt-ip-input');
+            const ipAddress = ipInput.value.trim();
+
+            if (!ipAddress) {
+                showAlert('Please enter an IP address', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/mqtt-allowlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'add', ip_address: ipAddress })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    ipInput.value = '';
+                    displayMqttAllowlist(data.mqtt_allowlist);
+                    showAlert('IP address added successfully', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to add IP address', 'error');
+                }
+            } catch (e) {
+                console.error('Error adding IP address:', e);
+                showAlert('Error adding IP address', 'error');
+            }
+        }
+
+        // Remove IP address from allowlist
+        async function removeIpAddress(ipAddress) {
+            try {
+                const response = await fetch('/api/admin/mqtt-allowlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'remove', ip_address: ipAddress })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayMqttAllowlist(data.mqtt_allowlist);
+                    showAlert('IP address removed successfully', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to remove IP address', 'error');
+                }
+            } catch (e) {
+                console.error('Error removing IP address:', e);
+                showAlert('Error removing IP address', 'error');
+            }
+        }
+
+        // Handle Enter key in IP input
+        document.getElementById('mqtt-ip-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addIpAddress();
+            }
+        });
+
         // Load status on page load
         loadRegistrationStatus();
         loadUsers();
+        loadMqttAllowlist();
     </script>
+
 </body>
 </html>
