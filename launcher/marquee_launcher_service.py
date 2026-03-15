@@ -525,6 +525,7 @@ def watch_game_thread(game_pk, interval, priority=0):
         logger.error(f"Error watching game {game_pk}: {e}")
     finally:
         with watcher_lock:
+            logger.info(f"Game {game_pk}: Watching Stopped")
             if game_pk in active_watchers:
                 del active_watchers[game_pk]
 
