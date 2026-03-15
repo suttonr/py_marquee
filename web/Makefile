@@ -40,7 +40,7 @@ start:
 
 status:
 	$(SUDO) $(SYSTEMCTL_CMD) --no-pager $(SYSTEMD_USER_FLAG) status $(SERVICE_NAME)
-	$(CONTAINER_BIN) logs $(CONTAINER_NAME) | tail -20
+	$(SUDO) $(CONTAINER_BIN) logs $(CONTAINER_NAME) | tail -20
 
 remove: stop
 	$(SUDO) $(CONTAINER_BIN) rm -f $(CONTAINER_NAME) || true
