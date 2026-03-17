@@ -122,20 +122,12 @@
         </div>
     </div>
 
-    <script>
-        // Hamburger menu functionality
-        function toggleMenu() {
-            const menuOverlay = document.getElementById('menuOverlay');
-            const menuBackdrop = document.getElementById('menuBackdrop');
-            menuOverlay.classList.toggle('open');
-            menuBackdrop.classList.toggle('open');
-        }
+    <!-- Import Common JavaScript -->
+    <script type="module">
+        import { applySavedTheme } from './common.mjs';
 
-        // Dark mode functionality
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
+        // Apply saved theme (dark mode)
+        applySavedTheme();
     </script>
 </body>
 </html>
