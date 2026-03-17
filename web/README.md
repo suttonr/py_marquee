@@ -6,7 +6,7 @@ A Flask-based web application for controlling an LED matrix display with session
 
 - **Session-based Authentication**: Secure login system to protect the control panel
 - **Real-time Control**: Control LED matrix display via MQTT
-- **Multiple Pages**: Main control page and launcher interface
+- **Multiple Pages**: Main control page, launcher interface, admin, and Grafana
 - **Responsive Design**: Works on desktop and mobile devices
 
 ## Quick Start
@@ -121,16 +121,57 @@ export SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
 web/
 ├── server.py           # Flask application
 ├── login.html          # Login page
-├── index.html          # Main control interface
-├── launcher.html       # Game launcher interface
 ├── common.css          # Shared styles
-├── mqttHandler.mjs     # MQTT client
-├── secrets.mjs         # MQTT configuration (credentials)
 ├── requirements.txt    # Python dependencies
 ├── Dockerfile          # Docker configuration
 ├── Makefile           # Build/run commands
-└── README.md          # This file
+├── auth/              # Authentication data
+│   └── admin.json     # Admin credentials
+└── src/               # Frontend source files
+    ├── index.html     # Main control interface
+    ├── launcher.html  # Game launcher interface
+    ├── admin.html    # Administration interface
+    ├── grafana.html  # Grafana dashboard link
+    ├── common.mjs    # Shared JavaScript (hamburger menu, dark mode, tabs, logging)
+    ├── index.mjs     # Main control page JavaScript
+    ├── launcher.mjs   # Launcher page JavaScript
+    ├── admin.mjs     # Admin page JavaScript
+    ├── mqttHandler.mjs    # MQTT client
+    ├── mqttHandler.test.mjs # MQTT handler tests
+    ├── secrets.mjs         # MQTT configuration (credentials)
+    ├── webauthn_auth.py   # WebAuthn authentication
+    ├── mqtt_proxy.py      # MQTT proxy for launcher API
+    └── server.py          # Flask application (also at root)
 ```
+
+## Frontend Architecture
+
+The web application uses ES6 modules to share code between pages:
+
+- **`common.mjs`**: Shared functionality used by all non-login pages
+  - Hamburger menu toggle
+  - Dark mode initialization and persistence
+  - Tab switching
+  - Logging system
+  - Alert system
+  - Connection status management
+
+- **`index.mjs`**: Marquee control page specific functionality
+  - Canvas responsive sizing
+  - Brightness/pixel scale controls
+  - Color picker functionality
+  - Auto-refresh functionality
+
+- **`launcher.mjs`**: Game launcher page functionality
+  - Health/watching/finders status
+  - Schedule loading
+  - Game watching controls
+  - Game finder controls
+
+- **`admin.mjs`**: Administration page functionality
+  - User registration management
+  - Users list display
+  - MQTT IP allowlist management
 
 ## Testing
 
@@ -149,11 +190,15 @@ python -m pytest ../tests/web/test_server.py -v
 | `/login` | Login page | No |
 | `/logout` | Logout | Yes |
 | `/launcher.html` | Game launcher | Yes |
+| `/admin.html` | Administration | Yes |
+| `/grafana.html` | Grafana dashboard | Yes |
+| `/api/launcher/*` | Launcher API proxy | Yes |
+| `/api/admin/*` | Admin API | Yes |
 | `/<file>` | Static files | Yes |
 
 ## MQTT Configuration
 
-Edit `secrets.mjs` to configure MQTT connection:
+Edit `src/secrets.mjs` to configure MQTT connection:
 
 ```javascript
 export const MQTT_BROKER = "your-broker.com"
