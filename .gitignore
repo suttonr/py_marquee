@@ -18,3 +18,8 @@ venv/*
 launcher/cli*
 *.log
 *.tar.gz
+
+# Python build artifacts
+web/tools/build/
+web/tools/*.egg-info/
+web/tools/dist/
