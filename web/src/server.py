@@ -121,21 +121,29 @@ def check_user_data(username):
 
 # WebSocket Event Handlers
 @socketio.on('connect')
-@login_required
 def handle_connect():
-    """Handle WebSocket client connection"""
+    """Handle WebSocket client connection - requires authentication"""
+    # Flask's @login_required doesn't work with Socket.IO - check session manually
+    if 'logged_in' not in session:
+        print(f"WebSocket connection rejected: not authenticated - {request.sid}")
+        return False
     print(f"WebSocket client connected: {request.sid}")
+    return True
 
 @socketio.on('disconnect')
-@login_required
 def handle_disconnect():
     """Handle WebSocket client disconnection"""
-    print(f"WebSocket client disconnected: {request.sid}")
+    # Check session exists before logging (may have been cleared)
+    if session.get('logged_in'):
+        print(f"WebSocket client disconnected: {request.sid}")
 
 @socketio.on('mqtt_publish')
-@login_required
 def handle_mqtt_publish(data):
     """Handle MQTT publish request from WebSocket client"""
+    # Check authentication for each event
+    if 'logged_in' not in session:
+        emit('mqtt_error', {'error': 'Not authenticated'})
+        return
     topic = data.get('topic')
     payload = data.get('payload', '')
     
@@ -150,9 +158,12 @@ def handle_mqtt_publish(data):
         emit('mqtt_error', {'error': error})
 
 @socketio.on('mqtt_subscribe')
-@login_required
 def handle_mqtt_subscribe(data):
     """Handle MQTT subscribe request from WebSocket client"""
+    # Check authentication for each event
+    if 'logged_in' not in session:
+        emit('mqtt_error', {'error': 'Not authenticated'})
+        return
     topic = data.get('topic')
     if not topic:
         emit('mqtt_error', {'error': 'Topic is required'})
