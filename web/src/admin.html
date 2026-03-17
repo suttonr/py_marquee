@@ -90,6 +90,17 @@
                     </div>
                 </div>
             </div>
+
+            <div class="card">
+                <h3><i class="fas fa-cog"></i> Settings</h3>
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+                    <label for="dark-mode" style="margin-bottom: 0; font-size: 1rem;">Dark Mode</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dark-mode">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -334,6 +345,24 @@
         loadRegistrationStatus();
         loadUsers();
         loadMqttAllowlist();
+
+        // Dark mode functionality
+        document.getElementById('dark-mode').addEventListener('change', function() {
+            if (this.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('dark-mode').checked = true;
+        }
     </script>
 
 </body>
