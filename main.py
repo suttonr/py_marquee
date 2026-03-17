@@ -63,20 +63,11 @@ RESET_PIN = 18
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(RESET_PIN, GPIO.OUT)
 
-
-
 def process_bright(bright):
     global NP_PINS, MAX_PIXELS, matrices
     for i in range(len(matrices)):
         print("b",i,bright,bright/100)
         matrices[i].brightness = bright / 100
-
-def update_message(message, anchor=(0,0)):
-    global matrices, board
-    global FGCOLOR, BGCOLOR
-
-    for x,y,b in font_5x8(message, fgcolor=FGCOLOR):
-        board.set_pixel( (x+anchor[0]).to_bytes(2,"big") + (y+anchor[1]).to_bytes(1,"big") + b  )
 
 def setup():
     global matrices
@@ -100,14 +91,13 @@ def setup():
                 matrix(64, 8, hspi, mode="PYSPI", xoffset=x, yoffset=y)
             )
     board.matrices = matrices
-    update_message(bytearray(b"A"), (0,0))
-    update_message(bytearray(b"B"), (0,8))
-    update_message(bytearray(b"C"), (0,16))
+
     # Setup mqtt
     m.on_message = new_message
     m.subscribe("esp32/test/#")
     m.subscribe("marquee/#")
     m.subscribe("hello/push/Backyard Garage/temperature/value")
+   
     # Set initial settings
     process_bright(5)
     shared_state['local_weather'] = weather(board, clear=False)
@@ -116,8 +106,8 @@ def setup():
 
     # Initialize globals in handlers module with shared state
     init_shared_state(shared_state, FGCOLOR, BGCOLOR, board, GPIO, RESET_PIN, m)
-
     time.sleep(2)
+
     # Start animation manager
     start_animation_manager()
     # Start listening for mqtt

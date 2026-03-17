@@ -9,6 +9,7 @@ import sys
 import time
 import threading
 import logging
+from functools import wraps
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify
@@ -17,19 +18,34 @@ import subprocess
 
 # Import existing modules
 import cli.mlb as mlb
-import cli.secrets as secrets
+import cli.secrets
+import local_secrets as local_secrets
+
 
 # Configure logging
 logging.basicConfig(
     stream=sys.stdout,
     format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
+
+# Access logger for request logs
+access_logger = logging.getLogger('access_logger')
+access_logger.setLevel(logging.INFO)
 
 # Flask app
 app = Flask(__name__)
 CORS(app)
+
+
+@app.after_request
+def log_request(response):
+    """Log request details including X-Real-IP"""
+    real_ip = request.headers.get('X-Real-IP', request.remote_addr or '-')
+    access_logger.info(f"{request.method} {request.path} - {response.status_code} - X-Real-IP: {real_ip}")
+    return response
+
 
 # Global variables for background tasks
 active_watchers = {}  # game_pk -> {'thread': thread, 'priority': int}
@@ -37,6 +53,43 @@ active_finders = {}   # finder_id -> {'thread': thread, 'team_filter': filter, '
 watcher_lock = threading.Lock()
 finder_lock = threading.Lock()
 finder_counter = 0
+
+
+def require_api_key(f):
+    """Decorator to require valid API key for endpoint access.
+    Supports both 'Authorization: Bearer <key>' and 'X-API-Key: <key>' headers.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = None
+        
+        # Check Authorization header for Bearer token
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            if auth_header.startswith('Bearer '):
+                api_key = auth_header[7:]  # Extract token after "Bearer "
+        
+        # If no Bearer token, check X-API-Key header
+        if not api_key:
+            api_key = request.headers.get('X-API-Key')
+        
+        if not api_key:
+            logger.warning("Request missing API key")
+            logger.debug(f"Headers: {request.headers}")
+            logger.debug(f"X-API-Key: {request.headers.get('X-API-Key')}")
+            logger.debug(f"Key: {api_key}")
+            return jsonify({
+                "error": "API key required. Use 'Authorization: Bearer <key>' or 'X-API-Key: <key>' header."
+            }), 401
+        
+        # Check if API key is valid
+        if api_key not in local_secrets.API_KEYS:
+            logger.warning(f"Invalid API key attempt: {api_key[:8]}...")
+            return jsonify({"error": "Invalid API key"}), 401
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
     """Background thread to find and optionally watch games"""
@@ -51,7 +104,7 @@ def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
             now = datetime.now(ZoneInfo("America/New_York"))
             date_str = now.strftime("%Y-%m-%d")
 
-            sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
+            sch = mlb.schedule(date_str, cli.secrets.MLB_SCHEDULE_URL)
             games = sch.get_games(team_filter)
 
             # Find the next upcoming game and update time_until_next_game
@@ -72,7 +125,36 @@ def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
                         min_delta = delta_to_game
 
                 if auto_launch and game_dt > now and delta_to_game < timedelta(hours=1):
-                    watch_game_thread(game.get("gamePk"), 20, priority)
+                    game_pk_to_watch = game.get("gamePk")
+                    interval = 20
+                    
+                    # Check if we should start watching this game
+                    should_watch = False
+                    with watcher_lock:
+                        if not active_watchers:
+                            should_watch = True
+                        else:
+                            # Check priority of existing watcher
+                            for existing_pk, watcher_info in active_watchers.items():
+                                existing_priority = watcher_info.get('priority', 0)
+                                if priority > existing_priority:
+                                    logger.info(f"Auto-launch: Game {game_pk_to_watch} has higher priority ({priority}) than existing watcher ({existing_priority})")
+                                    active_watchers.clear()
+                                    should_watch = True
+                                elif priority == existing_priority and existing_pk != game_pk_to_watch:
+                                    # Same priority, allow if it's a different game
+                                    should_watch = True
+                                break
+                    
+                    if should_watch:
+                        thread = threading.Thread(target=watch_game_thread, args=(game_pk_to_watch, interval, priority), daemon=True)
+                        with watcher_lock:
+                            active_watchers[game_pk_to_watch] = {
+                                'thread': thread,
+                                'priority': priority
+                            }
+                        thread.start()
+                        logger.info(f"Auto-launched watcher for game {game_pk_to_watch}")
 
             # Update time_until_next_game in finder info
             with finder_lock:
@@ -106,6 +188,7 @@ def health():
     })
 
 @app.route('/schedule', methods=['GET'])
+@require_api_key
 def get_schedule():
     """
     Get MLB schedule for a date with optional team filter
@@ -119,7 +202,7 @@ def get_schedule():
         if not date_str:
             date_str = now.strftime("%Y-%m-%d")
 
-        sch = mlb.schedule(date_str, secrets.MLB_SCHEDULE_URL)
+        sch = mlb.schedule(date_str, cli.secrets.MLB_SCHEDULE_URL)
         games = sch.get_games(team_filter)
 
         result = []
@@ -142,6 +225,7 @@ def get_schedule():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/games/find', methods=['POST'])
+@require_api_key
 def find_games():
     """
     Start background task to find and watch games
@@ -180,6 +264,7 @@ def find_games():
     })
 
 @app.route('/games/<int:game_pk>/watch', methods=['POST'])
+@require_api_key
 def start_watching_game(game_pk):
     """
     Start watching a specific MLB game
@@ -189,12 +274,36 @@ def start_watching_game(game_pk):
     interval = data.get('interval', 20)
     priority = data.get('priority', 0)
 
+    # Check for existing watchers and handle priority
+    with watcher_lock:
+        if active_watchers:
+            # Get existing watcher info
+            for existing_pk, watcher_info in active_watchers.items():
+                existing_priority = watcher_info.get('priority', 0)
+                
+                if priority < existing_priority:
+                    logger.info(f"Game {game_pk} has lower priority ({priority}) than existing watcher ({existing_priority}), not starting")
+                    return jsonify({"error": f"Existing watcher has higher priority ({existing_priority})"}), 409
+                elif priority > existing_priority:
+                    logger.info(f"Game {game_pk} has higher priority ({priority}) than existing watcher ({existing_priority}), stopping old and starting new")
+                    active_watchers.clear()
+                break
+
     thread = threading.Thread(target=watch_game_thread, args=(game_pk, interval, priority), daemon=True)
+    
+    # Add to active watchers before starting the thread to avoid race condition
+    with watcher_lock:
+        active_watchers[game_pk] = {
+            'thread': thread,
+            'priority': priority
+        }
+    
     thread.start()
 
     return jsonify({"message": f"Started watching game {game_pk}", "priority": priority})
 
 @app.route('/games/<int:game_pk>/stop', methods=['POST'])
+@require_api_key
 def stop_watching_game(game_pk):
     """Stop watching a specific game"""
     with watcher_lock:
@@ -208,6 +317,7 @@ def stop_watching_game(game_pk):
     return jsonify({"message": f"Stopped watching game {game_pk}"})
 
 @app.route('/games/watching', methods=['GET'])
+@require_api_key
 def list_watching_games():
     """List currently watched games"""
     with watcher_lock:
@@ -216,6 +326,7 @@ def list_watching_games():
     return jsonify({"watching_games": watching})
 
 @app.route('/games/finders', methods=['GET'])
+@require_api_key
 def list_active_finders():
     """List currently active game finders"""
     with finder_lock:
@@ -237,6 +348,7 @@ def list_active_finders():
     return jsonify({"active_finders": finders})
 
 @app.route('/games/finders/<int:finder_id>', methods=['GET'])
+@require_api_key
 def get_finder(finder_id):
     """Get a specific game finder by ID"""
     with finder_lock:
@@ -259,6 +371,7 @@ def get_finder(finder_id):
     return jsonify(finder_data)
 
 @app.route('/games/finders/<int:finder_id>/stop', methods=['POST'])
+@require_api_key
 def stop_finder(finder_id):
     """Stop a specific game finder"""
     with finder_lock:
@@ -271,6 +384,7 @@ def stop_finder(finder_id):
     return jsonify({"message": f"Stopped finder {finder_id}"})
 
 @app.route('/games/finders/stop-all', methods=['POST'])
+@require_api_key
 def stop_all_finders():
     """Stop all active game finders"""
     with finder_lock:
@@ -280,6 +394,7 @@ def stop_all_finders():
     return jsonify({"message": f"Stopped {len(finder_ids)} finders", "stopped_finders": finder_ids})
 
 @app.route('/backfill', methods=['POST'])
+@require_api_key
 def backfill_game():
     """Backfill the currently watched game"""
     with watcher_lock:
@@ -301,6 +416,61 @@ def backfill_game():
         return jsonify({"error": str(e)}), 500
     return jsonify({"message": "backfill success"})
 
+@app.route('/display/clear', methods=['POST'])
+@require_api_key
+def clear_display():
+    """Clear the marquee display"""
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "clear"
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": "Display cleared"})
+        else:
+            return jsonify({"error": "Failed to clear display"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/display/text', methods=['POST'])
+@require_api_key
+def send_text():
+    """Send text to display"""
+    data = request.get_json() or {}
+    message = data.get('message', '')
+    line = data.get('line', 1)
+
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "text-line", "--line", str(line), message
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": f"Text sent: {message}"})
+        else:
+            return jsonify({"error": "Failed to send text"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/display/brightness/<int:brightness>', methods=['POST'])
+@require_api_key
+def set_brightness(brightness):
+    """Set display brightness (0-255)"""
+    if not 0 <= brightness <= 255:
+        return jsonify({"error": "Brightness must be 0-255"}), 400
+
+    try:
+        result = subprocess.run([
+            sys.executable, "cli/matrix-cli.py", "brightness", str(brightness)
+        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
+
+        if result.returncode == 0:
+            return jsonify({"message": f"Brightness set to {brightness}"})
+        else:
+            return jsonify({"error": "Failed to set brightness"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 def watch_game_thread(game_pk, interval, priority=0):
     """Background thread to watch a game
     
@@ -308,35 +478,10 @@ def watch_game_thread(game_pk, interval, priority=0):
         game_pk: The MLB game primary key
         interval: Polling interval in seconds
         priority: Priority level (higher number = higher priority)
+    
+    Note: The watcher should already be added to active_watchers before this thread starts
     """
-    # Check for existing watcher and handle priority comparison
-    with watcher_lock:
-        existing_game_pk = None
-        existing_priority = None
-        
-        if active_watchers:
-            # Get the existing game pk and its priority
-            for existing_pk, watcher_info in active_watchers.items():
-                existing_game_pk = existing_pk
-                existing_priority = watcher_info.get('priority', 0)
-                break
-            
-            if priority < existing_priority:
-                # New thread has lower priority, exit
-                logger.info(f"Game {game_pk} has lower priority ({priority}) than existing watcher ({existing_priority}), not starting")
-                return
-            elif priority > existing_priority:
-                # New thread has higher priority, stop existing and start new
-                logger.info(f"Game {game_pk} has higher priority ({priority}) than existing watcher ({existing_priority}), stopping old and starting new")
-                # Remove existing watcher - it will stop on its next iteration check
-                active_watchers.clear()
-        
-        active_watchers[game_pk] = {
-            'thread': threading.current_thread(),
-            'priority': priority
-        }
-
-    logger.info(f"Started watching game {game_pk}")
+    logger.info(f"Watch thread started for game {game_pk} with priority {priority}")
 
     retcode = 0
     sweet_caroline = False
@@ -344,6 +489,11 @@ def watch_game_thread(game_pk, interval, priority=0):
 
     try:
         while retcode == 0 or retcode in [80, 81, 89, 98]:
+            # Check if this watcher was stopped
+            with watcher_lock:
+                if game_pk not in active_watchers:
+                    break
+
             result = subprocess.run([
                 sys.executable, "cli/matrix-cli.py", "send-mlb-game", "-g", str(game_pk)
             ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
@@ -388,6 +538,7 @@ def watch_game_thread(game_pk, interval, priority=0):
         logger.error(f"Error watching game {game_pk}: {e}")
     finally:
         with watcher_lock:
+            logger.info(f"Game {game_pk}: Watching Stopped")
             if game_pk in active_watchers:
                 del active_watchers[game_pk]
 
@@ -398,58 +549,6 @@ def trigger_webhook(url):
         logger.info(f"Webhook triggered: {url}")
     except Exception as e:
         logger.error(f"Failed to trigger webhook {url}: {e}")
-
-@app.route('/display/clear', methods=['POST'])
-def clear_display():
-    """Clear the marquee display"""
-    try:
-        result = subprocess.run([
-            sys.executable, "cli/matrix-cli.py", "clear"
-        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
-
-        if result.returncode == 0:
-            return jsonify({"message": "Display cleared"})
-        else:
-            return jsonify({"error": "Failed to clear display"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/display/text', methods=['POST'])
-def send_text():
-    """Send text to display"""
-    data = request.get_json() or {}
-    message = data.get('message', '')
-    line = data.get('line', 1)
-
-    try:
-        result = subprocess.run([
-            sys.executable, "cli/matrix-cli.py", "text-line", "--line", str(line), message
-        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
-
-        if result.returncode == 0:
-            return jsonify({"message": f"Text sent: {message}"})
-        else:
-            return jsonify({"error": "Failed to send text"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/display/brightness/<int:brightness>', methods=['POST'])
-def set_brightness(brightness):
-    """Set display brightness (0-255)"""
-    if not 0 <= brightness <= 255:
-        return jsonify({"error": "Brightness must be 0-255"}), 400
-
-    try:
-        result = subprocess.run([
-            sys.executable, "cli/matrix-cli.py", "brightness", str(brightness)
-        ], capture_output=True, text=True, cwd=os.path.dirname(__file__))
-
-        if result.returncode == 0:
-            return jsonify({"message": f"Brightness set to {brightness}"})
-        else:
-            return jsonify({"error": "Failed to set brightness"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     # Start default finder if WATCH_TEAM is set

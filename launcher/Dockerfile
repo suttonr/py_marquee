@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the service file
 COPY marquee_launcher_service.py .
+COPY local_secrets.py .
 
 # Copy necessary modules and scripts from cli directory
 RUN mkdir -p cache

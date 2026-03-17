@@ -1,8 +1,14 @@
+import logging
+import requests
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from .base import base, box
 from .clock import clock
+
+BACKFILL_URL = 'http://192.168.2.184:4000/backfill'
+logger = logging.getLogger(__name__)
 
 def lookup_box(b, r, offset=0):
     x = 0
@@ -22,7 +28,7 @@ def lookup_box(b, r, offset=0):
     return ((x+offset) , y)
 
 class gmonster(base):
-    def __init__(self, marquee):
+    def __init__(self, marquee, launcher_key=None):
         #self.marquee = marquee
         super().__init__(marquee)
         self.game_status = ""
@@ -32,6 +38,7 @@ class gmonster(base):
         self.disable_close = False
         self.clock = None
         self.hr = False
+        self.launcher_key = launcher_key
         self.bgcolor = bytearray(b'\x00\x64\x00')
 
         self.pitcher = { 
@@ -81,10 +88,20 @@ class gmonster(base):
                 "away" : box(lookup_box(i,0)),
                 "home" : box(lookup_box(i,1))
             }) 
+
+        # Try to backfill on template load in case it's mid-game
+        try:
+            logger.info("Attempting to backfill game data from %s", BACKFILL_URL)
+            headers = {'X-API-Key': self.launcher_key} if self.launcher_key else {}
+            response = requests.post(BACKFILL_URL, headers=headers, timeout=10)
+            response.raise_for_status()
+            logger.info("Backfill successful")
+        except requests.RequestException as e:
+            logger.warning("Backfill failed: %s", e)
         self.display_mask()
     
     def __del__(self):
-        print("gmonster template destroyed")
+        logger.info("gmonster template destroyed")
 
     def display_mask(self, x_start=0):
         self.draw_bmp("templates/img/green_monster_marquee_mask.bmp",x_start=x_start)

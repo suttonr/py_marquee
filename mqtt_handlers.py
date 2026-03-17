@@ -7,6 +7,7 @@ Handlers are organized by topic patterns for better maintainability and extensib
 
 import time
 import traceback
+import secrets
 from templates.clock import clock
 from templates.timer import timer
 from templates.gmonster import gmonster
@@ -230,7 +231,9 @@ def handle_gmonster_game(msg):
     global template, local_weather, board
     game_status = msg.payload.decode()
     # Only auto-switch to clock if we're currently showing gmonster template AND game ends
-    if (isinstance(template, gmonster) and not template.disable_close and game_status in ("F", "FT", "UR")):
+    if (isinstance(template, gmonster) and 
+        not template.disable_close and 
+        game_status in ("F", "FT", "FR", "UR")):
         template.__del__()
         update_template(clock(board, weather=local_weather))
         print("Game ended, automatically switched to clock template")
@@ -332,7 +335,10 @@ def check_template(in_template, force=False, **kwargs):
     if force or (enable_auto_template and not isinstance(template, in_template)):
         if template is not None:
             template.__del__()
-        template = in_template(board, **kwargs)
+        if in_template is gmonster:
+            template = in_template(board, launcher_key=secrets.LAUNCHER_KEY, **kwargs)
+        else:
+            template = in_template(board, **kwargs)
         # Update shared state
         if shared_state is not None:
             shared_state['template'] = template

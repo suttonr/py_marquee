@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - Marquee Control</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <!-- Menu Backdrop -->
+    <div class="menu-backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
+
+    <!-- Menu Overlay -->
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-header">
+            <h2>Navigation</h2>
+        </div>
+        <nav class="menu-items">
+            <a href="index.html" class="menu-item">
+                <i class="fas fa-tv"></i>
+                <span>Marquee Control</span>
+            </a>
+            <a href="launcher.html" class="menu-item">
+                <i class="fas fa-rocket"></i>
+                <span>Launcher</span>
+            </a>
+            <a href="grafana.html" class="menu-item">
+                <i class="fas fa-arrow-trend-up"></i>
+                <span>Grafana</span>
+            </a>
+            <a href="admin.html" class="menu-item active">
+                <i class="fas fa-cog"></i>
+                <span>Administration</span>
+            </a>
+            <a href="/logout" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </div>
+
+    <div class="header">
+        <div class="hamburger-menu">
+            <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMenu()" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <h1><i class="fas fa-cog"></i> Administration</h1>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card-grid">
+            <div class="card">
+                <h3><i class="fas fa-user-plus"></i> User Registrations</h3>
+                <p>Control whether new users can register passkeys</p>
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
+                    <label for="registration-toggle" style="margin-bottom: 0; font-size: 1rem;">Allow New Registrations</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="registration-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div id="status-message" style="margin-top: 15px; font-size: 0.9rem; color: var(--text-secondary);"></div>
+            </div>
+
+            <div class="card">
+                <h3><i class="fas fa-users"></i> Registered Users</h3>
+                <p>Users with registered passkeys</p>
+                <div id="users-list" style="margin-top: 20px;">
+                    <p>Loading users...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3><i class="fas fa-network-wired"></i> MQTT IP Allowlist</h3>
+                <p>Manage IP addresses allowed to connect to MQTT</p>
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="mqtt-ip-input" placeholder="Enter IP address (e.g., 192.168.1.100)" 
+                            style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-color);">
+                        <button onclick="addIpAddress()" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div id="mqtt-allowlist" style="max-height: 200px; overflow-y: auto;">
+                        <p style="color: var(--text-secondary);">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3><i class="fas fa-cog"></i> Settings</h3>
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+                    <label for="dark-mode" style="margin-bottom: 0; font-size: 1rem;">Dark Mode</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dark-mode">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Common and Admin JavaScript -->
+    <script type="module">
+        import { initCommon } from './common.mjs';
+        import { initAdmin } from './admin.mjs';
+
+        // Initialize common functionality (hamburger menu, tabs, logging, dark mode)
+        initCommon();
+
+        // Initialize admin page specific functionality
+        initAdmin();
+    </script>
+
+</body>
+</html>

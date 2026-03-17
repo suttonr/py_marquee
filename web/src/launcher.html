@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marquee Launcher</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <!-- Menu Backdrop -->
+    <div class="menu-backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
+    
+    <!-- Menu Overlay -->
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-header">
+            <h2>Navigation</h2>
+        </div>
+        <nav class="menu-items">
+            <a href="index.html" class="menu-item">
+                <i class="fas fa-tv"></i>
+                <span>Marquee Control</span>
+            </a>
+            <a href="launcher.html" class="menu-item active">
+                <i class="fas fa-rocket"></i>
+                <span>Launcher</span>
+            </a>
+            <a href="grafana.html" class="menu-item">
+                <i class="fas fa-arrow-trend-up"></i>
+                <span>Grafana</span>
+            </a>
+            <a href="admin.html" class="menu-item">
+                <i class="fas fa-cog"></i>
+                <span>Administration</span>
+            </a>
+            <a href="/logout" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </div>
+
+    <div class="header">
+        <div class="hamburger-menu">
+            <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMenu()" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <h1><i class="fas fa-rocket"></i> Marquee Launcher</h1>
+        </div>
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="status">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Status</span>
+            </button>
+            <button class="tab-button" data-tab="schedule">
+                <i class="fas fa-calendar"></i>
+                <span>Schedule</span>
+            </button>
+            <button class="tab-button" data-tab="controls">
+                <i class="fas fa-gamepad"></i>
+                <span>Controls</span>
+            </button>
+        </div>
+
+        <div class="tab-content">
+            <!-- Status Tab -->
+            <div class="tab-pane active" id="status">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3><i class="fas fa-heartbeat"></i> Service Health</h3>
+                        <div id="health-status">
+                            <p>Loading health status...</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-eye"></i> Active Watchers</h3>
+                        <div id="watching-status">
+                            <p>Loading active watchers...</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-search"></i> Active Finders</h3>
+                        <div id="finders-status">
+                            <p>Loading active finders...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule Tab -->
+            <div class="tab-pane" id="schedule">
+                <div class="card">
+                    <h3><i class="fas fa-calendar-day"></i> Today's Games</h3>
+                    <div class="form-group">
+                        <label for="team-filter">Team Filter (optional)</label>
+                        <input type="text" id="team-filter" placeholder="e.g., BOS, NYY">
+                    </div>
+                    <button class="btn btn-primary" onclick="loadSchedule()">
+                        <i class="fas fa-sync"></i> Load Schedule
+                    </button>
+                    <div class="game-list" id="game-list">
+                        <p>Click "Load Schedule" to view today's games.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Tab -->
+            <div class="tab-pane" id="controls">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3><i class="fas fa-play-circle"></i> Watch Specific Game</h3>
+                        <div class="form-group">
+                            <label for="watch-game-pk">Game PK</label>
+                            <input type="text" id="watch-game-pk" placeholder="Enter game ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="watch-interval">Update Interval (seconds)</label>
+                            <input type="number" id="watch-interval" value="20" min="5" max="300">
+                        </div>
+                        <div class="form-group">
+                            <label for="watch-priority">Priority (higher = takes precedence)</label>
+                            <input type="number" id="watch-priority" value="0" min="0" max="100">
+                        </div>
+                        <button class="btn btn-success" onclick="startWatching()">
+                            <i class="fas fa-play"></i> Start Watching
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-search"></i> Auto Game Finder</h3>
+                        <div class="form-group">
+                            <label for="finder-team-filter">Team Filter (optional)</label>
+                            <input type="text" id="finder-team-filter" placeholder="e.g., BOS">
+                        </div>
+                        <div class="form-group">
+                            <label for="finder-sleep-minutes">Check Interval (minutes)</label>
+                            <input type="number" id="finder-sleep-minutes" value="30" min="5" max="120">
+                        </div>
+                        <div class="form-group">
+                            <label for="finder-priority">Priority (higher = takes precedence)</label>
+                            <input type="number" id="finder-priority" value="0" min="0" max="100">
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+                            <label for="finder-auto-launch" style="margin-bottom: 0; font-size: 1rem;">Auto Launch Games</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="finder-auto-launch" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="btn-grid">
+                            <button class="btn btn-success" onclick="startGameFinder()">
+                                <i class="fas fa-search"></i> Start Finder
+                            </button>
+                            <button class="btn btn-danger" onclick="stopAllWatching()">
+                                <i class="fas fa-stop"></i> Stop All
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-history"></i> Backfill Current Game</h3>
+                        <p>Perform a backfill of the currently watched game to update historical data.</p>
+                        <button class="btn btn-primary" onclick="backfillCurrentGame()">
+                            <i class="fas fa-history"></i> Backfill Game
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-cog"></i> Settings</h3>
+                        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+                            <label for="dark-mode" style="margin-bottom: 0; font-size: 1rem;">Dark Mode</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="dark-mode">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-section">
+            <div class="log-header">
+                <h3><i class="fas fa-terminal"></i> Activity Log</h3>
+                <button class="btn btn-secondary" onclick="clearLog()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+            <div class="log-content" id="logContent">
+                <div class="log-entry">Launcher interface initialized...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Common and Launcher JavaScript -->
+    <script type="module">
+        import { initCommon, clearLog } from './common.mjs';
+        import { initLauncher } from './launcher.mjs';
+
+        // Initialize common functionality (hamburger menu, tabs, logging, dark mode)
+        initCommon();
+
+        // Initialize launcher page specific functionality
+        initLauncher();
+    </script>
+</body>
+</html>

@@ -3,7 +3,22 @@ CONTAINER_NAME = marquee-launcher-service
 SERVICE_NAME = container-$(CONTAINER_NAME).service
 CONTAINER_OPTS = --publish 4000:4000 --env PORT=4000 --env DEBUG=true
 
-.PHONY: package_cli build start stop status remove create install run shell
+ifdef SYSTEMD_SYSTEM_UNIT
+SYSTEMD_USER_FLAG =
+SYSTEMD_DIR = /etc/systemd/system/
+SYSTEMCTL_CMD = sudo systemctl
+MKDIR_CMD = sudo mkdir
+else
+SYSTEMD_USER_FLAG = --user
+SYSTEMD_DIR = ~/.config/systemd/user/
+SYSTEMCTL_CMD = systemctl
+MKDIR_CMD = mkdir
+endif
+
+.PHONY: package_cli package build start stop status remove create install run shell
+
+package:
+	cd .. && git archive --format=tar.gz --output=py_marquee-launcher-$(shell git rev-parse --short HEAD).tar.gz HEAD:launcher/
 
 package_cli:
 	tar -cvzf cli.tar.gz -C .. --exclude=cli/cache --exclude=cli/examples --exclude cli/__pycache__ cli
@@ -12,13 +27,13 @@ build: package_cli
 	$(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
 
 stop:
-	systemctl --user stop $(SERVICE_NAME) || true
+	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) stop $(SERVICE_NAME) || true
 
 start:
-	systemctl --user start $(SERVICE_NAME) || true
+	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) start $(SERVICE_NAME) || true
 
 status:
-	systemctl --no-pager --user status $(SERVICE_NAME)
+	$(SYSTEMCTL_CMD) --no-pager $(SYSTEMD_USER_FLAG) status $(SERVICE_NAME)
 	$(CONTAINER_BIN) logs $(CONTAINER_NAME) | tail -20
 
 remove: stop
@@ -31,10 +46,10 @@ create: remove build
 		localhost/$(CONTAINER_NAME):latest
 
 install: create
-	mkdir -p ~/.config/systemd/user/
-	$(CONTAINER_BIN) generate systemd --name $(CONTAINER_NAME) > ~/.config/systemd/user/$(SERVICE_NAME)
-	systemctl --user daemon-reload
-	systemctl --user enable $(SERVICE_NAME)
+	$(MKDIR_CMD) -p $(SYSTEMD_DIR)
+	$(CONTAINER_BIN) generate systemd --name $(CONTAINER_NAME) > $(SYSTEMD_DIR)/$(SERVICE_NAME)
+	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) daemon-reload
+	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) enable $(SERVICE_NAME)
 
 run: remove install start status
 	@echo "Marquee Launcher Service is now running as a systemd service"
