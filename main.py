@@ -156,7 +156,7 @@ if __name__ == '__main__':
         topic="health/main/ping",
         interval_seconds=60
     )
-    print("Main heartbeat started on 'health/main/ping'")
+    print("Main heartbeat started on 'health/matrix/ping'")
     
     # Register cleanup handler
     atexit.register(cleanup_main_heartbeat)
