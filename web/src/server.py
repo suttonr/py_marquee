@@ -23,9 +23,24 @@ except ImportError:
     HEARTBEAT_AVAILABLE = False
     print("Warning: heartbeat module not available, health pings disabled")
 
+# Import health monitor module
+try:
+    from health_monitor import (
+        subscribe_to_health_topics,
+        get_health_data,
+        get_all_component_statuses
+    )
+    HEALTH_MONITOR_AVAILABLE = True
+except ImportError:
+    HEALTH_MONITOR_AVAILABLE = False
+    print("Warning: health_monitor module not available")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Import datetime for health timestamps
+from datetime import datetime, timezone
 
 # Access logger for request logs
 access_logger = logging.getLogger('access_logger')
@@ -594,6 +609,83 @@ def get_auth_config():
     })
 
 
+@app.route('/system/health', methods=['GET'])
+@login_required
+def get_system_health():
+    """Get health status of all system components.
+    
+    Returns health data from MQTT health ping topics.
+    Components should publish to 'health/[component]/ping' topics.
+    """
+    if not HEALTH_MONITOR_AVAILABLE:
+        return jsonify({
+            'error': 'Health monitoring not available',
+            'components': {}
+        }), 500
+    
+    # Get health data from all components
+    health_data = get_health_data()
+    component_statuses = get_all_component_statuses(max_age_seconds=120)
+    
+    # Combine health data with computed statuses
+    result = {
+        'components': {},
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+    
+    for component, data in health_data.items():
+        result['components'][component] = {
+            'status': component_statuses.get(component, 'unknown'),
+            'last_ping': data.get('last_ping'),
+            'topic': data.get('topic'),
+            'payload': data.get('payload')
+        }
+    
+    # Add components that haven't reported yet as unknown
+    known_components = {'web', 'launcher', 'matrix', 'mqtt', 'grafana'}
+    for component in known_components:
+        if component not in result['components']:
+            result['components'][component] = {
+                'status': 'unknown',
+                'last_ping': None,
+                'topic': f'health/{component}/ping',
+                'payload': None
+            }
+    
+    return jsonify(result)
+
+
+@app.route('/system/health/<component>', methods=['GET'])
+@login_required
+def get_component_health(component):
+    """Get health status of a specific component."""
+    if not HEALTH_MONITOR_AVAILABLE:
+        return jsonify({
+            'error': 'Health monitoring not available'
+        }), 500
+    
+    health_data = get_health_data()
+    component_statuses = get_all_component_statuses(max_age_seconds=120)
+    
+    if component in health_data:
+        data = health_data[component]
+        return jsonify({
+            'component': component,
+            'status': component_statuses.get(component, 'unknown'),
+            'last_ping': data.get('last_ping'),
+            'topic': data.get('topic'),
+            'payload': data.get('payload')
+        })
+    else:
+        return jsonify({
+            'component': component,
+            'status': 'unknown',
+            'last_ping': None,
+            'topic': f'health/{component}/ping',
+            'payload': None
+        })
+
+
 @app.route('/logout')
 def logout():
     """Logout and clear session"""
@@ -671,6 +763,23 @@ if __name__ == '__main__':
                 print("Warning: MQTT proxy not connected, health pings disabled")
         except Exception as e:
             print(f"Warning: Failed to start web heartbeat: {e}")
+    
+    # Subscribe to health topics from other components
+    if HEALTH_MONITOR_AVAILABLE:
+        try:
+            import time
+            for _ in range(10):
+                if mqtt_proxy.is_connected():
+                    break
+                time.sleep(0.5)
+            
+            if mqtt_proxy.is_connected():
+                subscribe_to_health_topics(mqtt_proxy.client)
+                print("Health topic subscriptions enabled")
+            else:
+                print("Warning: MQTT proxy not connected, health monitoring disabled")
+        except Exception as e:
+            print(f"Warning: Failed to subscribe to health topics: {e}")
     
     # Register cleanup handler
     import atexit

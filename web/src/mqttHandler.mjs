@@ -2,7 +2,7 @@
 // Communicates with MQTT broker via WebSocket proxy instead of direct connection
 
 // Socket.IO connection
-const socket = io();
+export const socket = io();
 
 // Connection status
 socket.on('connect', () => {
