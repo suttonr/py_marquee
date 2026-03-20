@@ -243,6 +243,9 @@
             <div id="alertContainer"></div>
 
             <form id="loginForm" method="POST" action="/login">
+                <!-- Hidden field to store the next URL for redirect after login -->
+                <input type="hidden" id="nextUrl" name="next" value="">
+                
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" required autocomplete="username" autofocus>
@@ -314,6 +317,7 @@
 
         // DOM Elements
         const usernameInput = document.getElementById('username');
+        const nextUrlInput = document.getElementById('nextUrl');
         const passwordGroup = document.getElementById('passwordGroup');
         const passwordInput = document.getElementById('password');
         const passwordToggle = document.getElementById('passwordToggle');
@@ -325,6 +329,14 @@
         const backBtn = document.getElementById('backBtn');
         const otpGroup = document.getElementById('otpGroup');
         const otpInput = document.getElementById('otp');
+
+        // Get the next URL from query parameters and store in hidden field
+        const urlParams = new URLSearchParams(window.location.search);
+        const nextParam = urlParams.get('next');
+        if (nextParam) {
+            nextUrlInput.value = nextParam;
+            console.log('Next URL captured:', nextParam);
+        }
 
         // Auth configuration
         let authConfig = { allow_static_passwords: false, registration_enabled: false };
@@ -532,8 +544,9 @@
 
                 if (verifyResponse.ok) {
                     showAlert('Successfully authenticated with passkey!', 'success');
-                    // Redirect to main page
-                    window.location.href = '/';
+                    // Redirect to originally requested page or main page
+                    const nextUrl = nextUrlInput.value;
+                    window.location.href = nextUrl || '/';
                 } else {
                     const error = await verifyResponse.json();
                     showAlert(error.error || 'Authentication failed', 'error');
@@ -672,7 +685,7 @@
         }
 
         // Check for flash messages in URL (passed as query params after redirect)
-        const urlParams = new URLSearchParams(window.location.search);
+        // Note: urlParams is already declared above
         const error = urlParams.get('error');
         const success = urlParams.get('success');
 

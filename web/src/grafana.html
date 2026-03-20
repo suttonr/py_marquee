@@ -73,37 +73,8 @@
     </style>
 </head>
 <body>
-    <!-- Menu Backdrop -->
-    <div class="menu-backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
-    
-    <!-- Menu Overlay -->
-    <div class="menu-overlay" id="menuOverlay">
-        <div class="menu-header">
-            <h2>Navigation</h2>
-        </div>
-        <nav class="menu-items">
-            <a href="index.html" class="menu-item">
-                <i class="fas fa-tv"></i>
-                <span>Marquee Control</span>
-            </a>
-            <a href="launcher.html" class="menu-item">
-                <i class="fas fa-rocket"></i>
-                <span>Launcher</span>
-            </a>
-            <a href="grafana.html" class="menu-item active">
-                <i class="fas fa-arrow-trend-up"></i>
-                <span>Grafana</span>
-            </a>
-            <a href="admin.html" class="menu-item">
-                <i class="fas fa-cog"></i>
-                <span>Administration</span>
-            </a>
-            <a href="/logout" class="menu-item">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </a>
-        </nav>
-    </div>
+    <!-- Navigation Menu Container -->
+    <div id="menuContainer"></div>
 
     <div class="header">
         <div class="hamburger-menu">
@@ -124,7 +95,10 @@
 
     <!-- Import Common JavaScript -->
     <script type="module">
-        import { applySavedTheme } from './common.mjs';
+        import { applySavedTheme, getNavigationHtml } from './common.mjs';
+
+        // Insert navigation menu
+        document.getElementById('menuContainer').innerHTML = getNavigationHtml('grafana.html');
 
         // Apply saved theme (dark mode)
         applySavedTheme();

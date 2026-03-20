@@ -202,7 +202,8 @@ export function initTabs() {
  */
 export function getNavigationHtml(currentPage) {
     const pages = [
-        { href: 'index.html', icon: 'fa-tv', label: 'Marquee Control' },
+        { href: 'index.html', icon: 'fa-home', label: 'Home' },
+        { href: 'controler.html', icon: 'fa-tv', label: 'Marquee Control' },
         { href: 'launcher.html', icon: 'fa-rocket', label: 'Launcher' },
         { href: 'grafana.html', icon: 'fa-arrow-trend-up', label: 'Grafana' },
         { href: 'admin.html', icon: 'fa-cog', label: 'Administration' }
