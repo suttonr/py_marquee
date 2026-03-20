@@ -6,6 +6,7 @@ import secrets
 import time
 import traceback
 import json
+import atexit
 
 from neomatrix.matrix import matrix
 from neomatrix.font import *
@@ -18,6 +19,7 @@ from templates.base import base
 from templates.weather import weather
 from animation_manager import start_animation_manager, stop_animation_manager
 from mqtt_handlers import new_message, init_shared_state
+from heartbeat import start_heartbeat
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
@@ -134,6 +136,30 @@ def writer_thread():
         sleep_time = max(0, PIXEL_TIME - (end_ts-start_ts))
         time.sleep(sleep_time)
 
+# Global heartbeat instance for cleanup
+main_heartbeat = None
+
+def cleanup_main_heartbeat():
+    """Clean up heartbeat on shutdown."""
+    global main_heartbeat
+    if main_heartbeat:
+        try:
+            main_heartbeat.stop()
+            print("Main heartbeat stopped")
+        except Exception as e:
+            print(f"Error stopping main heartbeat: {e}")
+
 if __name__ == '__main__':
+    # Start heartbeat on 'health/main/ping' topic using the existing MQTT client
+    main_heartbeat = start_heartbeat(
+        m,
+        topic="health/main/ping",
+        interval_seconds=60
+    )
+    print("Main heartbeat started on 'health/main/ping'")
+    
+    # Register cleanup handler
+    atexit.register(cleanup_main_heartbeat)
+    
     setup()
     main()

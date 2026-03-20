@@ -15,11 +15,15 @@ from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import subprocess
+import paho.mqtt.client as mqtt
 
 # Import existing modules
 import cli.mlb as mlb
 import cli.secrets
 import local_secrets as local_secrets
+
+# Import heartbeat module (py-marquee-heartbeat package)
+from heartbeat import start_heartbeat
 
 
 # Configure logging
@@ -550,7 +554,60 @@ def trigger_webhook(url):
     except Exception as e:
         logger.error(f"Failed to trigger webhook {url}: {e}")
 
+# Global MQTT client and heartbeat for cleanup
+mqtt_client = None
+launcher_heartbeat = None
+
+def setup_mqtt_and_heartbeat():
+    """Set up MQTT client and start heartbeat."""
+    global mqtt_client, launcher_heartbeat
+    
+    try:
+        # Create MQTT client
+        mqtt_client = mqtt.Client(client_id="marquee_launcher")
+        mqtt_client.username_pw_set(cli.secrets.MQTT_USERNAME, cli.secrets.MQTT_PASSWORD)
+        mqtt_client.connect(cli.secrets.MQTT_BROKER, cli.secrets.MQTT_PORT, 60)
+        mqtt_client.loop_start()
+        
+        # Start heartbeat on 'health/launcher/ping' topic
+        launcher_heartbeat = start_heartbeat(
+            mqtt_client,
+            topic="health/launcher/ping",
+            interval_seconds=60
+        )
+        logger.info("MQTT client connected and heartbeat started on 'health/launcher/ping'")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to set up MQTT/heartbeat: {e}")
+        return False
+
+def cleanup_mqtt_and_heartbeat():
+    """Clean up MQTT client and stop heartbeat."""
+    global mqtt_client, launcher_heartbeat
+    
+    if launcher_heartbeat:
+        try:
+            launcher_heartbeat.stop()
+            logger.info("Heartbeat stopped")
+        except Exception as e:
+            logger.error(f"Error stopping heartbeat: {e}")
+    
+    if mqtt_client:
+        try:
+            mqtt_client.loop_stop()
+            mqtt_client.disconnect()
+            logger.info("MQTT client disconnected")
+        except Exception as e:
+            logger.error(f"Error disconnecting MQTT client: {e}")
+
 if __name__ == '__main__':
+    # Set up MQTT and start heartbeat
+    setup_mqtt_and_heartbeat()
+    
+    # Register cleanup handlers for graceful shutdown
+    import atexit
+    atexit.register(cleanup_mqtt_and_heartbeat)
+    
     # Start default finder if WATCH_TEAM is set
     watch_team = os.environ.get('WATCH_TEAM', 'Red Sox')
     if watch_team:

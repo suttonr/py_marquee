@@ -23,3 +23,12 @@ launcher/cli*
 web/tools/build/
 web/tools/*.egg-info/
 web/tools/dist/
+
+# Heartbeat module build artifacts
+heartbeat/build/
+heartbeat/dist/
+heartbeat/*.egg-info/
+heartbeat/py_marquee_heartbeat.egg-info/
+
+# Web lib directory (heartbeat egg is copied here during packaging)
+web/lib/

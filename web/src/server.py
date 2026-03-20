@@ -3,6 +3,7 @@ Flask web server with session-based authentication for Marquee Control
 Supports both password and FIDO2/WebAuthn authentication
 """
 import os
+import sys
 import json
 import secrets as stdlib_secrets
 import ipaddress
@@ -13,6 +14,14 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
 import requests
+
+# Import heartbeat module (installed as py-marquee-heartbeat package)
+try:
+    from heartbeat import start_heartbeat
+    HEARTBEAT_AVAILABLE = True
+except ImportError:
+    HEARTBEAT_AVAILABLE = False
+    print("Warning: heartbeat module not available, health pings disabled")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -105,7 +114,8 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'logged_in' not in session:
-            return redirect(url_for('login'))
+            next_url = request.url
+            return redirect(url_for('login', next=next_url))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -294,6 +304,15 @@ def login_html():
 @app.route('/login', methods=['POST'])
 def login_post():
     """Handle login form submission"""
+    # Get the next URL to redirect to after login
+    next_url = request.form.get('next') or request.args.get('next')
+    # Validate that next_url is a safe redirect (same domain)
+    if next_url:
+        from urllib.parse import urlparse
+        parsed = urlparse(next_url)
+        if parsed.netloc and parsed.netloc != request.host:
+            next_url = None  # Don't allow redirects to other domains
+    
     if not ALLOW_STATIC_PASSWORDS:
         flash('Password authentication is disabled', 'error')
         return redirect(url_for('login'))
@@ -310,6 +329,8 @@ def login_post():
         session['logged_in'] = True
         session['username'] = username
         flash('Successfully logged in!', 'success')
+        if next_url:
+            return redirect(next_url)
         return redirect(url_for('index'))
 
     # Check user file for password
@@ -323,6 +344,8 @@ def login_post():
                 session['logged_in'] = True
                 session['username'] = username
                 flash('Successfully logged in!', 'success')
+                if next_url:
+                    return redirect(next_url)
                 return redirect(url_for('index'))
         except Exception as e:
             print(f"Error loading user data for {username}: {e}")
@@ -603,6 +626,19 @@ def serve_static(filename):
     return send_from_directory('.', 'index.html')
 
 
+# Global heartbeat instance for cleanup
+web_heartbeat = None
+
+def cleanup_web_heartbeat():
+    """Clean up heartbeat on shutdown."""
+    global web_heartbeat
+    if web_heartbeat:
+        try:
+            web_heartbeat.stop()
+            print("Web heartbeat stopped")
+        except Exception as e:
+            print(f"Error stopping web heartbeat: {e}")
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8888))
     debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
@@ -613,5 +649,31 @@ if __name__ == '__main__':
     print(f"Launcher proxy configured: {LAUNCHER_BASE_URL}")
     print(f"Launcher API Key: {'Set' if LAUNCHER_API_KEY else 'Not set (optional)'}")
     print(f"MQTT proxy configured: {MQTT_BROKER}:{MQTT_PORT}")
+    
+    # Start heartbeat on 'health/web/ping' topic using the MQTT proxy client
+    if HEARTBEAT_AVAILABLE:
+        try:
+            # Wait for MQTT proxy to connect (with timeout)
+            import time
+            for _ in range(10):
+                if mqtt_proxy.is_connected():
+                    break
+                time.sleep(0.5)
+            
+            if mqtt_proxy.is_connected():
+                web_heartbeat = start_heartbeat(
+                    mqtt_proxy.client,
+                    topic="health/web/ping",
+                    interval_seconds=60
+                )
+                print("Web heartbeat started on 'health/web/ping'")
+            else:
+                print("Warning: MQTT proxy not connected, health pings disabled")
+        except Exception as e:
+            print(f"Warning: Failed to start web heartbeat: {e}")
+    
+    # Register cleanup handler
+    import atexit
+    atexit.register(cleanup_web_heartbeat)
     
     socketio.run(app, host='0.0.0.0', port=port, debug=debug, allow_unsafe_werkzeug=True)

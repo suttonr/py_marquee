@@ -23,11 +23,11 @@ class Heartbeat:
         message: Optional custom message content (default: includes timestamp)
     """
     
-    def __init__(self, mqtt_client, topic="health/health/ping", message=None):
+    def __init__(self, mqtt_client, topic="health/health/ping", interval_seconds=60, message=None):
         self.mqtt_client = mqtt_client
         self.topic = topic
         self.custom_message = message
-        self.interval_seconds = 60
+        self.interval_seconds = interval_seconds
         self._thread = None
         self._stop_event = threading.Event()
         self._running = False
@@ -114,6 +114,6 @@ def start_heartbeat(mqtt_client, topic="health/launcher/ping", interval_seconds=
     Returns:
         Heartbeat instance (call .stop() to shut down)
     """
-    heartbeat = Heartbeat(mqtt_client, topic, interval_seconds)
+    heartbeat = Heartbeat(mqtt_client, topic=topic, interval_seconds=interval_seconds)
     heartbeat.start()
     return heartbeat

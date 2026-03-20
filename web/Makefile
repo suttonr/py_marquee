@@ -18,9 +18,14 @@ SYSTEMCTL_CMD = systemctl
 SUDO = 
 endif
 
-.PHONY: build start stop status remove create install run shell package
+.PHONY: get_egg build start stop status remove create install run shell package
 
-package:
+get_egg:
+	# Copy heartbeat egg to web/lib/
+	mkdir -p $(shell pwd)/lib/
+	cp ../heartbeat/dist/py_marquee_heartbeat-*.whl $(shell pwd)/lib/
+
+package: get_egg
 	cd .. && git archive --format=tar.gz --output=py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz HEAD:web/
 
 publish: package
@@ -29,7 +34,7 @@ publish: package
 	ssh $(PUBLISH_HOST) "bash -l -c 'cd $(PUBLISH_PATH)/web; export SYSTEM_UNIT=true; make run'"
 
 
-build:
+build: get_egg
 	$(SUDO) $(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
 
 stop:
