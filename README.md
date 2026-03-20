@@ -83,6 +83,11 @@ flowchart TD
 - `templates/`: Display modules for different functions (Clock, Weather, Timer, etc.).
 - `animation_manager.py`: Handles the timing and execution of animations.
 - `mqtt_handlers.py`: Processes incoming MQTT messages to update the display.
+- `heartbeat/`: Reusable module for sending periodic health pings to MQTT topics. See [heartbeat/README.md](heartbeat/README.md) for details.
+
+### Launcher Service
+
+- `launcher/`: REST API service for MLB game management with optional MQTT heartbeat support. See [launcher/README.md](launcher/README.md) for details.
 
 ## Interaction with FPGA
 
