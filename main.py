@@ -153,7 +153,7 @@ if __name__ == '__main__':
     # Start heartbeat on 'health/main/ping' topic using the existing MQTT client
     main_heartbeat = start_heartbeat(
         m,
-        topic="health/main/ping",
+        topic="health/matrix/ping",
         interval_seconds=60
     )
     print("Main heartbeat started on 'health/matrix/ping'")
