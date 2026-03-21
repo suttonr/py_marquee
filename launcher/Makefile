@@ -15,7 +15,12 @@ SYSTEMCTL_CMD = systemctl
 MKDIR_CMD = mkdir
 endif
 
-.PHONY: package_cli package build start stop status remove create install run shell
+.PHONY: get_egg package_cli package build start stop status remove create install run shell
+
+get_egg:
+	# Copy heartbeat egg to web/lib/
+	mkdir -p $(shell pwd)/lib/
+	cp ../heartbeat/dist/py_marquee_heartbeat-*.whl $(shell pwd)/lib/
 
 package:
 	cd .. && git archive --format=tar.gz --output=py_marquee-launcher-$(shell git rev-parse --short HEAD).tar.gz HEAD:launcher/
@@ -23,7 +28,7 @@ package:
 package_cli:
 	tar -cvzf cli.tar.gz -C .. --exclude=cli/cache --exclude=cli/examples --exclude cli/__pycache__ cli
 
-build: package_cli
+build: package_cli get_egg
 	$(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
 
 stop:

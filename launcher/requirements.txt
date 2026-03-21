@@ -6,4 +6,4 @@ blinker==1.7.0
 selenium-wire
 flask
 flask-cors
-py-marquee-heartbeat @ file:///Users/ryan/git/py_marquee/heartbeat/dist/py_marquee_heartbeat-1.0.0-py3-none-any.whl
+py-marquee-heartbeat @ file:///py_marquee_heartbeat-1.0.0-py3-none-any.whl
