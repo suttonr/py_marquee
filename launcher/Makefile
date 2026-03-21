@@ -18,7 +18,7 @@ endif
 .PHONY: get_egg package_cli package build start stop status remove create install run shell
 
 get_egg:
-	# Copy heartbeat egg to web/lib/
+	# Copy heartbeat egg to /lib/
 	mkdir -p $(shell pwd)/lib/
 	cp ../heartbeat/dist/py_marquee_heartbeat-*.whl $(shell pwd)/lib/
 
