@@ -69,19 +69,19 @@ def get_mqtt_client(broker, port, topic, message, username=None, password=None, 
 
 
 @click.group()
-@click.option('--broker', default='localhost', help='MQTT broker hostname (default: localhost)')
-@click.option('--port', default=1883, type=int, help='MQTT broker port (default: 1883)')
-@click.option('--topic', default='health/heartbeat', help='MQTT topic for heartbeats (default: health/heartbeat)')
-@click.option('--message', default=None, help='Custom message to send (default: timestamp)')
+@click.option('--broker', default=None, envvar='MQTT_BROKER', help='MQTT broker hostname (default: localhost)')
+@click.option('--port', default=None, envvar='MQTT_PORT', type=int, help='MQTT broker port (default: 1883)')
+@click.option('--topic', default=None, envvar='MQTT_TOPIC', help='MQTT topic for heartbeats (default: health/heartbeat)')
+@click.option('--message', default=None, envvar='MQTT_MESSAGE', help='Custom message to send (default: timestamp)')
 @click.option('--username', default=None, envvar='MQTT_USERNAME', help='MQTT username')
 @click.option('--password', default=None, envvar='MQTT_PASSWORD', help='MQTT password')
 @click.pass_context
 def cli(ctx, broker, port, topic, message, username, password):
     """Heartbeat CLI - Send heartbeats to MQTT with various monitoring modes."""
     ctx.ensure_object(dict)
-    ctx.obj['broker'] = broker
-    ctx.obj['port'] = port
-    ctx.obj['topic'] = topic
+    ctx.obj['broker'] = broker or 'localhost'
+    ctx.obj['port'] = port or 1883
+    ctx.obj['topic'] = topic or 'health/heartbeat'
     ctx.obj['message'] = message or datetime.now(timezone.utc).isoformat()
     ctx.obj['username'] = username
     ctx.obj['password'] = password
