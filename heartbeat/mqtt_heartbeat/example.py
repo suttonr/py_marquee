@@ -9,7 +9,7 @@ from paho.mqtt import client as mqtt_client
 import secrets
 import time
 
-from heartbeat import Heartbeat
+from mqtt_heartbeat import Heartbeat
 
 def main():
     """Example: Using heartbeat with a custom MQTT client setup."""

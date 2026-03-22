@@ -19,7 +19,7 @@ from templates.base import base
 from templates.weather import weather
 from animation_manager import start_animation_manager, stop_animation_manager
 from mqtt_handlers import new_message, init_shared_state
-from heartbeat import start_heartbeat
+from mqtt_heartbeat import start_heartbeat
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image

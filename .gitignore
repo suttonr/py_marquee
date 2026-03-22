@@ -18,6 +18,7 @@ venv/*
 launcher/cli*
 *.log
 *.tar.gz
+**/build_args.txt
 
 # Python build artifacts
 web/tools/build/

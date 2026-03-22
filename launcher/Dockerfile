@@ -1,5 +1,5 @@
 FROM python:3.9-slim
-
+ARG PIP_EXTRA
 # Set working directory
 WORKDIR /app
 
@@ -10,9 +10,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-COPY lib/ ./lib/
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir lib/py_marquee_heartbeat-*.whl
+RUN echo "PE:${PIP_EXTRA}" && pip install --no-cache-dir $PIP_EXTRA -r requirements.txt
 
 # Copy the service file
 COPY marquee_launcher_service.py .

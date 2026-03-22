@@ -5,6 +5,7 @@ CONTAINER_OPTS = --publish 8888:8888 --env-file .env
 CONTAINER_VOLUMES = --volume $(shell pwd)/auth/:/auth:Z
 PUBLISH_HOST = web.ryanmsutton.com
 PUBLISH_PATH = /home/opc
+CONTAINER_BUILD_ARGS = $(shell cat ./build_args.txt)
 
 ifdef SYSTEM_UNIT
 SYSTEMD_USER_FLAG =
@@ -21,11 +22,10 @@ endif
 .PHONY: get_egg build start stop status remove create install run shell package
 
 get_egg:
-	# Copy heartbeat egg to web/lib/
-	mkdir -p $(shell pwd)/lib/
-	cp ../heartbeat/dist/py_marquee_heartbeat-*.whl $(shell pwd)/lib/
+	# mqtt-heartbeat is now installed from internal PyPI
+	@echo "mqtt-heartbeat is installed from internal PyPI"
 
-package: get_egg
+package:
 	cd .. && git archive --format=tar.gz --output=py_marquee-web-$(shell git rev-parse --short HEAD).tar.gz HEAD:web/
 
 publish: package
@@ -34,8 +34,8 @@ publish: package
 	ssh $(PUBLISH_HOST) "bash -l -c 'cd $(PUBLISH_PATH)/web; export SYSTEM_UNIT=true; make run'"
 
 
-build: get_egg
-	$(SUDO) $(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
+build:
+	$(SUDO) $(CONTAINER_BIN) build $(CONTAINER_BUILD_ARGS) -t $(CONTAINER_NAME) .
 
 stop:
 	$(SUDO) $(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) stop $(SERVICE_NAME) || true

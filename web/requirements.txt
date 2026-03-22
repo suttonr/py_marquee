@@ -7,3 +7,4 @@ pytest>=7.0.0
 fido2>=1.1.0
 cryptography>=41.0.0
 paho-mqtt>=1.6.1
+mqtt-heartbeat>=0.0.0 # Internal Package

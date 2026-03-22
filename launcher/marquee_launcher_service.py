@@ -23,7 +23,7 @@ import cli.secrets
 import local_secrets as local_secrets
 
 # Import heartbeat module (py-marquee-heartbeat package)
-from heartbeat import start_heartbeat
+from mqtt_heartbeat import start_heartbeat
 
 
 # Configure logging

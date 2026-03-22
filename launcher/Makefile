@@ -2,6 +2,7 @@ CONTAINER_BIN = podman
 CONTAINER_NAME = marquee-launcher-service
 SERVICE_NAME = container-$(CONTAINER_NAME).service
 CONTAINER_OPTS = --publish 4000:4000 --env PORT=4000 --env DEBUG=true
+CONTAINER_BUILD_ARGS = $(shell cat ./build_args.txt)
 
 ifdef SYSTEMD_SYSTEM_UNIT
 SYSTEMD_USER_FLAG =
@@ -18,9 +19,8 @@ endif
 .PHONY: get_egg package_cli package build start stop status remove create install run shell
 
 get_egg:
-	# Copy heartbeat egg to /lib/
-	mkdir -p $(shell pwd)/lib/
-	cp ../heartbeat/dist/py_marquee_heartbeat-*.whl $(shell pwd)/lib/
+	# mqtt-heartbeat is now installed from internal PyPI
+	@echo "mqtt-heartbeat is installed from internal PyPI"
 
 package:
 	cd .. && git archive --format=tar.gz --output=py_marquee-launcher-$(shell git rev-parse --short HEAD).tar.gz HEAD:launcher/
@@ -28,8 +28,8 @@ package:
 package_cli:
 	tar -cvzf cli.tar.gz -C .. --exclude=cli/cache --exclude=cli/examples --exclude cli/__pycache__ cli
 
-build: package_cli get_egg
-	$(CONTAINER_BIN) build -t $(CONTAINER_NAME) .
+build: package_cli
+	$(CONTAINER_BIN) build $(CONTAINER_BUILD_ARGS) -t $(CONTAINER_NAME) .
 
 stop:
 	$(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) stop $(SERVICE_NAME) || true

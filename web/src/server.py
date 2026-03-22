@@ -17,7 +17,7 @@ import requests
 
 # Import heartbeat module (installed as py-marquee-heartbeat package)
 try:
-    from heartbeat import start_heartbeat
+    from mqtt_heartbeat import start_heartbeat
     HEARTBEAT_AVAILABLE = True
 except ImportError:
     HEARTBEAT_AVAILABLE = False

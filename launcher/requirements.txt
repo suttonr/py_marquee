@@ -6,3 +6,4 @@ blinker==1.7.0
 selenium-wire
 flask
 flask-cors
+mqtt-heartbeat>=0.0.0 #Internal Package
