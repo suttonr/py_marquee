@@ -162,3 +162,61 @@ These can be combined with any command:
 ## Example
 
 See `example.py` for a complete working example.
+
+## Systemd Service
+
+To run the heartbeat CLI as a systemd service, create a unit file:
+
+```ini
+[Unit]
+Description=MQTT Heartbeat Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/py_marquee
+ExecStart=/usr/local/bin/mqtt-heartbeat watch-http --url http://localhost:8080/health --interval 30 --broker localhost --topic health/marquee/ping
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Optional: Environment variables for MQTT credentials
+# Environment="MQTT_USERNAME=heartbeat"
+# Environment="MQTT_PASSWORD=secret"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Installation
+
+1. Save the unit file:
+   ```bash
+   sudo cp marquee-heartbeat.service /etc/systemd/system/
+   ```
+
+2. Reload systemd:
+   ```bash
+   sudo systemctl daemon-reload
+   ```
+
+3. Enable and start the service:
+   ```bash
+   sudo systemctl enable --now marquee-heartbeat.service
+   ```
+
+### Status and Logs
+
+Check service status:
+```bash
+sudo systemctl status marquee-heartbeat.service
+```
+
+View logs:
+```bash
+sudo journalctl -u marquee-heartbeat.service -f
+```
