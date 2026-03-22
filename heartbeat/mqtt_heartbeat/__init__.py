@@ -12,6 +12,6 @@ Usage:
     heartbeat.stop()
 """
 
-from heartbeat.heartbeat import Heartbeat, start_heartbeat
+from mqtt_heartbeat.heartbeat import Heartbeat, start_heartbeat
 
 __all__ = ['Heartbeat', 'start_heartbeat']

@@ -1,9 +1,13 @@
-.PHONY: egg build clean install
-
+.PHONY: egg build clean publish install
+VERSION_FILE := pyproject.toml
 # Build the heartbeat module as an egg package
-egg:
-	cd $(shell pwd) && python3 -m pip install --upgrade build
+egg: clean
+	bumpver update --patch
+	python3 -m pip install --upgrade build
 	python3 -m build
+
+publish: egg
+	twine upload -r pypi dist/*
 
 # Install the egg in development mode
 install:

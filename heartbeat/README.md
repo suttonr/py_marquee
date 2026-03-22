@@ -90,6 +90,75 @@ You can provide a custom message:
 heartbeat = Heartbeat(mqtt_client, message="service is running")
 ```
 
+## CLI Usage
+
+The heartbeat module also provides a command-line interface for sending heartbeats to MQTT.
+
+### Installation
+
+```bash
+pip install mqtt-heartbeat
+```
+
+Or install from source:
+```bash
+cd heartbeat
+pip install .
+```
+
+### Commands
+
+#### Send a single heartbeat
+
+```bash
+mqtt-heartbeat once
+```
+
+With custom settings:
+```bash
+mqtt-heartbeat once --broker localhost --port 1883 --topic "health/myapp"
+```
+
+#### Watch a port and emit heartbeat when open
+
+Watch port 8080 on localhost and send heartbeat when it's open:
+
+```bash
+mqtt-heartbeat watch-port --check-port 8080
+```
+
+With custom interval (30 seconds):
+```bash
+mqtt-heartbeat watch-port --check-port 8080 --interval 30
+```
+
+Watch a different host:
+```bash
+mqtt-heartbeat watch-port --check-port 8080 --host 192.168.1.100
+```
+
+#### Watch a URL and emit heartbeat on HTTP response
+
+Watch a health endpoint and send heartbeat when it responds:
+
+```bash
+mqtt-heartbeat watch-http --url http://localhost:8080/health
+```
+
+With custom interval:
+```bash
+mqtt-heartbeat watch-http --url http://localhost:8080/health --interval 30
+```
+
+### Global Options
+
+These can be combined with any command:
+
+- `--broker TEXT`: MQTT broker hostname (default: localhost)
+- `--port INTEGER`: MQTT broker port (default: 1883)
+- `--topic TEXT`: MQTT topic for heartbeats (default: health/heartbeat)
+- `--message TEXT`: Custom message to send (default: timestamp)
+
 ## Example
 
 See `example.py` for a complete working example.
