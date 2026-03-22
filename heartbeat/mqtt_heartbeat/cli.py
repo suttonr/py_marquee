@@ -26,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_mqtt_client(broker, port, topic, message, keepalive=60):
+def get_mqtt_client(broker, port, topic, message, username=None, password=None, keepalive=60):
     """
     Create and connect an MQTT client.
     
@@ -35,6 +35,8 @@ def get_mqtt_client(broker, port, topic, message, keepalive=60):
         port: MQTT broker port
         topic: MQTT topic to publish to
         message: Custom message to send
+        username: Optional username for authentication
+        password: Optional password for authentication
         keepalive: Keepalive interval in seconds
     
     Returns:
@@ -45,6 +47,11 @@ def get_mqtt_client(broker, port, topic, message, keepalive=60):
     # Create MQTT client with a unique client ID
     client_id = f"heartbeat_cli_{int(time.time())}"
     client = mqtt.Client(client_id=client_id)
+    
+    # Set credentials if provided
+    if username or password:
+        if username and password:
+            client.username_pw_set(username, password)
     
     # Connect to broker
     try:
@@ -66,14 +73,18 @@ def get_mqtt_client(broker, port, topic, message, keepalive=60):
 @click.option('--port', default=1883, type=int, help='MQTT broker port (default: 1883)')
 @click.option('--topic', default='health/heartbeat', help='MQTT topic for heartbeats (default: health/heartbeat)')
 @click.option('--message', default=None, help='Custom message to send (default: timestamp)')
+@click.option('--username', default=None, envvar='MQTT_USERNAME', help='MQTT username')
+@click.option('--password', default=None, envvar='MQTT_PASSWORD', help='MQTT password')
 @click.pass_context
-def cli(ctx, broker, port, topic, message):
+def cli(ctx, broker, port, topic, message, username, password):
     """Heartbeat CLI - Send heartbeats to MQTT with various monitoring modes."""
     ctx.ensure_object(dict)
     ctx.obj['broker'] = broker
     ctx.obj['port'] = port
     ctx.obj['topic'] = topic
     ctx.obj['message'] = message or datetime.now(timezone.utc).isoformat()
+    ctx.obj['username'] = username
+    ctx.obj['password'] = password
 
 
 @cli.command()
@@ -84,11 +95,13 @@ def once(ctx):
     port = ctx.obj['port']
     topic = ctx.obj['topic']
     message = ctx.obj['message']
+    username = ctx.obj.get('username')
+    password = ctx.obj.get('password')
     
     logger.info(f"Sending single heartbeat to {broker}:{port} on topic '{topic}'")
     
     try:
-        client, heartbeat = get_mqtt_client(broker, port, topic, message)
+        client, heartbeat = get_mqtt_client(broker, port, topic, message, username, password)
         result = heartbeat.send_once()
         
         if result:
@@ -116,13 +129,15 @@ def watch_port(ctx, host, check_port, interval):
     port = ctx.obj['port']
     topic = ctx.obj['topic']
     message = ctx.obj['message']
+    username = ctx.obj.get('username')
+    password = ctx.obj.get('password')
     
     logger.info(f"Starting port watcher: {host}:{check_port}, will send heartbeat when port is open")
     click.echo(f"Watching {host}:{check_port} - will send heartbeat when port opens")
     
     def check_port_thread():
         """Background thread to check port status."""
-        client, heartbeat = get_mqtt_client(broker, port, topic, message)
+        client, heartbeat = get_mqtt_client(broker, port, topic, message, username, password)
         
         try:
             while True:
@@ -168,13 +183,15 @@ def watch_http(ctx, url, interval, timeout):
     port = ctx.obj['port']
     topic = ctx.obj['topic']
     message = ctx.obj['message']
+    username = ctx.obj.get('username')
+    password = ctx.obj.get('password')
     
     logger.info(f"Starting HTTP watcher: {url}, will send heartbeat when HTTP responds")
     click.echo(f"Watching {url} - will send heartbeat when HTTP responds")
     
     def check_http_thread():
         """Background thread to check HTTP endpoint."""
-        client, heartbeat = get_mqtt_client(broker, port, topic, message)
+        client, heartbeat = get_mqtt_client(broker, port, topic, message, username, password)
         
         try:
             while True:
