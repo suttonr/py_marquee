@@ -1,5 +1,6 @@
 CONTAINER_BIN = podman
 CONTAINER_NAME = marquee-web
+CONTAINER_REPO = repo.aptbox.net/internal
 SERVICE_NAME = container-$(CONTAINER_NAME).service
 CONTAINER_OPTS = --publish 8888:8888 --env-file .env
 CONTAINER_VOLUMES = --volume $(shell pwd)/auth/:/auth:Z
@@ -50,13 +51,13 @@ status:
 remove: stop
 	$(SUDO) $(CONTAINER_BIN) rm -f $(CONTAINER_NAME) || true
 
-create: remove build
+create: remove
 	mkdir -p $(shell pwd)/auth/ || true
 	touch $(shell pwd)/auth/admin.json  || true
 	$(SUDO) $(CONTAINER_BIN) create --name $(CONTAINER_NAME) \
 		$(CONTAINER_OPTS) \
 		$(CONTAINER_VOLUMES) \
-		localhost/$(CONTAINER_NAME):latest
+		$(CONTAINER_REPO)/$(CONTAINER_NAME):latest
 
 install: create
 	$(SUDO) mkdir -p $(SYSTEMD_DIR)
