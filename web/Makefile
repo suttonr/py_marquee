@@ -6,7 +6,10 @@ CONTAINER_OPTS = --publish 8888:8888 --env-file .env
 CONTAINER_VOLUMES = --volume $(shell pwd)/auth/:/auth:Z
 PUBLISH_HOST = web.ryanmsutton.com
 PUBLISH_PATH = /home/opc
-CONTAINER_BUILD_ARGS = $(shell cat ./build_args.txt)
+CONTAINER_BUILD_ARGS = $(shell cat ./build_args.txt) --platform=linux/amd64,linux/arm64
+IMAGE_REPO = repo.aptbox.net/internal
+IMAGE_VERSION = $(shell grep "^current_version =" bumpver.toml | cut -d '=' -f 2 | tr -d '\" ' | tr -d '\n')
+
 
 ifdef SYSTEM_UNIT
 SYSTEMD_USER_FLAG =
@@ -20,7 +23,7 @@ SYSTEMCTL_CMD = systemctl
 SUDO = 
 endif
 
-.PHONY: get_egg build start stop status remove create install run shell package
+.PHONY: get_egg build push start stop status remove create install run shell package
 
 get_egg:
 	# mqtt-heartbeat is now installed from internal PyPI
@@ -36,7 +39,15 @@ publish: package
 
 
 build:
-	$(SUDO) $(CONTAINER_BIN) build $(CONTAINER_BUILD_ARGS) -t $(CONTAINER_NAME) .
+	bumpver update --patch && \
+	IMAGE_VERSION=$$(grep "^current_version =" bumpver.toml | cut -d '=' -f 2 | tr -d '\" ' | tr -d '\n') && \
+	$(SUDO) $(CONTAINER_BIN) manifest create $(IMAGE_REPO)/$(CONTAINER_NAME):$${IMAGE_VERSION} && \
+	$(SUDO) $(CONTAINER_BIN) build $(CONTAINER_BUILD_ARGS) --manifest $(IMAGE_REPO)/$(CONTAINER_NAME):$${IMAGE_VERSION} .
+
+push: build
+	IMAGE_VERSION=$$(grep "^current_version =" bumpver.toml | cut -d '=' -f 2 | tr -d '\" ' | tr -d '\n') && \
+	$(SUDO) $(CONTAINER_BIN) manifest push --all  $(IMAGE_REPO)/$(CONTAINER_NAME):$${IMAGE_VERSION} docker://$(IMAGE_REPO)/$(CONTAINER_NAME):$${IMAGE_VERSION} && \
+	$(SUDO) $(CONTAINER_BIN) manifest push --all  $(IMAGE_REPO)/$(CONTAINER_NAME):$${IMAGE_VERSION} docker://$(IMAGE_REPO)/$(CONTAINER_NAME):latest
 
 stop:
 	$(SUDO) $(SYSTEMCTL_CMD) $(SYSTEMD_USER_FLAG) stop $(SERVICE_NAME) || true
@@ -54,6 +65,7 @@ remove: stop
 create: remove
 	mkdir -p $(shell pwd)/auth/ || true
 	touch $(shell pwd)/auth/admin.json  || true
+	$(SUDO) $(CONTAINER_BIN) pull $(CONTAINER_REPO)/$(CONTAINER_NAME):latest
 	$(SUDO) $(CONTAINER_BIN) create --name $(CONTAINER_NAME) \
 		$(CONTAINER_OPTS) \
 		$(CONTAINER_VOLUMES) \
