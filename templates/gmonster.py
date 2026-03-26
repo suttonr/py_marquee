@@ -38,6 +38,7 @@ class gmonster(base):
         self.disable_close = False
         self.clock = None
         self.hr = False
+        self.rswin = False
         self.launcher_key = launcher_key
         self.bgcolor = bytearray(b'\x00\x64\x00')
 
@@ -108,6 +109,7 @@ class gmonster(base):
 
     def display_rs_win(self):
         self.draw_bmp("templates/img/redsoxwin.bmp")
+        self.rswin = True
 
     def display_hr(self):
         self.draw_bmp("templates/img/hr.bmp")
@@ -122,6 +124,9 @@ class gmonster(base):
             "team",
         ]
 
+        if self.rswin:
+            return
+        
         if self.hr:
             self.display_mask()
             self.hr = False
