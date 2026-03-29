@@ -1,0 +1,5 @@
+[tool.bumpver]
+current_version = "1.0.2"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "bump web version {old_version} -> {new_version}"
+tag_message = "launcher-{new_version}"
