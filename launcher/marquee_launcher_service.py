@@ -152,13 +152,16 @@ def finder_thread(finder_id, team_filter, sleep_minutes, auto_launch, priority):
                     
                     if should_watch:
                         thread = threading.Thread(target=watch_game_thread, args=(game_pk_to_watch, interval, priority), daemon=True)
+                        already_watched = False
                         with watcher_lock:
+                            already_watched = game_pk_to_watch in active_watchers
                             active_watchers[game_pk_to_watch] = {
                                 'thread': thread,
                                 'priority': priority
                             }
-                        thread.start()
-                        logger.info(f"Auto-launched watcher for game {game_pk_to_watch}")
+                        if not already_watched:
+                            thread.start()
+                            logger.info(f"Auto-launched watcher for game {game_pk_to_watch}")
 
             # Update time_until_next_game in finder info
             with finder_lock:
@@ -296,15 +299,18 @@ def start_watching_game(game_pk):
     thread = threading.Thread(target=watch_game_thread, args=(game_pk, interval, priority), daemon=True)
     
     # Add to active watchers before starting the thread to avoid race condition
+    already_watched = False
     with watcher_lock:
+        already_watched = game_pk in active_watchers
         active_watchers[game_pk] = {
             'thread': thread,
             'priority': priority
         }
-    
-    thread.start()
-
-    return jsonify({"message": f"Started watching game {game_pk}", "priority": priority})
+    if not already_watched:
+        thread.start()
+        return jsonify({"message": f"Started watching game {game_pk}", "priority": priority})
+    else:
+        return jsonify({"message": f"Game {game_pk} already watched, not starting another", "priority": priority})
 
 @app.route('/games/<int:game_pk>/stop', methods=['POST'])
 @require_api_key

@@ -8,6 +8,7 @@ Handlers are organized by topic patterns for better maintainability and extensib
 import time
 import traceback
 import secrets
+import logging
 from templates.clock import clock
 from templates.timer import timer
 from templates.gmonster import gmonster
@@ -208,8 +209,13 @@ def handle_gmonster_box(msg):
     topic_split = msg.topic.split("/")
     global template
     if len(topic_split) >= 7 and topic_split[4] == "inning":
+        inning_index = int(topic_split[6]) - 1
+        # Validate inning index is within valid range (1-10)
+        if inning_index < 0 or inning_index >= 10:
+            logger.warning(f"Invalid inning index: {topic_split[6]} (topic: {msg.topic})")
+            return
         template.update_box(topic_split[4], topic_split[5], msg.payload.decode(),
-            index=int(topic_split[6])-1)
+            index=inning_index)
     elif len(topic_split) >= 6:
         template.update_box(topic_split[4], topic_split[5], msg.payload.decode())
 
