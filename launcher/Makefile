@@ -55,7 +55,7 @@ status:
 remove: stop
 	$(CONTAINER_BIN) rm -f $(CONTAINER_NAME) || true
 
-create: remove build
+create: remove
 	$(CONTAINER_BIN) pull $(CONTAINER_REPO)/$(CONTAINER_NAME):latest
 	$(CONTAINER_BIN) create --name $(CONTAINER_NAME) \
 		$(CONTAINER_OPTS) \
