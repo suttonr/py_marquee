@@ -1,5 +1,6 @@
 CONTAINER_BIN = podman
 CONTAINER_NAME = marquee-launcher-service
+CONTAINER_REPO = repo.aptbox.net/internal
 SERVICE_NAME = container-$(CONTAINER_NAME).service
 CONTAINER_OPTS = --publish 4000:4000 --env PORT=4000 --env DEBUG=true
 CONTAINER_BUILD_ARGS = $(shell cat ./build_args.txt) --platform=linux/amd64,linux/arm64
