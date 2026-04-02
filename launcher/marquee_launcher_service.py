@@ -244,6 +244,22 @@ def find_games():
     auto_launch = data.get('auto_launch', False)
     priority = data.get('priority', 0)
 
+    # Check if finder for this team already exists
+    existing_finder_id = None
+    with finder_lock:
+        for fid, info in active_finders.items():
+            if info.get('team_filter') == team_filter:
+                existing_finder_id = fid
+                break
+    
+    if existing_finder_id is not None:
+        return jsonify({
+            "message": f"Finder for team '{team_filter}' already exists",
+            "finder_id": existing_finder_id,
+            "team_filter": team_filter,
+            "already_running": True
+        })
+
     global finder_counter
 
     with finder_lock:
@@ -617,26 +633,37 @@ if __name__ == '__main__':
     # Start default finder if WATCH_TEAM is set
     watch_team = os.environ.get('WATCH_TEAM', 'Red Sox')
     if watch_team:
-        finder_id = 0
-        sleep_minutes = 30
-        auto_launch = True
-        priority = 5  # Default priority for startup finder
+        # Check if finder for this team already exists
+        existing_finder_id = None
         with finder_lock:
-            thread = threading.Thread(
-                target=finder_thread, 
-                args=(finder_id, watch_team, sleep_minutes, auto_launch, priority), 
-                daemon=True
-            )
-            active_finders[finder_id] = {
-                'thread': thread,
-                'team_filter': watch_team,
-                'sleep_minutes': sleep_minutes,
-                'auto_launch': auto_launch,
-                'priority': priority,
-                'start_time': datetime.now(ZoneInfo("America/New_York"))
-            }
-            thread.start()
-        logger.info(f"Started startup finder for team: {watch_team}")
+            for fid, info in active_finders.items():
+                if info.get('team_filter') == watch_team:
+                    existing_finder_id = fid
+                    break
+        
+        if existing_finder_id is not None:
+            logger.info(f"Startup finder for team '{watch_team}' already exists (finder_id={existing_finder_id}), skipping")
+        else:
+            finder_id = 0
+            sleep_minutes = 30
+            auto_launch = True
+            priority = 5  # Default priority for startup finder
+            with finder_lock:
+                thread = threading.Thread(
+                    target=finder_thread, 
+                    args=(finder_id, watch_team, sleep_minutes, auto_launch, priority), 
+                    daemon=True
+                )
+                active_finders[finder_id] = {
+                    'thread': thread,
+                    'team_filter': watch_team,
+                    'sleep_minutes': sleep_minutes,
+                    'auto_launch': auto_launch,
+                    'priority': priority,
+                    'start_time': datetime.now(ZoneInfo("America/New_York"))
+                }
+                thread.start()
+            logger.info(f"Started startup finder for team: {watch_team}")
 
     port = int(os.environ.get('PORT', 4000))
     debug_mode = os.environ.get('DEBUG', 'false').lower() == 'true'
